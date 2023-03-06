@@ -4,3 +4,5 @@ jax
 jax-soft-robot-modelling
 matplotlib
 opencv-python
+optax
+tensorboard
