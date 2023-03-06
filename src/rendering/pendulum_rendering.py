@@ -25,7 +25,9 @@ def render_pendulum(
     # poses along the robot of shape (3, N)
     link_indices = jnp.arange(params["l"].shape[0], dtype=jnp.int32)
     chi_ls = jnp.zeros((3, link_indices.shape[0] + 1))
-    chi_ls = chi_ls.at[:, 1:].set(batched_forward_kinematics_fn(params, q, link_indices))
+    chi_ls = chi_ls.at[:, 1:].set(
+        batched_forward_kinematics_fn(params, q, link_indices)
+    )
 
     img = 255 * onp.ones((w, h, 3), dtype=jnp.uint8)  # initialize background to white
     curve_origin = onp.array(
@@ -36,6 +38,8 @@ def render_pendulum(
     curve = onp.array((curve_origin + chi_ls[:2, :].T * ppm), dtype=onp.int32)
     # invert the v pixel coordinate
     curve[:, 1] = h - curve[:, 1]
-    cv2.polylines(img, [curve], isClosed=False, color=robot_color, thickness=line_thickness)
+    cv2.polylines(
+        img, [curve], isClosed=False, color=robot_color, thickness=line_thickness
+    )
 
     return img
