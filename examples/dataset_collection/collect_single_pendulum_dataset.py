@@ -32,13 +32,13 @@ robot_params = {
     "g": jnp.array([0.0, -9.81]),
 }
 
-num_simulations = 100  # number of simulations to run
-sim_dt = 1e-2  # time step used for simulation [s]
-sim_duration = 1e-1  # duration of each simulation [s]
+num_simulations = 20000  # number of simulations to run
+dt = 1e-2  # time step used for simulation [s]
+horizon = 1e-1  # duration of each simulation [s]
 # maximum magnitude of the initial joint velocity [rad/s]
-max_q_d_0 = 10 * jnp.ones((num_links,))
+max_q_d_0 = 30 * jnp.ones((num_links,))
 
-dataset_dir = Path("data/test")
+dataset_dir = Path("data") / "raw_datasets" / "single_pendulum"
 
 # Pseudo random number generator
 rng = random.PRNGKey(seed=0)
@@ -70,8 +70,8 @@ if __name__ == "__main__":
         rendering_fn=rendering_fn,
         rng=rng,
         num_simulations=num_simulations,
-        horizon=jnp.array(sim_duration),
-        dt=jnp.array(sim_dt),
+        horizon=jnp.array(horizon),
+        dt=jnp.array(dt),
         state_init_min=state_init_min,
         state_init_max=state_init_max,
         dataset_dir=str(dataset_dir),

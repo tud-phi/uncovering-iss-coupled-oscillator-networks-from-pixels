@@ -4,6 +4,7 @@ from diffrax import AbstractERK, diffeqsolve, Dopri5, ODETerm, SaveAt
 from jax import Array, lax, random
 import jax.numpy as jnp
 from pathlib import Path
+import shutil
 from typing import Callable, Dict, Generic, Type, TypeVar
 
 
@@ -33,6 +34,8 @@ def collect_dataset(
     # dataset directory
     dataset_dir = Path(dataset_dir)
     dataset_dir.mkdir(parents=True, exist_ok=True)
+    # empty the directory
+    shutil.rmtree(dataset_dir)
 
     print("Generating dataset...")
 
@@ -69,12 +72,13 @@ def collect_dataset(
             # dimension of configuration space
             n_q = n_x // 2
 
-            # index for updating the dataset
-            start_idx = sim_idx * (n_x - 1)
+            # folder to save the simulation data
+            sim_dir = dataset_dir / f"sim-{sim_idx}"
+            sim_dir.mkdir(parents=True, exist_ok=True)
 
             labels = dict(x_ts=x_ts)
             # save the labels in dataset_dir
-            jnp.savez(file=str(dataset_dir / f"sim-{sim_idx}_labels.npz"), **labels)
+            jnp.savez(file=str(sim_dir / "labels.npz"), **labels)
 
             for time_idx in range(x_ts.shape[0]):
                 # configuration for current time step
@@ -85,7 +89,7 @@ def collect_dataset(
 
                 # save the image
                 cv2.imwrite(
-                    str(dataset_dir / f"sim-{sim_idx}_t-{time_idx}_rendering.jpeg"), img
+                    str(sim_dir / f"rendering_time_idx-{time_idx}.jpeg"), img
                 )
 
                 # update sample index
