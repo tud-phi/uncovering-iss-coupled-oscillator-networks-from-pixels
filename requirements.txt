@@ -1,0 +1,6 @@
+diffrax
+flax
+jax
+jax-soft-robot-modelling
+matplotlib
+opencv-python
