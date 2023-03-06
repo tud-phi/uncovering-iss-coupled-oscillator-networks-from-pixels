@@ -6,3 +6,5 @@ matplotlib
 opencv-python
 optax
 tensorboard
+tensorflow  # required for tensorflow-datasets
+tensorflow-datasets
