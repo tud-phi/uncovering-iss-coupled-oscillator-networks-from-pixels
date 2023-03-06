@@ -72,7 +72,7 @@ def collect_dataset(
             # index for updating the dataset
             start_idx = sim_idx * (n_x - 1)
 
-            labels = dict(x_ss=x_ts)
+            labels = dict(x_ts=x_ts)
             # save the labels in dataset_dir
             jnp.savez(file=str(dataset_dir / f"sim-{sim_idx}_labels.npz"), **labels)
 
