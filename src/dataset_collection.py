@@ -8,22 +8,22 @@ from typing import Callable, Dict, Generic, Type, TypeVar
 
 
 def collect_dataset(
-        ode_fn: Callable,
-        rendering_fn: Callable,
-        rng: random.KeyArray,
-        num_simulations: int,
-        sim_duration: Array,
-        sim_dt: Array,
-        state_init_min: Array,
-        state_init_max: Array,
-        dataset_dir: str,
+    ode_fn: Callable,
+    rendering_fn: Callable,
+    rng: random.KeyArray,
+    num_simulations: int,
+    horizon: Array,
+    dt: Array,
+    state_init_min: Array,
+    state_init_max: Array,
+    dataset_dir: str,
     solver: Generic = Dopri5(),
 ):
     # initiate ODE term from `ode_fn`
     ode_term = ODETerm(ode_fn)
 
     # initiate time steps array
-    ts = jnp.arange(0, sim_duration, sim_dt)
+    ts = jnp.arange(0, horizon, dt)
 
     # number of total samples
     num_samples = num_simulations * (ts.shape[0] - 1)
@@ -34,12 +34,6 @@ def collect_dataset(
     dataset_dir = Path(dataset_dir)
     dataset_dir.mkdir(parents=True, exist_ok=True)
 
-    # reserve memory for dataset
-    dataset = dict(
-        x_curr_ss=jnp.zeros((num_samples, state_dim)),
-        x_next_ss=jnp.zeros((num_samples, state_dim)),
-    )
-
     print("Generating dataset...")
 
     sample_idx = 0
@@ -48,7 +42,12 @@ def collect_dataset(
             rng, rng_x0_sampling = random.split(rng)
 
             # generate initial state of the simulation
-            x0 = random.uniform(rng_x0_sampling, state_init_min.shape, minval=state_init_min, maxval=state_init_max)
+            x0 = random.uniform(
+                rng_x0_sampling,
+                state_init_min.shape,
+                minval=state_init_min,
+                maxval=state_init_max,
+            )
 
             # simulate
             sol = diffeqsolve(
@@ -56,10 +55,10 @@ def collect_dataset(
                 solver=solver,
                 t0=ts[0],
                 t1=ts[-1],
-                dt0=sim_dt,
+                dt0=dt,
                 y0=x0,
                 max_steps=100000,
-                saveat=SaveAt(ts=ts)
+                saveat=SaveAt(ts=ts),
             )
 
             # states along the simulation
@@ -68,18 +67,14 @@ def collect_dataset(
             # dimension of the state space
             n_x = x_ts.shape[1]
             # dimension of configuration space
-            n_q = (n_x // 2)
+            n_q = n_x // 2
 
             # index for updating the dataset
             start_idx = sim_idx * (n_x - 1)
 
-            # write samples to dataset
-            dataset["x_curr_ss"] = lax.dynamic_update_slice(
-                dataset["x_curr_ss"], x_ts[:-1], (start_idx, 0)
-            )
-            dataset["x_next_ss"] = lax.dynamic_update_slice(
-                dataset["x_next_ss"], x_ts[1:], (start_idx, 0)
-            )
+            labels = dict(x_ss=x_ts)
+            # save the labels in dataset_dir
+            jnp.savez(file=str(dataset_dir / f"sim-{sim_idx}_labels.npz"), **labels)
 
             for time_idx in range(x_ts.shape[0]):
                 # configuration for current time step
@@ -89,13 +84,12 @@ def collect_dataset(
                 img = rendering_fn(q)
 
                 # save the image
-                cv2.imwrite(str(dataset_dir / f"sample_{sample_idx}.jpeg"), img)
+                cv2.imwrite(
+                    str(dataset_dir / f"sim-{sim_idx}_t-{time_idx}_rendering.jpeg"), img
+                )
 
                 # update sample index
                 sample_idx += 1
 
             # update progress bar
             bar()
-
-    # save the dataset in problem_2/datasets/dataset_double_pendulum_dynamics.npz
-    jnp.savez(file=str(dataset_dir / "dataset.npz"), **dataset)
