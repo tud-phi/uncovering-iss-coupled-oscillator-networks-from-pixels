@@ -1,4 +1,4 @@
-from diffrax import Euler
+from diffrax import Dopri5
 from functools import partial
 from jax import config as jax_config
 
@@ -36,7 +36,7 @@ num_simulations = 100  # number of simulations to run
 sim_dt = 1e-2  # time step used for simulation [s]
 sim_duration = 1e-1  # duration of each simulation [s]
 # maximum magnitude of the initial joint velocity [rad/s]
-max_q_d_0 = 10 * jnp.ones((num_links, ))
+max_q_d_0 = 10 * jnp.ones((num_links,))
 
 dataset_dir = Path("data/test")
 
@@ -55,26 +55,25 @@ if __name__ == "__main__":
     )
 
     # set initial conditions
-    state_init_min = jnp.zeros((2 * num_links, ))
-    state_init_max = jnp.zeros((2 * num_links, ))
+    state_init_min = jnp.zeros((2 * num_links,))
+    state_init_max = jnp.zeros((2 * num_links,))
     state_init_min = state_init_min.at[:num_links].set(-jnp.pi)
     state_init_max = state_init_max.at[:num_links].set(jnp.pi)
     state_init_min = state_init_min.at[num_links:].set(-max_q_d_0)
     state_init_max = state_init_max.at[num_links:].set(max_q_d_0)
 
     # assume an autonomous system
-    tau = jnp.zeros((num_links, ))
+    tau = jnp.zeros((num_links,))
 
     collect_dataset(
         ode_fn=ode_factory(dynamical_matrices_fn, robot_params, tau),
         rendering_fn=rendering_fn,
         rng=rng,
         num_simulations=num_simulations,
-        sim_duration=jnp.array(sim_duration),
-        sim_dt=jnp.array(sim_dt),
+        horizon=jnp.array(sim_duration),
+        dt=jnp.array(sim_dt),
         state_init_min=state_init_min,
         state_init_max=state_init_max,
         dataset_dir=str(dataset_dir),
-        solver=Euler(),
+        solver=Dopri5(),
     )
-

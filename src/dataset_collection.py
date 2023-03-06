@@ -1,6 +1,6 @@
 from alive_progress import alive_bar
 import cv2
-from diffrax import AbstractERK, diffeqsolve, Euler, ODETerm, SaveAt
+from diffrax import AbstractERK, diffeqsolve, Dopri5, ODETerm, SaveAt
 from jax import Array, lax, random
 import jax.numpy as jnp
 from pathlib import Path
@@ -17,7 +17,7 @@ def collect_dataset(
         state_init_min: Array,
         state_init_max: Array,
         dataset_dir: str,
-        solver: Generic = Euler(),
+    solver: Generic = Dopri5(),
 ):
     # initiate ODE term from `ode_fn`
     ode_term = ODETerm(ode_fn)
