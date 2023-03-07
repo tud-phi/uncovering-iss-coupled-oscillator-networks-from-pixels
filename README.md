@@ -7,6 +7,8 @@ Please install the Python dependencies using the following command:
 pip install -r requirements.txt
 ```
 
+## Usage
+
 ### Add the project to your PYTHONPATH
 
 On Linux systems, we need to add the `src` folder to the `PYTHONPATH` environment variable. 
@@ -22,3 +24,16 @@ The compressed Tensorflow dataset can be generated from a raw dataset using the 
 ```bash
 tfds build datasets/mechanical_system --data_dir data/tensorflow_datasets --overwrite
 ```
+
+## Tips & Tricks
+
+### GPU memory allocation
+
+If your GPU runs out of memory immediately after launching a JAX script, for example with the error:
+
+```
+INTERNAL: RET_CHECK failure (external/org_tensorflow/tensorflow/compiler/xla/service/gpu/gpu_compiler.cc:626) dnn != nullptr 
+```
+
+please reduce as documented [here](https://jax.readthedocs.io/en/latest/gpu_memory_allocation.html) the amount of memory 
+pre-allocated to the GPU.
