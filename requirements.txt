@@ -1,3 +1,4 @@
+alive-progress
 diffrax
 flax
 jax
