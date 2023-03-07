@@ -7,7 +7,7 @@ if __name__ == "__main__":
         "mechanical_system/single_pendulum",
         batch_size=32,
         normalize=True,
-        grayscale=True
+        grayscale=True,
     )
     print("train_ds: ", datasets["train"])
     print("val_ds: ", datasets["val"])

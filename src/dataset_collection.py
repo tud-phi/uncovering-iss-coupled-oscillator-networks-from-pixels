@@ -88,9 +88,7 @@ def collect_dataset(
                 img = rendering_fn(q)
 
                 # save the image
-                cv2.imwrite(
-                    str(sim_dir / f"rendering_time_idx-{time_idx}.jpeg"), img
-                )
+                cv2.imwrite(str(sim_dir / f"rendering_time_idx-{time_idx}.jpeg"), img)
 
                 # update sample index
                 sample_idx += 1

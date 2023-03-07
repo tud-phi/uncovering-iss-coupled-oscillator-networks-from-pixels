@@ -32,17 +32,21 @@ def load_dataset(
     """
     assert 0 <= val_perc <= 100, "Validation ratio needs to be in interval [0, 100]."
     assert 0 <= test_perc <= 100, "Test ratio needs to be in interval [0, 100]."
-    assert val_perc + test_perc <= 100, "The sum of validation and test ratio need to be equal or smaller than 100."
+    assert (
+        val_perc + test_perc <= 100
+    ), "The sum of validation and test ratio need to be equal or smaller than 100."
 
     datasets = {}
+    # percentage of the dataset that is used for training
+    train_perc = 100 - val_perc - test_perc
     datasets["train"], datasets["val"], datasets["test"] = tfds.load(
         name,
         data_dir=Path("data/tensorflow_datasets"),
         split=[
-            f"train[:{100 - val_perc - test_perc}%]",  # use the first part for training
-            f"train[{100 - val_perc - test_perc}%:{100 - test_perc}%]",  # use the second part for validation
-            f"train[{100 - test_perc}%:]"  # use the third part for testing
-        ]
+            f"train[:{train_perc}%]",  # use the first part for training
+            f"train[{train_perc}%:{train_perc + val_perc}%]",  # use the second part for validation
+            f"train[{train_perc + val_perc}%:]",  # use the third part for testing
+        ],
     )
 
     for split_name in datasets.keys():
@@ -50,15 +54,21 @@ def load_dataset(
 
         if grayscale:
             # convert rendering image to grayscale
-            ds = ds.map(lambda sample: sample | {
-                "rendering_ts": tf.image.rgb_to_grayscale(sample["rendering_ts"]),
-            })
+            ds = ds.map(
+                lambda sample: sample
+                | {
+                    "rendering_ts": tf.image.rgb_to_grayscale(sample["rendering_ts"]),
+                }
+            )
 
         if normalize:
             # normalize rendering image to [0, 1]
-            ds = ds.map(lambda sample: sample | {
-                "rendering_ts": tf.cast(sample["rendering_ts"], tf.float32) / 255.0,
-            })
+            ds = ds.map(
+                lambda sample: sample
+                | {
+                    "rendering_ts": tf.cast(sample["rendering_ts"], tf.float32) / 255.0,
+                }
+            )
 
         # group into batches of batch_size and skip incomplete batch, prefetch the next sample to improve latency
         datasets[split_name] = ds.batch(batch_size, drop_remainder=True).prefetch(1)

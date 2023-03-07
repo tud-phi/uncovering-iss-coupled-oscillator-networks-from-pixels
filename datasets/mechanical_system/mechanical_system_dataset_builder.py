@@ -29,7 +29,7 @@ class Builder(tfds.core.GeneratorBasedBuilder):
             path=Path("data") / "raw_datasets" / "single_pendulum",
             state_dim=2,
             horizon_dim=10,
-            img_size=(32, 32)
+            img_size=(32, 32),
         ),
     ]
     # pytype: enable=wrong-keyword-args
@@ -42,22 +42,30 @@ class Builder(tfds.core.GeneratorBasedBuilder):
                     # These are the features of your dataset like images, labels ...
                     "id": tfds.features.Scalar(dtype=jnp.int32),
                     "x_ts": tfds.features.Tensor(
-                        shape=(self.builder_config.horizon_dim, self.builder_config.state_dim),
-                        dtype=jnp.float64
+                        shape=(
+                            self.builder_config.horizon_dim,
+                            self.builder_config.state_dim,
+                        ),
+                        dtype=jnp.float64,
                     ),
                     "rendering_ts": tfds.features.Sequence(
-                        tfds.features.Image(shape=(
-                            self.builder_config.img_size[0],
-                            self.builder_config.img_size[1],
-                            3
-                        ))
+                        tfds.features.Image(
+                            shape=(
+                                self.builder_config.img_size[0],
+                                self.builder_config.img_size[1],
+                                3,
+                            )
+                        )
                     ),
                 }
             ),
             # If there's a common (input, target) tuple from the
             # features, specify them here. They'll be used if
             # `as_supervised=True` in `builder.as_dataset`.
-            supervised_keys=("rendering_ts", "rendering_ts"),  # Set to `None` to disable
+            supervised_keys=(
+                "rendering_ts",
+                "rendering_ts",
+            ),  # Set to `None` to disable
             homepage="https://github.com/tud-cor-sr/learning-representations-from-first-principle-dynamics",
         )
 
