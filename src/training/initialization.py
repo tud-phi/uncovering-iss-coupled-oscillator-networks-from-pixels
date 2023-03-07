@@ -14,7 +14,7 @@ def initialize_train_state(
     weight_decay: float = 0.0
 ) -> TrainState:
     """
-    Initialize the train states of the two neural networks.
+    Initialize the train state for the neural network.
     Args:
         rng: PRNG key for pseudo-random number generation.
         nn_model: Neural network object.
