@@ -2,6 +2,7 @@ from diffrax import Dopri5
 from functools import partial
 from jax import config as jax_config
 
+jax_config.update("jax_platform_name", "cpu")  # set default device to 'cpu'
 jax_config.update("jax_enable_x64", True)  # double precision
 from jax import random
 import jax.numpy as jnp
