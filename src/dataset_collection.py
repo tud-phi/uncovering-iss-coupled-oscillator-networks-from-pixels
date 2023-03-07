@@ -60,7 +60,7 @@ def collect_dataset(
                 t1=ts[-1],
                 dt0=dt,
                 y0=x0,
-                max_steps=100000,
+                max_steps=None,
                 saveat=SaveAt(ts=ts),
             )
 
