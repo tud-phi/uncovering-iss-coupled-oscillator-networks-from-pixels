@@ -12,6 +12,8 @@ def load_dataset(
     batch_size: int,
     val_perc: int = 20,
     test_perc: int = 20,
+    num_threads: int = None,
+    prefetch: int = 2,
     normalize: bool = True,
     grayscale: bool = False,
 ) -> Dict[str, tf.data.Dataset]:
@@ -25,6 +27,7 @@ def load_dataset(
         batch_size: Batch size of the dataset.
         val_perc: Percentage of validation dataset with respect to the entire dataset size. Needs to be in interval [0, 100].
         test_perc: Percentage of single_pendulum dataset with respect to the entire dataset size. Needs to be in interval [0, 100].
+        num_threads: Number of threads to use for parallel processing.
         normalize: Whether to normalize the rendering image to [0, 1].
         grayscale: Whether to convert the rendering image to grayscale.
     Returns:
@@ -51,8 +54,19 @@ def load_dataset(
         ],
     )
 
+    options = tf.data.Options()
+    if num_threads is not None:
+        options.threading.private_threadpool_size = num_threads
+    else:
+        # if we don't set the threading options, we use auto-tuning to find the configuration (also prefetch)
+        # which is the best for the current system
+        options.autotune.enabled = True
+
     for split_name in datasets.keys():
         ds = datasets[split_name]
+
+        # apply options to dataset
+        ds = ds.with_options(options)
 
         if grayscale:
             # convert rendering image to grayscale
@@ -73,7 +87,7 @@ def load_dataset(
             )
 
         # group into batches of batch_size and skip incomplete batch, prefetch the next sample to improve latency
-        datasets[split_name] = ds.batch(batch_size, drop_remainder=True).prefetch(1)
+        datasets[split_name] = ds.batch(batch_size, drop_remainder=True).prefetch(prefetch)
 
     # randomly shuffle the training dataset
     datasets["train"] = datasets["train"].shuffle(
