@@ -36,13 +36,15 @@ if __name__ == "__main__":
     )
 
     # initialize the model
-    nn_model = Encoder(latent_dim=2)
+    nn_model = Encoder(latent_dim=1)
+
+    task_callables = sensing.task_factory(nn_model)
 
     train_state = None
     for step, batch in enumerate(datasets["train"].as_numpy_iterator()):
         print("step: ", step)
         if step == 0:
-            nn_dummy_input = sensing.preprocess_batch(batch)
+            nn_dummy_input = task_callables["preprocess_batch_fn"](batch)
 
             # initialize the train state
             train_state = initialize_train_state(
@@ -52,4 +54,5 @@ if __name__ == "__main__":
                 learning_rate_fn=lr_fn
             )
 
-        sensing.model_forward(nn_model, train_state.params, batch)
+        loss = task_callables["loss_fn"](batch, train_state.params)
+        print("loss", loss)
