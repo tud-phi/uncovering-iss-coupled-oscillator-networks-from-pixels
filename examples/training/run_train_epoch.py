@@ -41,21 +41,21 @@ if __name__ == "__main__":
 
     task_callables = sensing.task_factory(nn_model)
 
-    train_state = None
+    state = None
     for step, batch in enumerate(datasets["train"].as_numpy_iterator()):
         print("step: ", step)
         if step == 0:
-            nn_dummy_input = task_callables.preprocess_batch_fn(batch)
+            nn_dummy_input = task_callables.assemble_input_fn(batch)
 
             # initialize the train state
-            train_state = initialize_train_state(
+            state = initialize_train_state(
                 rng,
                 nn_model,
                 nn_dummy_input=nn_dummy_input,
                 learning_rate_fn=lr_fn
             )
 
-        loss, preds = task_callables.loss_fn(batch, train_state.params)
+        loss, preds = task_callables.loss_fn(batch, state.params)
         print("loss", loss)
 
-        train_state = train_step(train_state, batch, task_callables, lr_fn)
+        state = train_step(state, batch, task_callables, lr_fn)

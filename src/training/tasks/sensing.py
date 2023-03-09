@@ -10,7 +10,7 @@ from src.structs import TaskCallables
 
 
 @jit
-def preprocess_batch(batch) -> Array:
+def assemble_input(batch) -> Array:
     # batch of images
     img_bt = batch["rendering_ts"]
 
@@ -22,8 +22,8 @@ def preprocess_batch(batch) -> Array:
 
 def task_factory(nn_model: nn.Module) -> TaskCallables:
     @jit
-    def model_forward_fn(batch: Dict[str, Array], nn_params: FrozenDict) -> Array:
-        img_bt = preprocess_batch(batch)
+    def predict_fn(batch: Dict[str, Array], nn_params: FrozenDict) -> Dict[str, Array]:
+        img_bt = assemble_input(batch)
 
         # output will be of shape batch_dim * time_dim x latent_dim
         q_pred_bt = nn_model.apply({"params": nn_params}, img_bt)
@@ -31,16 +31,23 @@ def task_factory(nn_model: nn.Module) -> TaskCallables:
         # reshape to batch_dim x time_dim x latent_dim
         q_pred_bt = q_pred_bt.reshape((batch["rendering_ts"].shape[0], -1, q_pred_bt.shape[-1]))
 
-        return q_pred_bt
+        preds = dict(
+            q_ts=q_pred_bt
+        )
+
+        return preds
 
     @jit
-    def loss_fn(batch: Dict[str, Array], nn_params: FrozenDict) -> Tuple[Array, Array]:
-        q_pred_bt = model_forward_fn(batch, nn_params)
+    def loss_fn(batch: Dict[str, Array], nn_params: FrozenDict) -> Tuple[Array, Dict[str, Array]]:
+        preds = predict_fn(batch, nn_params)
+
+        q_pred_bt = preds["q_ts"]
         q_target_bt = batch["x_ts"][..., :batch["x_ts"].shape[-1] // 2]
+
         mse = jnp.mean(jnp.square(
             normalize_joint_angles(q_pred_bt - q_target_bt)
         ))
-        return mse, q_target_bt
+        return mse, preds
 
-    task_callables = TaskCallables(preprocess_batch, model_forward_fn, loss_fn)
+    task_callables = TaskCallables(assemble_input, predict_fn, loss_fn)
     return task_callables

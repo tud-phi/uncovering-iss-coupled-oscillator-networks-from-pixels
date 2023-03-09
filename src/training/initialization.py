@@ -23,7 +23,7 @@ def initialize_train_state(
             It has the signature learning_rate_fn(step: int) -> lr.
         weight_decay: Weight decay of the Adam optimizer for training the neural networks.
     Returns:
-        train_state: TrainState object for the neural network.
+        state: TrainState object for the neural network.
     """
     # initialize parameters of the neural networks by passing a dummy input through the network
     # Hint: pass the `rng` and a dummy input to the `init` method of the neural network object
@@ -33,10 +33,10 @@ def initialize_train_state(
     tx = optax.adamw(learning_rate_fn, weight_decay=weight_decay)
 
     # create the TrainState object for both neural networks
-    train_state = TrainState.create(
+    state = TrainState.create(
         apply_fn=nn_model.apply,
         params=nn_params,
         tx=tx,
     )
 
-    return train_state
+    return state

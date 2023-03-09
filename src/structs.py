@@ -4,6 +4,6 @@ from typing import Callable
 
 @struct.dataclass
 class TaskCallables:
-    preprocess_batch_fn: Callable
-    model_forward_fn: Callable
+    assemble_input_fn: Callable
+    predict_fn: Callable
     loss_fn: Callable
