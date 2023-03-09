@@ -4,6 +4,7 @@ from src.neural_networks.simple_cnn import Encoder
 from src.training.tasks import sensing
 from src.training.initialization import initialize_train_state
 from src.training.load_dataset import load_dataset
+from src.training.loops import train_step
 from src.training.optim import create_learning_rate_fn
 
 # initialize the pseudo-random number generator
@@ -44,7 +45,7 @@ if __name__ == "__main__":
     for step, batch in enumerate(datasets["train"].as_numpy_iterator()):
         print("step: ", step)
         if step == 0:
-            nn_dummy_input = task_callables["preprocess_batch_fn"](batch)
+            nn_dummy_input = task_callables.preprocess_batch_fn(batch)
 
             # initialize the train state
             train_state = initialize_train_state(
@@ -54,5 +55,7 @@ if __name__ == "__main__":
                 learning_rate_fn=lr_fn
             )
 
-        loss = task_callables["loss_fn"](batch, train_state.params)
+        loss, preds = task_callables.loss_fn(batch, train_state.params)
         print("loss", loss)
+
+        train_state = train_step(train_state, batch, task_callables, lr_fn)

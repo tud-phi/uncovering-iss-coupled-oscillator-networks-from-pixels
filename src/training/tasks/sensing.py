@@ -3,7 +3,10 @@ from flax import linen as nn  # Linen API
 from functools import partial
 from jax import Array, jit
 import jax.numpy as jnp
-from typing import Callable, Dict
+from jsrm.systems.pendulum import normalize_joint_angles
+from typing import Callable, Dict, Tuple
+
+from src.structs import TaskCallables
 
 
 @jit
@@ -17,7 +20,7 @@ def preprocess_batch(batch) -> Array:
     return img_bt
 
 
-def task_factory(nn_model: nn.Module) -> Dict[str, Callable]:
+def task_factory(nn_model: nn.Module) -> TaskCallables:
     @jit
     def model_forward_fn(batch: Dict[str, Array], nn_params: FrozenDict) -> Array:
         img_bt = preprocess_batch(batch)
@@ -31,15 +34,13 @@ def task_factory(nn_model: nn.Module) -> Dict[str, Callable]:
         return q_pred_bt
 
     @jit
-    def loss_fn(batch: Dict[str, Array], nn_params: FrozenDict) -> Array:
+    def loss_fn(batch: Dict[str, Array], nn_params: FrozenDict) -> Tuple[Array, Array]:
         q_pred_bt = model_forward_fn(batch, nn_params)
         q_target_bt = batch["x_ts"][..., :batch["x_ts"].shape[-1] // 2]
-        mse = jnp.mean(jnp.square(q_pred_bt - q_target_bt))
-        return mse
+        mse = jnp.mean(jnp.square(
+            normalize_joint_angles(q_pred_bt - q_target_bt)
+        ))
+        return mse, q_target_bt
 
-    task_callables = {
-        "preprocess_batch_fn": preprocess_batch,
-        "model_forward_fn": model_forward_fn,
-        "loss_fn": loss_fn
-    }
+    task_callables = TaskCallables(preprocess_batch, model_forward_fn, loss_fn)
     return task_callables
