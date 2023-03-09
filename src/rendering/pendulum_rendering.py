@@ -13,6 +13,19 @@ def render_pendulum(
     height: int,
     line_thickness: int = 2,
 ) -> onp.ndarray:
+    """
+    Renders a pendulum in OpenCV.
+    Args:
+        forward_kinematics_fn: A function that computes the forward kinematics of the pendulum.
+            Namely, the function should compute the SE(2) poses of the tip of a link
+        params: A dictionary of robot parameters.
+        q: An array of joint angles.
+        width: The width (i.e. number of horizontal pixels) of the rendered image.
+        height: The height (i.e. number of vertical pixels) of the rendered image.
+        line_thickness: The thickness of the rendered lines in pixels.
+    Returns:
+        img: A numpy array of shape (width, height, 3) containing the rendered image.
+    """
     # plotting in OpenCV
     h, w = height, width  # img height and width
     ppm = h / (2.5 * jnp.sum(params["l"]))  # pixel per meter

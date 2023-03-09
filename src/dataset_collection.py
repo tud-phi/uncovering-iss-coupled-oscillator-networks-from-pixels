@@ -20,6 +20,22 @@ def collect_dataset(
     dataset_dir: str,
     solver: Generic = Dopri5(),
 ):
+    """
+    Collect a simulated dataset for a given ODE system. The initial state is uniformly sampled from the given bounds.
+    Args:
+        ode_fn: ODE function. It should have the following signature:
+            ode_fn(t, x) -> x_dot
+        rendering_fn: Function to render the state of the system. It should have the following signature:
+            rendering_fn(q) -> img
+        rng: PRNG key for random number generation.
+        num_simulations: Number of simulations to run.
+        horizon: Duration of each simulation [s].
+        dt: Time step used for simulation [s].
+        state_init_min: Array with minimal values for the initial state of the simulation.
+        state_init_max: Array with maximal values for the initial state of the simulation.
+        dataset_dir: Directory to save the dataset.
+        solver: Diffrax solver to use for the simulation.
+    """
     # initiate ODE term from `ode_fn`
     ode_term = ODETerm(ode_fn)
 
