@@ -49,5 +49,18 @@ def task_factory(nn_model: nn.Module) -> TaskCallables:
         ))
         return mse, preds
 
+    @jit
+    def compute_metrics(batch: Dict[str, Array], preds: Dict[str, Array]) -> Dict[str, Array]:
+        q_pred_bt = preds["q_ts"]
+        q_target_bt = batch["x_ts"][..., :batch["x_ts"].shape[-1] // 2]
+
+        # compute the normalized joint angle error
+        error_q = normalize_joint_angles(q_pred_bt - q_target_bt)
+
+        metrics = {
+            "rmse_q": jnp.sqrt(jnp.mean(jnp.square(error_q))),
+        }
+        return metrics
+
     task_callables = TaskCallables(assemble_input, predict_fn, loss_fn)
     return task_callables

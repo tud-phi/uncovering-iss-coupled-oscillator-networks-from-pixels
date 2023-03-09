@@ -40,16 +40,13 @@ def train_step(
     # optimize the neural network parameters with gradient descent
     state = state.apply_gradients(grads=grad_nn_params)
 
-    # # compute metrics
-    # metrics = compute_metrics(batch, preds)
-    # metrics["loss"] = loss
-    # # save the currently active learning rates to the `metrics` dictionary
-    # metrics["lr_mass_matrix_nn"] = learning_rate_fn(states["MassMatrixNN"].step)
-    # metrics["lr_potential_energy_nn"] = learning_rate_fn(
-    #     states["PotentialEnergyNN"].step
-    # )
+    # compute metrics
+    metrics = task_callables.compute_metrics_fn(batch, preds)
+    metrics["loss"] = loss
+    # save the currently active learning rates to the `metrics` dictionary
+    metrics["lr"] = learning_rate_fn(state.step)
 
-    return state
+    return state, metrics
 
 
 @jit
@@ -68,10 +65,11 @@ def eval_step(
     loss, preds = task_callables.loss_fn(batch, state.params)
 
     # compute metrics
-    metrics = compute_metrics(batch, preds)
+    metrics = task_callables.compute_metrics_fn(batch, preds)
     metrics["loss"] = loss
 
     return metrics
+
 
 def train_epoch(
     states: Dict[str, TrainState],
