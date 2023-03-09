@@ -49,7 +49,11 @@ def train_step(
     return state, metrics
 
 
-@jit
+@partial(
+    jit,
+    static_argnums=(2, ),
+    static_argnames=("task_callables", ),
+)
 def eval_step(
     state: TrainState, batch: Dict[str, Array], task_callables: TaskCallables,
 ) -> Dict[str, jnp.ndarray]:
@@ -72,81 +76,74 @@ def eval_step(
 
 
 def train_epoch(
-    states: Dict[str, TrainState],
-    train_ds: tf.data.Dataset,
-    batch_size: int,
     epoch: int,
+    state: TrainState,
+    train_ds: tf.data.Dataset,
+    task_callables: TaskCallables,
     learning_rate_fn: Callable,
-    rng: random.KeyArray,
-) -> Tuple[Dict[str, TrainState], float, Dict[str, float]]:
+) -> Tuple[TrainState, float, Dict[str, float]]:
     """
     Train for a single epoch.
     Args:
-        states: Dictionary containing the current states of the training of the two neural networks.
-            Entries of dictionary:
-                - MassMatrixNN: TrainState of the mass matrix neural network
-                - PotentialEnergyNN: TrainState of the potential energy neural network
-        train_ds: Dictionary containing the training dataset.
-        batch_size: Batch size of training loop.
         epoch: Index of current epoch.
+        state: training state of the neural network
+        train_ds: Training dataset as tf.data.Dataset object.
+        task_callables: struct containing the functions for the learning task
         learning_rate_fn: A function that takes the current step and returns the current learning rate.
             It has the signature learning_rate_fn(step: int) -> lr.
-        rng: PRNG key for pseudo-random number generation.
     Returns:
-        states: Dictionary of updated training states.
+        state: updated training state of the neural network
         train_loss: Training loss of the current epoch.
         train_metrics: Dictionary of training metrics.
     """
-    train_ds_size = int(train_ds["th_curr_ss"].shape[0])
-    steps_per_epoch = train_ds_size // batch_size
+    steps_per_epoch = train_ds.cardinality().numpy()
 
-    perms = jax.random.permutation(rng, train_ds_size)  # get a randomized index array
-    perms = perms[: steps_per_epoch * batch_size]  # skip incomplete batch
-    perms = perms.reshape(
-        (steps_per_epoch, batch_size)
-    )  # index array, where each row is a batch
-    batch_metrics = []
-    for perm in perms:
-        batch = {k: v[perm, ...] for k, v in train_ds.items()}
-        states, metrics = train_step(states, batch, learning_rate_fn)
-        batch_metrics.append(metrics)
+    step_metrics_list = []
+    for step, batch in enumerate(train_ds.as_numpy_iterator()):
+        states, step_metrics = train_step(state, batch, task_callables, learning_rate_fn)
+        step_metrics_list.append(step_metrics)
 
     # compute mean of metrics across each batch in epoch.
-    batch_metrics_np = jax.device_get(batch_metrics)
+    step_metrics_np = jax.device_get(step_metrics_list)
     epoch_metrics_np = {
-        k: onp.mean(jnp.array([metrics[k] for metrics in batch_metrics_np])).item()
-        for k in batch_metrics_np[0]
+        k: onp.mean(jnp.array([metrics[k] for metrics in step_metrics_np])).item()
+        for k in step_metrics_np[0]
     }  # jnp.mean does not work on lists
 
-    return states, epoch_metrics_np["loss"], epoch_metrics_np
+    return state, epoch_metrics_np["loss"], epoch_metrics_np
 
 
 def eval_model(
-    states: Dict[str, TrainState],
-    val_ds: Dict[str, jnp.ndarray],
+    state: TrainState,
+    eval_ds: tf.data.Dataset,
+    task_callables: TaskCallables,
 ) -> Tuple[float, Dict[str, jnp.ndarray]]:
     """
     Validate the model on the validation dataset.
     Args:
-        states: Dictionary containing the current states of the training of the two neural networks.
-            Entries of dictionary:
-                - MassMatrixNN: TrainState of the mass matrix neural network
-                - PotentialEnergyNN: TrainState of the potential energy neural network
-        val_ds: Dictionary containing the validation dataset.
+        state: training state of the neural network
+        eval_ds: Evaluation dataset as tf.data.Dataset object.
+        task_callables: struct containing the functions for the learning task
     Returns:
         val_loss: Validation loss.
         val_metrics: Dictionary of metrics.
     """
-    val_metrics = eval_step(states, val_ds)
-    val_metrics = jax.device_get(val_metrics)
-    val_metrics = jax.tree_util.tree_map(
-        lambda x: x.item(), val_metrics
-    )  # map the function over all leaves in metrics
+    step_metrics_list = []
+    for step, batch in enumerate(eval_ds.as_numpy_iterator()):
+        step_metrics = eval_step(state, batch, task_callables)
+        step_metrics_list.append(step_metrics)
 
-    return val_metrics["loss"], val_metrics
+    # compute mean of metrics across each batch in epoch.
+    step_metrics_np = jax.device_get(step_metrics_list)
+    eval_metrics = {
+        k: onp.mean(jnp.array([metrics[k] for metrics in step_metrics_np])).item()
+        for k in step_metrics_np[0]
+    }  # jnp.mean does not work on lists
+
+    return eval_metrics["loss"], eval_metrics
 
 
-def run_lnn_training(
+def run_training(
     rng: random.PRNGKey,
     train_ds: Dict[str, jnp.ndarray],
     val_ds: Dict[str, jnp.ndarray],

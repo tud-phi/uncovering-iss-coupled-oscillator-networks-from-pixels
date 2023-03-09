@@ -8,6 +8,7 @@ from typing import Dict, Tuple
 
 def load_dataset(
     name: str,
+    seed: int,
     batch_size: int,
     val_perc: int = 20,
     test_perc: int = 20,
@@ -20,6 +21,7 @@ def load_dataset(
         name: Name of the dataset. Can also be name/config_name:version.
             https://www.tensorflow.org/datasets/api_docs/python/tfds/load
             Example: "mechanical_system/single_pendulum"
+        seed: Seed for the shuffling of the training dataset.
         batch_size: Batch size of the dataset.
         val_perc: Percentage of validation dataset with respect to the entire dataset size. Needs to be in interval [0, 100].
         test_perc: Percentage of single_pendulum dataset with respect to the entire dataset size. Needs to be in interval [0, 100].
@@ -72,5 +74,12 @@ def load_dataset(
 
         # group into batches of batch_size and skip incomplete batch, prefetch the next sample to improve latency
         datasets[split_name] = ds.batch(batch_size, drop_remainder=True).prefetch(1)
+
+    # randomly shuffle the training dataset
+    datasets["train"] = datasets["train"].shuffle(
+        buffer_size=len(datasets["train"]),
+        seed=seed,
+        reshuffle_each_iteration=True,
+    )
 
     return datasets

@@ -4,11 +4,12 @@ from src.neural_networks.simple_cnn import Encoder
 from src.training.tasks import sensing
 from src.training.initialization import initialize_train_state
 from src.training.load_dataset import load_dataset
-from src.training.loops import train_step
+from src.training.loops import train_epoch, eval_model
 from src.training.optim import create_learning_rate_fn
 
 # initialize the pseudo-random number generator
-rng = random.PRNGKey(seed=0)
+seed = 0
+rng = random.PRNGKey(seed=seed)
 
 num_epochs = 1
 batch_size = 32
@@ -16,6 +17,7 @@ batch_size = 32
 if __name__ == "__main__":
     datasets = load_dataset(
         "mechanical_system/single_pendulum",
+        seed=seed,
         batch_size=batch_size,
         normalize=True,
         grayscale=True,
@@ -25,13 +27,10 @@ if __name__ == "__main__":
     print("val_ds: ", val_ds)
     print("test_ds: ", test_ds)
 
-    num_steps_per_epoch = train_ds.cardinality().numpy()
-    print("num_steps_per_epoch: ", num_steps_per_epoch)
-
     # create learning rate schedule
     lr_fn = create_learning_rate_fn(
         num_epochs,
-        steps_per_epoch=num_steps_per_epoch,
+        steps_per_epoch=len(train_ds),
         base_lr=1e-4,
         warmup_epochs=0,
     )
@@ -39,23 +38,24 @@ if __name__ == "__main__":
     # initialize the model
     nn_model = Encoder(latent_dim=1)
 
+    # call the factory function for the sensing task
     task_callables = sensing.task_factory(nn_model)
 
-    state = None
-    for step, batch in enumerate(datasets["train"].as_numpy_iterator()):
-        print("step: ", step)
-        if step == 0:
-            nn_dummy_input = task_callables.assemble_input_fn(batch)
+    # extract dummy batch from dataset
+    nn_dummy_batch = next(train_ds.as_numpy_iterator())
+    # assemble input for dummy batch
+    nn_dummy_input = task_callables.assemble_input_fn(nn_dummy_batch)
 
-            # initialize the train state
-            state = initialize_train_state(
-                rng,
-                nn_model,
-                nn_dummy_input=nn_dummy_input,
-                learning_rate_fn=lr_fn
-            )
+    # initialize the train state
+    state = initialize_train_state(
+        rng,
+        nn_model,
+        nn_dummy_input=nn_dummy_input,
+        learning_rate_fn=lr_fn
+    )
 
-        loss, preds = task_callables.loss_fn(batch, state.params)
-        print("loss", loss)
+    state, train_loss, epoch_metrics = train_epoch(0, state, train_ds, task_callables, lr_fn)
+    print("training results:", epoch_metrics)
 
-        state, metrics = train_step(state, batch, task_callables, lr_fn)
+    val_loss, val_metrics = eval_model(state, val_ds, task_callables)
+    print("validation results:", val_metrics)
