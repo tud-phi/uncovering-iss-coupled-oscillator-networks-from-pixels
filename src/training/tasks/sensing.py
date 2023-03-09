@@ -62,5 +62,5 @@ def task_factory(nn_model: nn.Module) -> TaskCallables:
         }
         return metrics
 
-    task_callables = TaskCallables(assemble_input, predict_fn, loss_fn)
+    task_callables = TaskCallables(assemble_input, predict_fn, loss_fn, compute_metrics)
     return task_callables

@@ -58,4 +58,4 @@ if __name__ == "__main__":
         loss, preds = task_callables.loss_fn(batch, state.params)
         print("loss", loss)
 
-        state = train_step(state, batch, task_callables, lr_fn)
+        state, metrics = train_step(state, batch, task_callables, lr_fn)
