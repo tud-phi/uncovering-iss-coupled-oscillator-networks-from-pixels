@@ -8,7 +8,7 @@ from typing import Callable, Type
 
 def initialize_train_state(
     rng: random.KeyArray,
-    nn_model: Type[nn.Module],
+    nn_model: nn.Module,
     nn_dummy_input: Array,
     learning_rate_fn: Callable,
     weight_decay: float = 0.0
