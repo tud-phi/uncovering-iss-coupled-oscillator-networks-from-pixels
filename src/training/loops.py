@@ -1,3 +1,4 @@
+from flax import linen as nn  # Linen API
 from flax.training.train_state import TrainState
 from functools import partial
 import jax
@@ -5,9 +6,12 @@ from jax import Array, jit, random
 import jax.numpy as jnp
 import numpy as onp
 import tensorflow as tf
+from tqdm import tqdm
 from typing import Callable, Dict, List, Tuple
 
 from src.structs import TaskCallables
+from src.training.initialization import initialize_train_state
+from src.training.optim import create_learning_rate_fn
 
 
 @partial(
@@ -100,6 +104,7 @@ def train_epoch(
 
     step_metrics_list = []
     for step, batch in enumerate(train_ds.as_numpy_iterator()):
+        print("step: ", step, "/", steps_per_epoch)
         states, step_metrics = train_step(state, batch, task_callables, learning_rate_fn)
         step_metrics_list.append(step_metrics)
 
@@ -145,8 +150,10 @@ def eval_model(
 
 def run_training(
     rng: random.PRNGKey,
-    train_ds: Dict[str, jnp.ndarray],
-    val_ds: Dict[str, jnp.ndarray],
+    train_ds: tf.data.Dataset,
+    val_ds: tf.data.Dataset,
+    nn_model: nn.Module,
+    task_callables: TaskCallables,
     num_epochs: int,
     batch_size: int,
     base_lr: float,
@@ -154,10 +161,10 @@ def run_training(
     weight_decay: float = 0.0,
     verbose: bool = True,
 ) -> Tuple[
-    jnp.ndarray,
+    Array,
     List[Dict[str, jnp.ndarray]],
     List[Dict[str, jnp.ndarray]],
-    List[Dict[str, TrainState]],
+    List[TrainState],
 ]:
     """
     Run the training loop.
@@ -165,6 +172,8 @@ def run_training(
         rng: PRNG key for pseudo-random number generation.
         train_ds: Dictionary of jax arrays containing the training dataset.
         val_ds: Dictionary of jax arrays containing the validation dataset.
+        nn_model: Neural network model.
+        task_callables: struct containing the functions for the learning task
         num_epochs: Number of epochs to train for.
         batch_size: The size of a minibatch (i.e. number of samples in a batch).
         base_lr: Base learning rate (after warmup and before decay).
@@ -173,77 +182,63 @@ def run_training(
         verbose: If True, print the training progress.
     Returns:
         val_loss_history: Array of validation losses for each epoch.
+        train_metrics_history: List of dictionaries containing the training metrics for each epoch.
         val_metrics_history: List of dictionaries containing the validation metrics for each epoch.
         train_states_history: List of dictionaries containing the training states for each epoch.
     """
-
-    # number of training samples
-    num_train_samples = len(train_ds["th_curr_ss"])
-
     # initialize the learning rate scheduler
-    learning_rate_fn = None
-    ### BEGIN SOLUTION
-    learning_rate_fn = create_learning_rate_fn(
-        num_epochs, num_train_samples // batch_size, base_lr, warmup_epochs
+    lr_fn = create_learning_rate_fn(
+        num_epochs,
+        steps_per_epoch=len(train_ds) // batch_size,
+        base_lr=base_lr,
+        warmup_epochs=warmup_epochs
     )
-    ### END SOLUTION
 
-    # split of PRNG keys
-    # the 1st is used for training,
-    # the 2nd to initialize the neural network weights.
-    rng, init_train_states_rng = random.split(rng, 2)
+    # extract dummy batch from dataset
+    nn_dummy_batch = next(train_ds.as_numpy_iterator())
+    # assemble input for dummy batch
+    nn_dummy_input = task_callables.assemble_input_fn(nn_dummy_batch)
 
-    # initialize the train states
-    states = initialize_train_states(
-        init_train_states_rng, learning_rate_fn, weight_decay
+    # initialize the train state
+    state = initialize_train_state(
+        rng,
+        nn_model,
+        nn_dummy_input=nn_dummy_input,
+        learning_rate_fn=lr_fn,
+        weight_decay=weight_decay,
     )
 
     # initialize the lists for the training history
     val_loss_history = []  # list with validation losses
     train_metrics_history = []  # list with train metric dictionaries
     val_metrics_history = []  # list with validation metric dictionaries
-    states_history = []  # list with dictionaries of model states
+    state_history = []  # list with dictionaries of model states
 
     if verbose:
         print(f"Training the Lagrangian neural network for {num_epochs} epochs...")
 
     for epoch in (pbar := tqdm(range(1, num_epochs + 1))):
-        # Split the `rng` PRNG key into two new keys
-        # use the 1st PRNG to update the `rng` variable
-        # store the 2nd PRNG key in the variable `epoch_rng`
-        epoch_rng = None
-        ### BEGIN SOLUTION
-        rng, epoch_rng = random.split(rng)
-        ### END SOLUTION
-
         # Run the training for the current epoch
-        # Use the `epoch_rng` to randomly shuffle the batches
-        train_loss, train_metrics = jnp.array(0.0), {}
-        ### BEGIN SOLUTION
-        states, train_loss, train_metrics = train_epoch(
-            states, train_ds, batch_size, epoch, learning_rate_fn, epoch_rng
+        state, train_loss, train_metrics = train_epoch(
+            epoch, state, train_ds, task_callables, lr_fn
         )
-        ### END SOLUTION
 
         # Evaluate the current set of neural network parameters on the validation set
-        val_loss, val_metrics = jnp.array(0.0), {}
-        ### BEGIN SOLUTION
-        val_loss, val_metrics = eval_model(states, val_ds)
-        ### END SOLUTION
+        val_loss, val_metrics = eval_model(state, val_ds, task_callables)
 
         # Save the model parameters and the validation loss for the current epoch
         val_loss_history.append(val_loss)
         train_metrics_history.append(train_metrics)
         val_metrics_history.append(val_metrics)
-        states_history.append(states)
+        state_history.append(state)
 
         if verbose:
             pbar.set_description(
                 "Epoch: %d, lr: %.6f, train loss: %.7f, val loss: %.7f"
-                % (epoch, train_metrics["lr_mass_matrix_nn"], train_loss, val_loss)
+                % (epoch, train_metrics["lr"], train_loss, val_loss)
             )
 
     # array of shape (num_epochs, ) with the validation losses of each epoch
     val_loss_history = jnp.array(val_loss_history)
 
-    return val_loss_history, train_metrics_history, val_metrics_history, states_history
+    return val_loss_history, train_metrics_history, val_metrics_history, state_history
