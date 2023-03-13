@@ -46,6 +46,9 @@ class Decoder(nn.Module):
         x = self.nonlinearity(x)
         x = nn.Conv(features=self.img_shape[-1], kernel_size=(3, 3))(x)
 
+        # clip to [-1, 1]
+        x = -1.0 + 2 * nn.sigmoid(x)
+
         return x
 
 
