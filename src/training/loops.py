@@ -100,8 +100,6 @@ def train_epoch(
         train_loss: Training loss of the current epoch.
         train_metrics: Dictionary of training metrics.
     """
-    steps_per_epoch = train_ds.cardinality().numpy()
-
     step_metrics_list = []
     for step, batch in enumerate(train_ds.as_numpy_iterator()):
         state, step_metrics = train_step(state, batch, task_callables, learning_rate_fn)
@@ -188,7 +186,7 @@ def run_training(
     # initialize the learning rate scheduler
     lr_fn = create_learning_rate_fn(
         num_epochs,
-        steps_per_epoch=len(train_ds) // batch_size,
+        steps_per_epoch=len(train_ds),
         base_lr=base_lr,
         warmup_epochs=warmup_epochs
     )
