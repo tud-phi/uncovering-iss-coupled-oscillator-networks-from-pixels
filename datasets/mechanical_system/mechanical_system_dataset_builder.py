@@ -27,7 +27,7 @@ class Builder(tfds.core.GeneratorBasedBuilder):
         DatasetConfig(
             name="single_pendulum_32x32px",
             description="Single pendulum dataset with images of size 32x32px.",
-            path=Path("data") / "raw_datasets" / "single_pendulum",
+            path=Path("data") / "raw_datasets" / "single_pendulum_32x32px",
             state_dim=2,
             horizon_dim=10,
             img_size=(32, 32),
@@ -35,8 +35,16 @@ class Builder(tfds.core.GeneratorBasedBuilder):
         DatasetConfig(
             name="single_pendulum_64x64px",
             description="Single pendulum dataset with images of size 64x64px.",
-            path=Path("data") / "raw_datasets" / "single_pendulum",
+            path=Path("data") / "raw_datasets" / "single_pendulum_64x64px",
             state_dim=2,
+            horizon_dim=10,
+            img_size=(64, 64),
+        ),
+        DatasetConfig(
+            name="double_pendulum_64x64px",
+            description="Double pendulum dataset with images of size 64x64px.",
+            path=Path("data") / "raw_datasets" / "double_pendulum_64x64px",
+            state_dim=4,
             horizon_dim=10,
             img_size=(64, 64),
         ),

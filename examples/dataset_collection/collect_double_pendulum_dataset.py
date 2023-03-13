@@ -15,15 +15,16 @@ from pathlib import Path
 from src.dataset_collection import collect_dataset
 from src.rendering import render_pendulum
 
+
 sym_exp_filepath = (
-    Path("symbolic_expressions") / "single_pendulum.dill"
+    Path("symbolic_expressions") / "double_pendulum.dill"
 )
 
 robot_params = {
-    "m": jnp.array([10.0]),
-    "I": jnp.array([3.0]),
-    "l": jnp.array([2.0]),
-    "lc": jnp.array([1.0]),
+    "m": jnp.array([10.0, 6.0]),
+    "I": jnp.array([3.0, 2]),
+    "l": jnp.array([2.0, 1.0]),
+    "lc": jnp.array([1.0, 0.5]),
     "g": jnp.array([0.0, -9.81]),
 }
 
@@ -35,7 +36,7 @@ horizon = 1e-1  # duration of each simulation [s]
 # maximum magnitude of the initial joint velocity [rad/s]
 max_q_d_0 = 30 * jnp.ones((num_links,))
 
-dataset_dir = Path("data") / "raw_datasets" / "single_pendulum"
+dataset_dir = Path("data") / "raw_datasets" / "double_pendulum_64x64px"
 
 # Pseudo random number generator
 rng = random.PRNGKey(seed=0)
@@ -52,7 +53,7 @@ if __name__ == "__main__":
         line_thickness=2,
     )
 
-    sample_q = jnp.array([36 / 180 * jnp.pi])
+    sample_q = jnp.array([36 / 180 * jnp.pi, -45 / 180 * jnp.pi])
     sample_img = rendering_fn(sample_q)
     plt.figure(num="Sample rendering")
     plt.imshow(cv2.cvtColor(sample_img, cv2.COLOR_BGR2RGB))
