@@ -161,7 +161,7 @@ def run_training(
     Array,
     List[Dict[str, jnp.ndarray]],
     List[Dict[str, jnp.ndarray]],
-    List[TrainState],
+    TrainState,
 ]:
     """
     Run the training loop.
@@ -181,7 +181,7 @@ def run_training(
         val_loss_history: Array of validation losses for each epoch.
         train_metrics_history: List of dictionaries containing the training metrics for each epoch.
         val_metrics_history: List of dictionaries containing the validation metrics for each epoch.
-        state_history: List of TrainState objects for each epoch.
+        best_state: TrainState object of the model with the lowest validation loss.
     """
     # initialize the learning rate scheduler
     lr_fn = create_learning_rate_fn(
@@ -209,10 +209,10 @@ def run_training(
     val_loss_history = []  # list with validation losses
     train_metrics_history = []  # list with train metric dictionaries
     val_metrics_history = []  # list with validation metric dictionaries
-    state_history = []  # list of TrainState objects for each epoch
+    # state_history = []  # list of TrainState objects for each epoch
 
     if verbose:
-        print(f"Training the Lagrangian neural network for {num_epochs} epochs...")
+        print(f"Training the neural network for {num_epochs} epochs...")
 
     for epoch in (pbar := tqdm(range(1, num_epochs + 1))):
         # Run the training for the current epoch
@@ -227,7 +227,7 @@ def run_training(
         val_loss_history.append(val_loss)
         train_metrics_history.append(train_metrics)
         val_metrics_history.append(val_metrics)
-        state_history.append(state)
+        # state_history.append(state)
 
         if verbose:
             pbar.set_description(
@@ -238,4 +238,4 @@ def run_training(
     # array of shape (num_epochs, ) with the validation losses of each epoch
     val_loss_history = jnp.array(val_loss_history)
 
-    return val_loss_history, train_metrics_history, val_metrics_history, state_history
+    return val_loss_history, train_metrics_history, val_metrics_history, state

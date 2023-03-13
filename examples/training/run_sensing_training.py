@@ -35,7 +35,7 @@ if __name__ == "__main__":
     task_callables = sensing.task_factory(nn_model)
 
     # run the training loop
-    val_loss_history, train_metrics_history, val_metrics_history, state_history = run_training(
+    val_loss_history, train_metrics_history, val_metrics_history, best_state = run_training(
         rng=rng,
         train_ds=train_ds,
         val_ds=val_ds,
@@ -48,3 +48,5 @@ if __name__ == "__main__":
         weight_decay=0.0,
         verbose=True,
     )
+
+    print("Final validation metrics:\n", val_metrics_history[-1])
