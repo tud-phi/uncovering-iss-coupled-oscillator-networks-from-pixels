@@ -82,12 +82,15 @@ def load_dataset(
             ds = ds.map(
                 lambda sample: sample
                 | {
-                    "rendering_ts": tf.cast(sample["rendering_ts"], tf.float32) / 128.0 - 1.0,
+                    "rendering_ts": tf.cast(sample["rendering_ts"], tf.float32) / 128.0
+                    - 1.0,
                 }
             )
 
         # group into batches of batch_size and skip incomplete batch, prefetch the next sample to improve latency
-        datasets[split_name] = ds.batch(batch_size, drop_remainder=True).prefetch(prefetch)
+        datasets[split_name] = ds.batch(batch_size, drop_remainder=True).prefetch(
+            prefetch
+        )
 
     # randomly shuffle the training dataset
     datasets["train"] = datasets["train"].shuffle(

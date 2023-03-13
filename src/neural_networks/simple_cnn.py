@@ -4,6 +4,7 @@ from typing import Callable, Tuple
 
 class Encoder(nn.Module):
     """A simple CNN encoder."""
+
     latent_dim: int
     nonlinearity: Callable = nn.leaky_relu
 
@@ -24,6 +25,7 @@ class Encoder(nn.Module):
 
 class Decoder(nn.Module):
     """A simple CNN decoder."""
+
     latent_dim: int
     img_shape: Tuple[int, int, int] = (32, 32, 1)
     nonlinearity: Callable = nn.leaky_relu
@@ -35,12 +37,14 @@ class Decoder(nn.Module):
         x = self.nonlinearity(x)
         x = nn.Dense(features=32768)(x)
 
-        x = x.reshape((
-            x.shape[0],  # batch size
-            self.img_shape[0],  # width
-            self.img_shape[1],  # height
-            32  # channels
-        ))  # unflatten
+        x = x.reshape(
+            (
+                x.shape[0],  # batch size
+                self.img_shape[0],  # width
+                self.img_shape[1],  # height
+                32,  # channels
+            )
+        )  # unflatten
 
         x = nn.Conv(features=16, kernel_size=(3, 3))(x)
         x = self.nonlinearity(x)
@@ -54,12 +58,17 @@ class Decoder(nn.Module):
 
 class Autoencoder(nn.Module):
     """A simple CNN autoencoder."""
+
     latent_dim: int
     nonlinearity: Callable = nn.leaky_relu
 
     def setup(self):
-        self.encoder = Encoder(latent_dim=self.latent_dim, nonlinearity=self.nonlinearity)
-        self.decoder = Decoder(latent_dim=self.latent_dim, nonlinearity=self.nonlinearity)
+        self.encoder = Encoder(
+            latent_dim=self.latent_dim, nonlinearity=self.nonlinearity
+        )
+        self.decoder = Decoder(
+            latent_dim=self.latent_dim, nonlinearity=self.nonlinearity
+        )
 
     def __call__(self, x):
         z = self.encoder(x)

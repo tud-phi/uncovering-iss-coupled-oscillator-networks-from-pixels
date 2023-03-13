@@ -52,13 +52,12 @@ if __name__ == "__main__":
 
     # initialize the train state
     state = initialize_train_state(
-        rng,
-        nn_model,
-        nn_dummy_input=nn_dummy_input,
-        learning_rate_fn=lr_fn
+        rng, nn_model, nn_dummy_input=nn_dummy_input, learning_rate_fn=lr_fn
     )
 
-    state, train_loss, epoch_metrics = train_epoch(0, state, train_ds, task_callables, lr_fn)
+    state, train_loss, epoch_metrics = train_epoch(
+        0, state, train_ds, task_callables, lr_fn
+    )
     print("training results:", epoch_metrics)
 
     val_loss, val_metrics = eval_model(state, val_ds, task_callables)

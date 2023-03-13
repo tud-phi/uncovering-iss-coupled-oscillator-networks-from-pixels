@@ -55,11 +55,13 @@ def train_step(
 
 @partial(
     jit,
-    static_argnums=(2, ),
-    static_argnames=("task_callables", ),
+    static_argnums=(2,),
+    static_argnames=("task_callables",),
 )
 def eval_step(
-    state: TrainState, batch: Dict[str, Array], task_callables: TaskCallables,
+    state: TrainState,
+    batch: Dict[str, Array],
+    task_callables: TaskCallables,
 ) -> Dict[str, jnp.ndarray]:
     """
     One validation step of the neural networks.
@@ -188,7 +190,7 @@ def run_training(
         num_epochs,
         steps_per_epoch=len(train_ds),
         base_lr=base_lr,
-        warmup_epochs=warmup_epochs
+        warmup_epochs=warmup_epochs,
     )
 
     # extract dummy batch from dataset

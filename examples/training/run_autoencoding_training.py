@@ -19,10 +19,7 @@ num_epochs = 40
 batch_size = 8
 base_lr = 2e-3
 warmup_epochs = 5
-loss_weights = dict(
-    mse_q=1.0,
-    mse_rec=5.0
-)
+loss_weights = dict(mse_q=1.0, mse_rec=5.0)
 
 if __name__ == "__main__":
     datasets = load_dataset(
@@ -41,7 +38,12 @@ if __name__ == "__main__":
     task_callables = autoencoding.task_factory(nn_model, loss_weights=loss_weights)
 
     # run the training loop
-    val_loss_history, train_metrics_history, val_metrics_history, best_state = run_training(
+    (
+        val_loss_history,
+        train_metrics_history,
+        val_metrics_history,
+        best_state,
+    ) = run_training(
         rng=rng,
         train_ds=train_ds,
         val_ds=val_ds,
@@ -61,14 +63,25 @@ if __name__ == "__main__":
     test_preds = task_callables.predict_fn(test_batch, best_state.params)
 
     import matplotlib.pyplot as plt
+
     for i in range(test_batch["x_ts"].shape[0]):
         print("test sample:", i)
         q_gt = test_batch["x_ts"][i, 0, 0] / jnp.pi * 180
         q_pred = test_preds["q_ts"][i, 0, 0] / jnp.pi * 180
-        error_q = normalize_joint_angles(test_preds["q_ts"][i, 0, 0] - test_batch["x_ts"][i, 0, 0])
-        print("Ground-truth q:", q_gt, "deg",
-              "Predicted q:", q_pred, "deg",
-              "Error:", error_q / jnp.pi * 180, "deg")
+        error_q = normalize_joint_angles(
+            test_preds["q_ts"][i, 0, 0] - test_batch["x_ts"][i, 0, 0]
+        )
+        print(
+            "Ground-truth q:",
+            q_gt,
+            "deg",
+            "Predicted q:",
+            q_pred,
+            "deg",
+            "Error:",
+            error_q / jnp.pi * 180,
+            "deg",
+        )
 
         img_gt = (128 * (1.0 + test_batch["rendering_ts"][i, 0])).astype(jnp.uint8)
         img_rec = (128 * (1.0 + test_preds["rendering_ts"][i, 0])).astype(jnp.uint8)

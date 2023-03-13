@@ -31,13 +31,13 @@ if __name__ == "__main__":
     z_bt = nn.apply({"params": nn_params}, img_bt, method=nn.encode)
     print("z_bt", z_bt.shape)
 
-    loss_fn = lambda _nn_params: jnp.mean(nn.apply({"params": _nn_params}, img_bt, method=nn.encode) ** 2)
+    loss_fn = lambda _nn_params: jnp.mean(
+        nn.apply({"params": _nn_params}, img_bt, method=nn.encode) ** 2
+    )
 
-    loss_and_grad_fn = jax.value_and_grad(loss_fn, argnums=(0, ))
-    loss, (grads, ) = loss_and_grad_fn(train_state.params)
+    loss_and_grad_fn = jax.value_and_grad(loss_fn, argnums=(0,))
+    loss, (grads,) = loss_and_grad_fn(train_state.params)
 
     print("loss", loss)
 
-    train_state = train_state.apply_gradients(
-        grads=grads
-    )
+    train_state = train_state.apply_gradients(grads=grads)

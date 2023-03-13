@@ -11,7 +11,7 @@ def initialize_train_state(
     nn_model: nn.Module,
     nn_dummy_input: Array,
     learning_rate_fn: Callable,
-    weight_decay: float = 0.0
+    weight_decay: float = 0.0,
 ) -> TrainState:
     """
     Initialize the train state for the neural network.
