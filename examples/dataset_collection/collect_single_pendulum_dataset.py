@@ -53,8 +53,9 @@ if __name__ == "__main__":
         render_pendulum,
         forward_kinematics_fn,
         robot_params,
-        width=32,
-        height=32,
+        width=64,
+        height=64,
+        line_thickness=2,
     )
 
     sample_q = jnp.array([36 / 180 * jnp.pi])

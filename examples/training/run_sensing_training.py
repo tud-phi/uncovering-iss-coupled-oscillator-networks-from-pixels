@@ -13,14 +13,14 @@ tf.config.experimental.set_visible_devices([], "GPU")
 seed = 0
 rng = random.PRNGKey(seed=seed)
 
-num_epochs = 20
+num_epochs = 25
 batch_size = 8
-base_lr = 2e-3
-warmup_epochs = 5
+base_lr = 5e-4
+warmup_epochs = 2
 
 if __name__ == "__main__":
     datasets = load_dataset(
-        "mechanical_system/single_pendulum",
+        "mechanical_system/single_pendulum_64x64px",
         seed=seed,
         batch_size=batch_size,
         normalize=True,
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     train_ds, val_ds, test_ds = datasets["train"], datasets["val"], datasets["test"]
 
     # initialize the model
-    nn_model = Encoder(latent_dim=1)
+    nn_model = Encoder(latent_dim=1, img_shape=(64, 64, 1))
 
     # call the factory function for the sensing task
     task_callables = sensing.task_factory(nn_model)

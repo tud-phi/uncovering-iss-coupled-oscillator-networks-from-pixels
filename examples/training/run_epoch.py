@@ -20,7 +20,7 @@ batch_size = 32
 
 if __name__ == "__main__":
     datasets = load_dataset(
-        "mechanical_system/single_pendulum",
+        "mechanical_system/single_pendulum_64x64px",
         seed=seed,
         batch_size=batch_size,
         normalize=True,
@@ -40,7 +40,7 @@ if __name__ == "__main__":
     )
 
     # initialize the model
-    nn_model = Encoder(latent_dim=1)
+    nn_model = Encoder(latent_dim=1, img_shape=(64, 64, 1))
 
     # call the factory function for the sensing task
     task_callables = sensing.task_factory(nn_model)

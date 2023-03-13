@@ -22,7 +22,7 @@ export PYTHONPATH="${PYTHONPATH}://src"
 
 The compressed Tensorflow dataset can be generated from a raw dataset using the following command:
 ```bash
-tfds build datasets/mechanical_system --data_dir data/tensorflow_datasets --overwrite
+tfds build datasets/mechanical_system --data_dir data/tensorflow_datasets --config single_pendulum_64x64px --overwrite
 ```
 
 ## Tips & Tricks
