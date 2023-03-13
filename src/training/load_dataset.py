@@ -82,7 +82,7 @@ def load_dataset(
             ds = ds.map(
                 lambda sample: sample
                 | {
-                    "rendering_ts": tf.cast(sample["rendering_ts"], tf.float32) / 255.0,
+                    "rendering_ts": tf.cast(sample["rendering_ts"], tf.float32) / 128.0 - 1.0,
                 }
             )
 
