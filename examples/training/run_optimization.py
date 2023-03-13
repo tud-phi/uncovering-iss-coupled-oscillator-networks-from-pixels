@@ -3,8 +3,12 @@ import jax
 from jax import random
 import jax.numpy as jnp
 import optax
+import tensorflow as tf
 
 from src.neural_networks.simple_cnn import Autoencoder
+
+# prevent tensorflow from loading everything onto the GPU, as we don't have enough memory for that
+tf.config.experimental.set_visible_devices([], "GPU")
 
 rng = random.PRNGKey(0)
 

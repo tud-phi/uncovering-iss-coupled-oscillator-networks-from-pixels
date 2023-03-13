@@ -1,4 +1,5 @@
 from jax import random
+import tensorflow as tf
 
 from src.neural_networks.simple_cnn import Encoder
 from src.training.tasks import sensing
@@ -6,6 +7,9 @@ from src.training.initialization import initialize_train_state
 from src.training.load_dataset import load_dataset
 from src.training.loops import train_epoch, eval_model
 from src.training.optim import create_learning_rate_fn
+
+# prevent tensorflow from loading everything onto the GPU, as we don't have enough memory for that
+tf.config.experimental.set_visible_devices([], "GPU")
 
 # initialize the pseudo-random number generator
 seed = 0

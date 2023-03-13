@@ -2,7 +2,7 @@ from flax import linen as nn  # Linen API
 from flax.training.train_state import TrainState
 from functools import partial
 import jax
-from jax import Array, jit, random
+from jax import Array, debug, jit, random
 import jax.numpy as jnp
 import numpy as onp
 import tensorflow as tf
