@@ -1,3 +1,4 @@
+import cv2
 from diffrax import Dopri5
 from functools import partial
 from jax import config as jax_config
@@ -8,6 +9,7 @@ from jax import random
 import jax.numpy as jnp
 from jsrm.integration import ode_factory
 from jsrm.systems import euler_lagrangian, pendulum
+import matplotlib.pyplot as plt
 from pathlib import Path
 
 from src.dataset_collection import collect_dataset
@@ -54,6 +56,13 @@ if __name__ == "__main__":
         width=32,
         height=32,
     )
+
+    sample_q = jnp.array([36 / 180 * jnp.pi])
+    sample_img = rendering_fn(sample_q)
+    plt.figure(num="Sample rendering")
+    plt.imshow(cv2.cvtColor(sample_img, cv2.COLOR_BGR2RGB))
+    plt.title("q = " + str(sample_q / jnp.pi * 180) + " [deg]")
+    plt.show()
 
     # set initial conditions
     state_init_min = jnp.zeros((2 * num_links,))
