@@ -25,8 +25,9 @@ def task_factory(nn_model: nn.Module) -> TaskCallables:
     def predict_fn(batch: Dict[str, Array], nn_params: FrozenDict) -> Dict[str, Array]:
         img_bt = assemble_input(batch)
 
+        # TODO: only normalize for pendulums, but not for soft robots or other systems
         # output will be of shape batch_dim * time_dim x latent_dim
-        q_pred_bt = nn_model.apply({"params": nn_params}, img_bt)
+        q_pred_bt = normalize_joint_angles(nn_model.apply({"params": nn_params}, img_bt))
 
         # reshape to batch_dim x time_dim x latent_dim
         q_pred_bt = q_pred_bt.reshape((batch["rendering_ts"].shape[0], -1, q_pred_bt.shape[-1]))
@@ -44,6 +45,7 @@ def task_factory(nn_model: nn.Module) -> TaskCallables:
         q_pred_bt = preds["q_ts"]
         q_target_bt = batch["x_ts"][..., :batch["x_ts"].shape[-1] // 2]
 
+        # TODO: only normalize for pendulums, but not for soft robots or other systems
         mse = jnp.mean(jnp.square(
             normalize_joint_angles(q_pred_bt - q_target_bt)
         ))
