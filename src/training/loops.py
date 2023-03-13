@@ -104,8 +104,7 @@ def train_epoch(
 
     step_metrics_list = []
     for step, batch in enumerate(train_ds.as_numpy_iterator()):
-        print("step: ", step, "/", steps_per_epoch)
-        states, step_metrics = train_step(state, batch, task_callables, learning_rate_fn)
+        state, step_metrics = train_step(state, batch, task_callables, learning_rate_fn)
         step_metrics_list.append(step_metrics)
 
     # compute mean of metrics across each batch in epoch.
@@ -184,7 +183,7 @@ def run_training(
         val_loss_history: Array of validation losses for each epoch.
         train_metrics_history: List of dictionaries containing the training metrics for each epoch.
         val_metrics_history: List of dictionaries containing the validation metrics for each epoch.
-        train_states_history: List of dictionaries containing the training states for each epoch.
+        state_history: List of TrainState objects for each epoch.
     """
     # initialize the learning rate scheduler
     lr_fn = create_learning_rate_fn(
@@ -212,7 +211,7 @@ def run_training(
     val_loss_history = []  # list with validation losses
     train_metrics_history = []  # list with train metric dictionaries
     val_metrics_history = []  # list with validation metric dictionaries
-    state_history = []  # list with dictionaries of model states
+    state_history = []  # list of TrainState objects for each epoch
 
     if verbose:
         print(f"Training the Lagrangian neural network for {num_epochs} epochs...")
