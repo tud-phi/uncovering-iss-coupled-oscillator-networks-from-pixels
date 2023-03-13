@@ -13,10 +13,10 @@ tf.config.experimental.set_visible_devices([], "GPU")
 seed = 0
 rng = random.PRNGKey(seed=seed)
 
-num_epochs = 10
-batch_size = 32
-base_lr = 0.01
-warmup_epochs = 2
+num_epochs = 40
+batch_size = 8
+base_lr = 2e-3
+warmup_epochs = 5
 
 if __name__ == "__main__":
     datasets = load_dataset(
