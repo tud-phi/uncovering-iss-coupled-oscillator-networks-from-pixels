@@ -13,7 +13,7 @@ tf.config.experimental.set_visible_devices([], "GPU")
 seed = 0
 rng = random.PRNGKey(seed=seed)
 
-num_epochs = 40
+num_epochs = 20
 batch_size = 8
 base_lr = 2e-3
 warmup_epochs = 5
@@ -27,9 +27,6 @@ if __name__ == "__main__":
         grayscale=True,
     )
     train_ds, val_ds, test_ds = datasets["train"], datasets["val"], datasets["test"]
-    print("train_ds: ", train_ds)
-    print("val_ds: ", val_ds)
-    print("test_ds: ", test_ds)
 
     # initialize the model
     nn_model = Encoder(latent_dim=1)
