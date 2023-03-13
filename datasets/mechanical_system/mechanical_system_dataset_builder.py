@@ -1,6 +1,7 @@
 """mechanical_system dataset."""
 import dataclasses
 import jax.numpy as jnp
+from natsort import natsorted
 from pathlib import Path
 import tensorflow_datasets as tfds
 
@@ -80,14 +81,14 @@ class Builder(tfds.core.GeneratorBasedBuilder):
         # lazy imports
         cv2 = tfds.core.lazy_imports.cv2
 
-        for sim_dir in path.iterdir():
+        for sim_dir in sorted(path.iterdir()):
             sim_stem = sim_dir.stem
             sim_idx = int(sim_stem.lstrip("sim-"))
 
             labels = jnp.load(sim_dir / "labels.npz")
 
             rendering_ts = []
-            for img_path in sim_dir.glob("*.jpeg"):
+            for img_path in natsorted(sim_dir.glob("*.jpeg"), key=str):
                 img = cv2.imread(str(img_path))
                 rendering_ts.append(img)
 

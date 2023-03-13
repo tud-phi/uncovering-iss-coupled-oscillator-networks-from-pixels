@@ -4,6 +4,7 @@ flax
 jax
 jax-soft-robot-modelling
 matplotlib
+natsort
 opencv-python
 optax
 tensorboard

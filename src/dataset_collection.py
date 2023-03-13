@@ -98,7 +98,7 @@ def collect_dataset(
 
             for time_idx in range(x_ts.shape[0]):
                 # configuration for current time step
-                q = x_ts[time_idx, n_q:]
+                q = x_ts[time_idx, :n_q]
 
                 # render the image
                 img = rendering_fn(q)
