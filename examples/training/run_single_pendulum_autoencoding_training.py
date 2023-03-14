@@ -66,10 +66,11 @@ if __name__ == "__main__":
 
     for i in range(test_batch["x_ts"].shape[0]):
         print("test sample:", i)
-        q_gt = test_batch["x_ts"][i, 0, 0] / jnp.pi * 180
-        q_pred = test_preds["q_ts"][i, 0, 0] / jnp.pi * 180
+        n_q = test_batch["x_ts"].shape[-1] // 2
+        q_gt = test_batch["x_ts"][i, 0, :n_q] / jnp.pi * 180
+        q_pred = test_preds["q_ts"][i, 0, :n_q] / jnp.pi * 180
         error_q = normalize_joint_angles(
-            test_preds["q_ts"][i, 0, 0] - test_batch["x_ts"][i, 0, 0]
+            test_preds["q_ts"][i, 0, :n_q] - test_batch["x_ts"][i, 0, :n_q]
         )
         print(
             "Ground-truth q:",
