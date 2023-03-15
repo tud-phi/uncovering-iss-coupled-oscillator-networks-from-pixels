@@ -1,5 +1,4 @@
 from flax import linen as nn  # Linen API
-from flax.training.train_state import TrainState
 from functools import partial
 import jax
 from jax import Array, debug, jit, random
@@ -9,7 +8,7 @@ import tensorflow as tf
 from tqdm import tqdm
 from typing import Callable, Dict, List, Tuple
 
-from src.structs import TaskCallables
+from src.structs import TaskCallables, TrainState
 from src.training.initialization import initialize_train_state
 from src.training.optim import create_learning_rate_fn
 

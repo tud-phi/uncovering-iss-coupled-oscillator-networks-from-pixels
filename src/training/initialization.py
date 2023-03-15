@@ -1,9 +1,10 @@
 from flax import linen as nn  # Linen API
-from flax.training.train_state import TrainState
 from jax import Array, random
 import jax.numpy as jnp
 import optax
 from typing import Callable, Type
+
+from src.structs import TrainState
 
 
 def initialize_train_state(
