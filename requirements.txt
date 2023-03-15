@@ -1,7 +1,10 @@
 alive-progress
+ciclo
+clu
 diffrax
 flax
 jax
+jax-metrics
 jax-soft-robot-modelling
 matplotlib
 natsort
