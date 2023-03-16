@@ -3,6 +3,7 @@ from flax import linen as nn  # Linen API
 from functools import partial
 from jax import Array, jit
 import jax.numpy as jnp
+import jax_metrics as jm
 from jsrm.systems.pendulum import normalize_joint_angles
 from typing import Callable, Dict, Tuple
 
@@ -20,7 +21,7 @@ def assemble_input(batch) -> Array:
     return img_bt
 
 
-def task_factory(nn_model: nn.Module) -> TaskCallables:
+def task_factory(nn_model: nn.Module) -> Tuple[TaskCallables, jm.Metrics]:
     @jit
     def predict_fn(batch: Dict[str, Array], nn_params: FrozenDict) -> Dict[str, Array]:
         img_bt = assemble_input(batch)
@@ -68,5 +69,12 @@ def task_factory(nn_model: nn.Module) -> TaskCallables:
         }
         return metrics
 
+    metrics = jm.Metrics(
+        {
+            "loss": jm.metrics.Mean().from_argument("loss"),
+            "rmse_q": jm.metrics.Mean().from_argument("rmse_q"),
+        }
+    )
+
     task_callables = TaskCallables(assemble_input, predict_fn, loss_fn, compute_metrics)
-    return task_callables
+    return task_callables, metrics

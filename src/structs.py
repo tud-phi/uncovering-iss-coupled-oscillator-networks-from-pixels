@@ -14,4 +14,3 @@ class TaskCallables:
 
 class TrainState(train_state.TrainState):
     metrics: jm.Metrics
-

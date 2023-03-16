@@ -1,5 +1,5 @@
 alive-progress
-ciclo
+ciclo>=0.1.8
 clu
 diffrax
 flax

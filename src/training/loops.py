@@ -5,10 +5,9 @@ from functools import partial
 import jax
 from jax import Array, debug, jit, random
 import jax.numpy as jnp
-import numpy as onp
+import jax_metrics as jm
 from pathlib import Path
 import tensorflow as tf
-from tqdm import tqdm
 from typing import Callable, Dict, List, Tuple
 
 from src.structs import TaskCallables, TrainState
@@ -46,13 +45,14 @@ def train_step(
     # optimize the neural network parameters with gradient descent
     state = state.apply_gradients(grads=grad_nn_params)
 
-    # compute metrics
-    metrics = task_callables.compute_metrics_fn(batch, preds)
-    metrics["loss"] = loss
-    # save the currently active learning rates to the `metrics` dictionary
-    metrics["lr"] = learning_rate_fn(state.step)
+    # extract the learning rate for the current step
+    lr = learning_rate_fn(state.step)
 
-    metrics = state.metrics.update(loss=loss)
+    # compute metrics
+    metrics_dict = task_callables.compute_metrics_fn(batch, preds)
+    metrics = state.metrics.update(loss=loss, lr=lr, **metrics_dict)
+
+    # save metrics to logs
     logs = ciclo.logs()
     logs.add_stateful_metrics(**metrics.compute())
 
@@ -80,9 +80,11 @@ def eval_step(
     """
     loss, preds = task_callables.loss_fn(batch, state.params)
 
-    # debug.print("eval loss: {loss}", loss=loss)
+    # compute metrics
+    metrics_dict = task_callables.compute_metrics_fn(batch, preds)
+    metrics = state.metrics.update(loss=loss, lr=jnp.zeros(()), **metrics_dict)
 
-    metrics = state.metrics.update(loss=loss)
+    # save metrics to logs
     logs = ciclo.logs()
     logs.add_stateful_metrics(**metrics.compute())
 
@@ -103,15 +105,13 @@ def run_training(
     val_ds: tf.data.Dataset,
     nn_model: nn.Module,
     task_callables: TaskCallables,
+    metrics: jm.Metrics,
     num_epochs: int,
     base_lr: float,
     warmup_epochs: int = 0,
     weight_decay: float = 0.0,
     logdir: Path = None,
-) -> Tuple[
-    TrainState,
-    History
-]:
+) -> Tuple[TrainState, History]:
     """
     Run the training loop.
     Args:
@@ -120,6 +120,7 @@ def run_training(
         val_ds: Validation dataset as tf.data.Dataset object.
         nn_model: Neural network model.
         task_callables: struct containing the functions for the learning task
+        metrics: Struct containing the metrics to be computed during training.
         num_epochs: Number of epochs to train for.
         base_lr: Base learning rate (after warmup and before decay).
         warmup_epochs: Number of epochs for warmup.
@@ -153,6 +154,7 @@ def run_training(
         rng,
         nn_model,
         nn_dummy_input=nn_dummy_input,
+        metrics=metrics,
         learning_rate_fn=lr_fn,
         weight_decay=weight_decay,
     )
@@ -162,7 +164,7 @@ def run_training(
         callbacks.append(
             ciclo.checkpoint(
                 logdir,
-                monitor="loss",  # TODO: change to loss_val
+                monitor="loss_val",
                 mode="min",
             ),
         )
@@ -170,17 +172,23 @@ def run_training(
 
     state, history, _ = ciclo.train_loop(
         state,
-        train_ds.repeat(num_epochs).as_numpy_iterator(),  # repeat the training dataset for num_epochs
+        train_ds.repeat(
+            num_epochs
+        ).as_numpy_iterator(),  # repeat the training dataset for num_epochs
         {
-            ciclo.on_train_step: [partial(
-                train_step,
-                task_callables=task_callables,
-                learning_rate_fn=lr_fn,
-            )],
-            ciclo.on_test_step: [partial(
-                eval_step,
-                task_callables=task_callables,
-            )],
+            ciclo.on_train_step: [
+                partial(
+                    train_step,
+                    task_callables=task_callables,
+                    learning_rate_fn=lr_fn,
+                )
+            ],
+            ciclo.on_test_step: [
+                partial(
+                    eval_step,
+                    task_callables=task_callables,
+                )
+            ],
             ciclo.on_reset_step: [reset_step],
         },
         callbacks=callbacks,
@@ -194,36 +202,39 @@ def run_training(
     return state, history
 
 
-def run_test(
-    test_ds: tf.data.Dataset,
+def run_eval(
+    eval_ds: tf.data.Dataset,
     state: TrainState,
     task_callables: TaskCallables,
 ) -> ciclo.History:
     """
     Run the test loop.
     Args:
-        test_ds: Test dataset as tf.data.Dataset object.
+        eval_ds: Evaluation dataset as tf.data.Dataset object.
         state: training state of the neural network
         task_callables: struct containing the functions for the learning task
     Returns:
         history: History object containing the test metrics.
     """
-    kbar = ciclo.keras_bar(total=len(test_ds))
-    setattr(kbar, ciclo.on_test_step, lambda state, batch, elapsed, loop_state: kbar.__loop_callback__(loop_state))
+    kbar = ciclo.keras_bar(total=len(eval_ds))
+    setattr(
+        kbar,
+        ciclo.on_test_step,
+        lambda state, batch, elapsed, loop_state: kbar.__loop_callback__(loop_state),
+    )
     _, history, _ = ciclo.test_loop(
         state,
-        test_ds.as_numpy_iterator(),
+        eval_ds.as_numpy_iterator(),
         tasks={
-            ciclo.on_test_step: [partial(
-                eval_step,
-                task_callables=task_callables,
-            )],
+            ciclo.on_test_step: [
+                partial(
+                    eval_step,
+                    task_callables=task_callables,
+                )
+            ],
         },
-        callbacks=[
-            kbar,
-            lambda state, history: debug.print("Test callback")
-        ],
-        stop=len(test_ds),
+        callbacks=[kbar],
+        stop=len(eval_ds),
     )
 
     return history

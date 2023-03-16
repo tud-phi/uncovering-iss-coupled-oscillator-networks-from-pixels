@@ -1,14 +1,16 @@
 from datetime import datetime
 from jax import random
+from jax import config as jax_config
 import jax.numpy as jnp
 from jsrm.systems.pendulum import normalize_joint_angles
 from pathlib import Path
 import tensorflow as tf
 
+
 from src.neural_networks.simple_cnn import Autoencoder
 from src.training.tasks import autoencoding
 from src.training.load_dataset import load_dataset
-from src.training.loops import run_training, run_test
+from src.training.loops import run_training, run_eval
 
 # prevent tensorflow from loading everything onto the GPU, as we don't have enough memory for that
 tf.config.experimental.set_visible_devices([], "GPU")
@@ -41,32 +43,33 @@ if __name__ == "__main__":
     nn_model = Autoencoder(latent_dim=1, img_shape=(64, 64, 1))
 
     # call the factory function for the sensing task
-    task_callables = autoencoding.task_factory(nn_model, loss_weights=loss_weights)
+    task_callables, metrics = autoencoding.task_factory(
+        nn_model, loss_weights=loss_weights
+    )
 
     # run the training loop
-    (
-        state,
-        train_history,
-    ) = run_training(
+    print("Run training...")
+    (state, train_history,) = run_training(
         rng=rng,
         train_ds=train_ds,
         val_ds=val_ds,
         nn_model=nn_model,
         task_callables=task_callables,
+        metrics=metrics,
         num_epochs=num_epochs,
         base_lr=base_lr,
         warmup_epochs=warmup_epochs,
         weight_decay=0.0,
         logdir=logdir,
     )
+    print("Final training metrics:\n", state.metrics.compute())
 
-    test_history = run_test(
-        test_ds,
-        state,
-        task_callables
+    print("Run testing...")
+    test_history = run_eval(test_ds, state, task_callables)
+    rmse_q_stps, rmse_rec_stps = train_history.collect("rmse_q", "rmse_rec")
+    print(
+        f"Final test metrics: rmse_q={rmse_q_stps[-1]:.3f}, rmse_rec={rmse_rec_stps[-1]:.3f}"
     )
-
-    # print("Final validation metrics:\n", val_metrics_history[-1])
 
     test_batch = next(test_ds.as_numpy_iterator())
     test_preds = task_callables.predict_fn(test_batch, state.params)

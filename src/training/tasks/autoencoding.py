@@ -3,6 +3,7 @@ from flax import linen as nn  # Linen API
 from functools import partial
 from jax import Array, jit
 import jax.numpy as jnp
+import jax_metrics as jm
 from jsrm.systems.pendulum import normalize_joint_angles
 from typing import Callable, Dict, Tuple
 
@@ -22,13 +23,17 @@ def assemble_input(batch) -> Array:
 
 def task_factory(
     nn_model: nn.Module, loss_weights: Dict[str, float] = None
-) -> TaskCallables:
+) -> Tuple[TaskCallables, jm.Metrics]:
     """
     Factory function for the autoencoding task.
     I.e. the task of reconstructing the input image with the latent space supervised by the joint angles.
     Will return a TaskCallables object with the predict_fn, loss_fn, and compute_metrics functions.
-    nn_model: the neural network model to use
-    loss_weights: the weights for the different loss terms
+    Args:
+        nn_model: the neural network model to use
+        loss_weights: the weights for the different loss terms
+    Returns:
+        task_callables: struct containing the functions for the learning task
+        metrics: struct containing the metrics for the learning task
     """
     if loss_weights is None:
         loss_weights = dict(mse_q=1.0, mse_rec=1.0)
@@ -92,11 +97,20 @@ def task_factory(
 
         metrics = {
             "rmse_q": jnp.sqrt(jnp.mean(jnp.square(error_q))),
-            "mse_rec": jnp.sqrt(
+            "rmse_rec": jnp.sqrt(
                 jnp.mean(jnp.square(preds["rendering_ts"] - batch["rendering_ts"]))
             ),
         }
         return metrics
 
     task_callables = TaskCallables(assemble_input, predict_fn, loss_fn, compute_metrics)
-    return task_callables
+
+    metrics = jm.Metrics(
+        {
+            "loss": jm.metrics.Mean().from_argument("loss"),
+            "rmse_q": jm.metrics.Mean().from_argument("rmse_q"),
+            "rmse_rec": jm.metrics.Mean().from_argument("rmse_rec"),
+        }
+    )
+
+    return task_callables, metrics

@@ -12,6 +12,7 @@ def initialize_train_state(
     rng: random.KeyArray,
     nn_model: nn.Module,
     nn_dummy_input: Array,
+    metrics: jm.Metrics,
     learning_rate_fn: Callable,
     weight_decay: float = 0.0,
 ) -> TrainState:
@@ -21,6 +22,7 @@ def initialize_train_state(
         rng: PRNG key for pseudo-random number generation.
         nn_model: Neural network object.
         nn_dummy_input: Dummy input to initialize the neural network parameters.
+        metrics: Metrics object for respective task.
         learning_rate_fn: A function that takes the current step and returns the current learning rate.
             It has the signature learning_rate_fn(step: int) -> lr.
         weight_decay: Weight decay of the Adam optimizer for training the neural networks.
@@ -36,12 +38,7 @@ def initialize_train_state(
 
     # create the TrainState object for both neural networks
     state = TrainState.create(
-        apply_fn=nn_model.apply,
-        params=nn_params,
-        tx=tx,
-        metrics=jm.Metrics({
-            "loss": jm.metrics.Mean().from_argument("loss"),
-        })
+        apply_fn=nn_model.apply, params=nn_params, tx=tx, metrics=metrics
     )
 
     return state

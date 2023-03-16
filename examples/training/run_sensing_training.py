@@ -1,10 +1,15 @@
+from datetime import datetime
 from jax import random
+from jax import config as jax_config
+import jax.numpy as jnp
+from pathlib import Path
 import tensorflow as tf
+
 
 from src.neural_networks.simple_cnn import Encoder
 from src.training.tasks import sensing
 from src.training.load_dataset import load_dataset
-from src.training.loops import run_training
+from src.training.loops import run_training, run_eval
 
 # prevent tensorflow from loading everything onto the GPU, as we don't have enough memory for that
 tf.config.experimental.set_visible_devices([], "GPU")
@@ -17,6 +22,10 @@ num_epochs = 25
 batch_size = 8
 base_lr = 5e-4
 warmup_epochs = 2
+
+now = datetime.now()
+logdir = Path("logs") / "single_pendulum_sensing" / f"{now:%Y-%m-%d_%H-%M-%S}"
+logdir.mkdir(parents=True, exist_ok=True)
 
 if __name__ == "__main__":
     datasets = load_dataset(
@@ -32,22 +41,26 @@ if __name__ == "__main__":
     nn_model = Encoder(latent_dim=1, img_shape=(64, 64, 1))
 
     # call the factory function for the sensing task
-    task_callables = sensing.task_factory(nn_model)
+    task_callables, metrics = sensing.task_factory(nn_model)
 
     # run the training loop
-    (
-        state,
-        history,
-    ) = run_training(
+    print("Run training...")
+    (state, train_history,) = run_training(
         rng=rng,
         train_ds=train_ds,
         val_ds=val_ds,
         nn_model=nn_model,
         task_callables=task_callables,
+        metrics=metrics,
         num_epochs=num_epochs,
         base_lr=base_lr,
         warmup_epochs=warmup_epochs,
         weight_decay=0.0,
+        logdir=logdir,
     )
+    print("Final training metrics:\n", state.metrics.compute())
 
-    print("Final validation metrics:\n", val_metrics_history[-1])
+    print("Run testing...")
+    test_history = run_eval(test_ds, state, task_callables)
+    rmse_q_stps = train_history.collect("rmse_q")
+    print(f"Final test metrics: rmse_q={rmse_q_stps[-1]:.3f}")

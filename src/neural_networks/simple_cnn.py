@@ -67,10 +67,14 @@ class Autoencoder(nn.Module):
 
     def setup(self):
         self.encoder = Encoder(
-            img_shape=self.img_shape, latent_dim=self.latent_dim, nonlinearity=self.nonlinearity
+            img_shape=self.img_shape,
+            latent_dim=self.latent_dim,
+            nonlinearity=self.nonlinearity,
         )
         self.decoder = Decoder(
-            img_shape=self.img_shape, latent_dim=self.latent_dim, nonlinearity=self.nonlinearity
+            img_shape=self.img_shape,
+            latent_dim=self.latent_dim,
+            nonlinearity=self.nonlinearity,
         )
 
     def __call__(self, x):
