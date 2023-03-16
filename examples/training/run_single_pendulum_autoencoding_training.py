@@ -1,12 +1,14 @@
+from datetime import datetime
 from jax import random
 import jax.numpy as jnp
 from jsrm.systems.pendulum import normalize_joint_angles
+from pathlib import Path
 import tensorflow as tf
 
 from src.neural_networks.simple_cnn import Autoencoder
 from src.training.tasks import autoencoding
 from src.training.load_dataset import load_dataset
-from src.training.loops import run_training
+from src.training.loops import run_training, run_test
 
 # prevent tensorflow from loading everything onto the GPU, as we don't have enough memory for that
 tf.config.experimental.set_visible_devices([], "GPU")
@@ -20,6 +22,10 @@ batch_size = 8
 base_lr = 5e-4
 warmup_epochs = 2
 loss_weights = dict(mse_q=1.0, mse_rec=5.0)
+
+now = datetime.now()
+logdir = Path("logs") / "single_pendulum_autoencoding" / f"{now:%Y-%m-%d_%H-%M-%S}"
+logdir.mkdir(parents=True, exist_ok=True)
 
 if __name__ == "__main__":
     datasets = load_dataset(
@@ -39,10 +45,8 @@ if __name__ == "__main__":
 
     # run the training loop
     (
-        val_loss_history,
-        train_metrics_history,
-        val_metrics_history,
-        best_state,
+        state,
+        train_history,
     ) = run_training(
         rng=rng,
         train_ds=train_ds,
@@ -50,17 +54,22 @@ if __name__ == "__main__":
         nn_model=nn_model,
         task_callables=task_callables,
         num_epochs=num_epochs,
-        batch_size=batch_size,
         base_lr=base_lr,
         warmup_epochs=warmup_epochs,
         weight_decay=0.0,
-        verbose=True,
+        logdir=logdir,
     )
 
-    print("Final validation metrics:\n", val_metrics_history[-1])
+    test_history = run_test(
+        test_ds,
+        state,
+        task_callables
+    )
+
+    # print("Final validation metrics:\n", val_metrics_history[-1])
 
     test_batch = next(test_ds.as_numpy_iterator())
-    test_preds = task_callables.predict_fn(test_batch, best_state.params)
+    test_preds = task_callables.predict_fn(test_batch, state.params)
 
     import matplotlib.pyplot as plt
 

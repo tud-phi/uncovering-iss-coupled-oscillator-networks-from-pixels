@@ -39,10 +39,8 @@ if __name__ == "__main__":
 
     # run the training loop
     (
-        val_loss_history,
-        train_metrics_history,
-        val_metrics_history,
-        best_state,
+        state,
+        history
     ) = run_training(
         rng=rng,
         train_ds=train_ds,
@@ -50,17 +48,16 @@ if __name__ == "__main__":
         nn_model=nn_model,
         task_callables=task_callables,
         num_epochs=num_epochs,
-        batch_size=batch_size,
         base_lr=base_lr,
         warmup_epochs=warmup_epochs,
         weight_decay=0.0,
         verbose=True,
     )
 
-    print("Final validation metrics:\n", val_metrics_history[-1])
+    # print("Final validation metrics:\n", val_metrics_history[-1])
 
     test_batch = next(test_ds.as_numpy_iterator())
-    test_preds = task_callables.predict_fn(test_batch, best_state.params)
+    test_preds = task_callables.predict_fn(test_batch, state.params)
 
     import matplotlib.pyplot as plt
 

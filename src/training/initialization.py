@@ -1,6 +1,7 @@
 from flax import linen as nn  # Linen API
 from jax import Array, random
 import jax.numpy as jnp
+import jax_metrics as jm
 import optax
 from typing import Callable, Type
 
@@ -38,6 +39,9 @@ def initialize_train_state(
         apply_fn=nn_model.apply,
         params=nn_params,
         tx=tx,
+        metrics=jm.Metrics({
+            "loss": jm.metrics.Mean().from_argument("loss"),
+        })
     )
 
     return state
