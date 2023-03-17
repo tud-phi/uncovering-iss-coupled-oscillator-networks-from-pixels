@@ -37,8 +37,14 @@ if __name__ == "__main__":
     )
     train_ds, val_ds, test_ds = datasets["train"], datasets["val"], datasets["test"]
 
+    # dimension of the latent space
+    n_q = train_ds.element_spec["x_ts"].shape[-1] // 2
+
     # initialize the model
-    nn_model = Encoder(latent_dim=1, img_shape=(64, 64, 1))
+    nn_model = Encoder(
+        latent_dim=n_q,
+        img_shape=train_ds.element_spec["rendering_ts"].shape
+    )
 
     # call the factory function for the sensing task
     task_callables, metrics = sensing.task_factory("pendulum", nn_model)

@@ -39,8 +39,14 @@ if __name__ == "__main__":
     )
     train_ds, val_ds, test_ds = datasets["train"], datasets["val"], datasets["test"]
 
+    # dimension of the latent space
+    n_q = train_ds.element_spec["x_ts"].shape[-1] // 2
+
     # initialize the model
-    nn_model = Autoencoder(latent_dim=1, img_shape=(64, 64, 1))
+    nn_model = Autoencoder(
+        latent_dim=n_q,
+        img_shape=train_ds.element_spec["rendering_ts"].shape
+    )
 
     # call the factory function for the sensing task
     task_callables, metrics = autoencoding.task_factory(
@@ -78,7 +84,6 @@ if __name__ == "__main__":
 
     for i in range(test_batch["x_ts"].shape[0]):
         print("test sample:", i)
-        n_q = test_batch["x_ts"].shape[-1] // 2
         q_gt = test_batch["x_ts"][i, 0, :n_q] / jnp.pi * 180
         q_pred = test_preds["q_ts"][i, 0, :n_q] / jnp.pi * 180
         error_q = normalize_joint_angles(
