@@ -1,0 +1,6 @@
+{
+    "files.watcherExclude": {
+        "**/data/**": true
+    },
+    "python.analysis.typeCheckingMode": "basic"
+}
