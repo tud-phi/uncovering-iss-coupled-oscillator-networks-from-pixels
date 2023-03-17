@@ -84,7 +84,15 @@ if __name__ == "__main__":
 
     print("Run testing...")
     test_history = run_eval(test_ds, state, task_callables)
-    rmse_q_stps, rmse_rec_stps = train_history.collect("rmse_q", "rmse_rec")
+    (
+        rmse_q_static_stps, 
+        rmse_q_dynamic_stps, 
+        rmse_rec_static_stps,
+        rmse_rec_dynamic_stps
+    ) = train_history.collect("rmse_q_static", "rmse_q_dynamic", "rmse_rec_static", "rmse_rec_dynamic")
     print(
-        f"Final test metrics: rmse_q={rmse_q_stps[-1]:.3f}, rmse_rec={rmse_rec_stps[-1]:.3f}"
+        f"Final test metrics: rmse_q_static_stps={rmse_q_static_stps[-1]:.3f}, "
+        f"rmse_q_dynamic_stps={rmse_q_dynamic_stps[-1]:.3f}, "
+        f"rmse_rec_static_stps={rmse_rec_static_stps[-1]:.3f}, "
+        f"rmse_rec_dynamic_stps={rmse_rec_dynamic_stps[-1]:.3f}"
     )
