@@ -27,9 +27,10 @@ def task_factory(
 ) -> Tuple[TaskCallables, jm.Metrics]:
     """
     Factory function for the autoencoding task.
-    I.e. the task of reconstructing the input image with the latent space supervised by the joint angles.
-    Will return a TaskCallables object with the predict_fn, loss_fn, and compute_metrics functions.
+    I.e. the task of reconstructing the input image with the latent space supervised by the configuration.
+    Will return a TaskCallables object with the forward_fn, loss_fn, and compute_metrics functions.
     Args:
+        system_type: the system type to create the task for. For example "pendulum".
         nn_model: the neural network model to use
         loss_weights: the weights for the different loss terms
     Returns:
