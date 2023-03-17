@@ -23,7 +23,7 @@ def assemble_input(batch) -> Array:
 
 
 def task_factory(
-    nn_model: nn.Module, loss_weights: Dict[str, float] = None
+    system_type: str, nn_model: nn.Module, loss_weights: Dict[str, float] = None
 ) -> Tuple[TaskCallables, jm.Metrics]:
     """
     Factory function for the autoencoding task.
@@ -57,9 +57,9 @@ def task_factory(
         q_pred_bt = q_pred_bt.reshape((batch_size, -1, *q_pred_bt.shape[1:]))
         img_pred_bt = img_pred_bt.reshape((batch_size, -1, *img_pred_bt.shape[1:]))
 
-        # normalize the joint angles
-        # TODO: only normalize for pendulums, but not for soft robots or other systems
-        q_pred_bt = normalize_joint_angles(q_pred_bt)
+        # if necessary, normalize the joint angles
+        if system_type == "pendulum":
+            q_pred_bt = normalize_joint_angles(q_pred_bt)
 
         preds = dict(q_ts=q_pred_bt, rendering_ts=img_pred_bt)
 
@@ -74,9 +74,15 @@ def task_factory(
         q_pred_bt = preds["q_ts"]
         q_target_bt = batch["x_ts"][..., : batch["x_ts"].shape[-1] // 2]
 
-        # supervised MSE loss on the configuration space
-        # TODO: only normalize for pendulums, but not for soft robots or other systems
-        mse_q = jnp.mean(jnp.square(normalize_joint_angles(q_pred_bt - q_target_bt)))
+        # compute the configuration error
+        error_q = q_pred_bt - q_target_bt
+
+        # if necessary, normalize the joint angle error
+        if system_type == "pendulum":
+            error_q = normalize_joint_angles(error_q)
+
+        # compute the mean squared error
+        mse_q = jnp.mean(jnp.square(error_q))
 
         # supervised MSE loss on the reconstructed image
         mse_rec = jnp.mean(jnp.square(preds["rendering_ts"] - batch["rendering_ts"]))
@@ -93,8 +99,12 @@ def task_factory(
         q_pred_bt = preds["q_ts"]
         q_target_bt = batch["x_ts"][..., : batch["x_ts"].shape[-1] // 2]
 
-        # compute the normalized joint angle error
-        error_q = normalize_joint_angles(q_pred_bt - q_target_bt)
+        # compute the configuration error
+        error_q = q_pred_bt - q_target_bt
+
+        # if necessary, normalize the joint angle error
+        if system_type == "pendulum":
+            error_q = normalize_joint_angles(error_q)
 
         metrics = {
             "rmse_q": jnp.sqrt(jnp.mean(jnp.square(error_q))),

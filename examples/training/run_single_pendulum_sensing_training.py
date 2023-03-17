@@ -41,7 +41,7 @@ if __name__ == "__main__":
     nn_model = Encoder(latent_dim=1, img_shape=(64, 64, 1))
 
     # call the factory function for the sensing task
-    task_callables, metrics = sensing.task_factory(nn_model)
+    task_callables, metrics = sensing.task_factory("pendulum", nn_model)
 
     # run the training loop
     print("Run training...")

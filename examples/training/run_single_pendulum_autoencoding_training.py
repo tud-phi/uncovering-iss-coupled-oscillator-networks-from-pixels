@@ -44,7 +44,7 @@ if __name__ == "__main__":
 
     # call the factory function for the sensing task
     task_callables, metrics = autoencoding.task_factory(
-        nn_model, loss_weights=loss_weights
+        "pendulum", nn_model, loss_weights=loss_weights
     )
 
     # run the training loop
