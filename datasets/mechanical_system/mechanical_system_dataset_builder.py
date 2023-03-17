@@ -66,6 +66,10 @@ class Builder(tfds.core.GeneratorBasedBuilder):
                 {
                     # These are the features of your dataset like images, labels ...
                     "id": tfds.features.Scalar(dtype=jnp.int32),
+                    "t_ts": tfds.features.Tensor(
+                        shape=(self.builder_config.horizon_dim, ),
+                        dtype=jnp.float64,
+                    ),
                     "x_ts": tfds.features.Tensor(
                         shape=(
                             self.builder_config.horizon_dim,
@@ -100,7 +104,7 @@ class Builder(tfds.core.GeneratorBasedBuilder):
             "train": self._generate_examples(self.builder_config.path),
         }
 
-    def _generate_examples(self, path):
+    def _generate_examples(self, path: Path):
         """Yields examples."""
         # lazy imports
         cv2 = tfds.core.lazy_imports.cv2
@@ -109,15 +113,19 @@ class Builder(tfds.core.GeneratorBasedBuilder):
             sim_stem = sim_dir.stem
             sim_idx = int(sim_stem.lstrip("sim-"))
 
-            labels = jnp.load(sim_dir / "labels.npz")
+            labels_npz = jnp.load(sim_dir / "labels.npz")
+            # convert to dict
+            labels = {key:labels_npz[key] for key in labels_npz}
 
             rendering_ts = []
             for img_path in natsorted(sim_dir.glob("*.jpeg"), key=str):
                 img = cv2.imread(str(img_path))
                 rendering_ts.append(img)
 
-            yield sim_idx, {
+            # merge labels with image and id
+            sample = labels | {
                 "id": sim_idx,
-                "x_ts": labels["x_ts"],
                 "rendering_ts": rendering_ts,
             }
+
+            yield sim_idx, sample

@@ -92,7 +92,7 @@ def collect_dataset(
             sim_dir = dataset_dir / f"sim-{sim_idx}"
             sim_dir.mkdir(parents=True, exist_ok=True)
 
-            labels = dict(x_ts=x_ts)
+            labels = dict(t_ts=ts, x_ts=x_ts)
             # save the labels in dataset_dir
             jnp.savez(file=str(sim_dir / "labels.npz"), **labels)
 
