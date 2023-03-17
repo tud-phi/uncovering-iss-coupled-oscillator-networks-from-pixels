@@ -7,6 +7,7 @@ import jax_metrics as jm
 from jsrm.systems.pendulum import normalize_joint_angles
 from typing import Callable, Dict, Tuple
 
+from src.metrics import NoReduce
 from src.structs import TaskCallables
 
 
@@ -108,6 +109,7 @@ def task_factory(
     metrics = jm.Metrics(
         {
             "loss": jm.metrics.Mean().from_argument("loss"),
+            "lr": NoReduce().from_argument("lr"),
             "rmse_q": jm.metrics.Mean().from_argument("rmse_q"),
             "rmse_rec": jm.metrics.Mean().from_argument("rmse_rec"),
         }

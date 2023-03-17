@@ -86,7 +86,10 @@ def eval_step(
 
     # save metrics to logs
     logs = ciclo.logs()
-    logs.add_stateful_metrics(**metrics.compute())
+    computed_metrics = metrics.compute()
+    # delete the learning rate from the metrics
+    del computed_metrics["lr"]
+    logs.add_stateful_metrics(**computed_metrics)
 
     return logs, state
 
