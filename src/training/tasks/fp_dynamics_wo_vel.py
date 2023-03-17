@@ -66,6 +66,10 @@ def task_factory(
             {"params": nn_params}, img_flat_bt, method=nn_model.encode
         )
 
+        # if necessary, normalize the joint angles
+        if system_type == "pendulum":
+            q_static_pred_flat_bt = normalize_joint_angles(q_static_pred_flat_bt)
+
         # reshape to batch_dim x time_dim x n_q
         q_static_pred_bt = q_static_pred_flat_bt.reshape((batch_size, -1, *q_static_pred_flat_bt.shape[1:]))
 
@@ -98,7 +102,6 @@ def task_factory(
 
         # if necessary, normalize the joint angles
         if system_type == "pendulum":
-            q_static_pred_bt = normalize_joint_angles(q_static_pred_bt)
             q_dynamic_pred_bt = normalize_joint_angles(q_dynamic_pred_bt)
 
         # send the rolled-out latent representations through the decoder
