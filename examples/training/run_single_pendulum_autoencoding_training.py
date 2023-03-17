@@ -41,11 +41,13 @@ if __name__ == "__main__":
 
     # dimension of the latent space
     n_q = train_ds.element_spec["x_ts"].shape[-1] // 2
+    # image shape
+    img_shape = train_ds.element_spec["rendering_ts"].shape[-3:]
 
     # initialize the model
     nn_model = Autoencoder(
         latent_dim=n_q,
-        img_shape=train_ds.element_spec["rendering_ts"].shape
+        img_shape=img_shape
     )
 
     # call the factory function for the sensing task
