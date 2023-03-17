@@ -87,7 +87,8 @@ class Builder(tfds.core.GeneratorBasedBuilder):
                                 self.builder_config.img_size[1],
                                 3,
                             )
-                        )
+                        ),
+                        length=self.builder_config.horizon_dim,
                     ),
                 }
             ),
