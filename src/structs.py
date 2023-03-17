@@ -7,7 +7,7 @@ from typing import Callable
 @struct.dataclass
 class TaskCallables:
     assemble_input_fn: Callable
-    predict_fn: Callable
+    forward_fn: Callable
     loss_fn: Callable
     compute_metrics_fn: Callable
 

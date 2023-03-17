@@ -41,7 +41,7 @@ def task_factory(
         loss_weights = dict(mse_q=1.0, mse_rec=1.0)
 
     @jit
-    def predict_fn(batch: Dict[str, Array], nn_params: FrozenDict) -> Dict[str, Array]:
+    def forward_fn(batch: Dict[str, Array], nn_params: FrozenDict) -> Dict[str, Array]:
         img_bt = assemble_input(batch)
         batch_size = batch["rendering_ts"].shape[0]
 
@@ -70,7 +70,7 @@ def task_factory(
     def loss_fn(
         batch: Dict[str, Array], nn_params: FrozenDict
     ) -> Tuple[Array, Dict[str, Array]]:
-        preds = predict_fn(batch, nn_params)
+        preds = forward_fn(batch, nn_params)
 
         q_pred_bt = preds["q_ts"]
         q_target_bt = batch["x_ts"][..., : batch["x_ts"].shape[-1] // 2]
@@ -115,7 +115,7 @@ def task_factory(
         }
         return metrics
 
-    task_callables = TaskCallables(assemble_input, predict_fn, loss_fn, compute_metrics)
+    task_callables = TaskCallables(assemble_input, forward_fn, loss_fn, compute_metrics)
 
     metrics = jm.Metrics(
         {

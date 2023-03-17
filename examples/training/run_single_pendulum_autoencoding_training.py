@@ -78,7 +78,7 @@ if __name__ == "__main__":
     )
 
     test_batch = next(test_ds.as_numpy_iterator())
-    test_preds = task_callables.predict_fn(test_batch, state.params)
+    test_preds = task_callables.forward_fn(test_batch, state.params)
 
     import matplotlib.pyplot as plt
 
