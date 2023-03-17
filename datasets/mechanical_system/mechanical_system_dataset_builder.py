@@ -3,13 +3,15 @@ import dataclasses
 import jax.numpy as jnp
 from natsort import natsorted
 from pathlib import Path
+import shutil
 import tensorflow_datasets as tfds
+from typing import Optional
 
 
 @dataclasses.dataclass
 class DatasetConfig(tfds.core.BuilderConfig):
-    path: Path = None
-    state_dim: int = None
+    path: Optional[Path] = None
+    state_dim: Optional[int] = None
     horizon_dim: int = 1
     img_size: tuple = (32, 32)
 
@@ -61,6 +63,7 @@ class Builder(tfds.core.GeneratorBasedBuilder):
 
     def _info(self) -> tfds.core.DatasetInfo:
         """Returns the dataset metadata."""
+
         return self.dataset_info_from_configs(
             features=tfds.features.FeaturesDict(
                 {
@@ -100,6 +103,7 @@ class Builder(tfds.core.GeneratorBasedBuilder):
 
     def _split_generators(self, dl_manager: tfds.download.DownloadManager):
         """Returns SplitGenerators."""
+        shutil.copy(src=self.builder_config.path / "metadata.pkl", dst=self.data_path)
         return {
             "train": self._generate_examples(self.builder_config.path),
         }
@@ -110,6 +114,9 @@ class Builder(tfds.core.GeneratorBasedBuilder):
         cv2 = tfds.core.lazy_imports.cv2
 
         for sim_dir in sorted(path.iterdir()):
+            if not sim_dir.is_dir():
+                continue
+
             sim_stem = sim_dir.stem
             sim_idx = int(sim_stem.lstrip("sim-"))
 

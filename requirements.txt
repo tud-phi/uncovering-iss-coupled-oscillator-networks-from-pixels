@@ -2,6 +2,7 @@ alive-progress
 ciclo>=0.1.8
 clu
 diffrax
+dill
 flax
 jax
 jax-metrics

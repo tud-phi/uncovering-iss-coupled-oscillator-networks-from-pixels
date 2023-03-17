@@ -1,9 +1,10 @@
+import dill
 from jax import random
 import jax.numpy as jnp
 from pathlib import Path
 import tensorflow as tf
 import tensorflow_datasets as tfds
-from typing import Dict, Tuple
+from typing import Dict, Optional, Tuple
 
 
 def load_dataset(
@@ -12,11 +13,11 @@ def load_dataset(
     batch_size: int,
     val_perc: int = 20,
     test_perc: int = 20,
-    num_threads: int = None,
+    num_threads: Optional[int] = None,
     prefetch: int = 2,
     normalize: bool = True,
     grayscale: bool = False,
-) -> Tuple[Dict[str, tf.data.Dataset], tfds.core.DatasetInfo]:
+) -> Tuple[Dict[str, tf.data.Dataset], tfds.core.DatasetInfo, Dict]:
     """
     Loads the dataset and splits it into a training, validation and test set.
     Args:
@@ -57,6 +58,12 @@ def load_dataset(
         ],
         with_info=True,
     )
+
+    # load metadata
+    metadata_path = Path(dataset_info.data_dir) / "metadata.pkl"
+    print(f"Loading metadata from {metadata_path.resolve()}")
+    with open(str(metadata_path), "rb") as f:
+        metadata = dill.load(f)
 
     options = tf.data.Options()
     if num_threads is not None:
@@ -103,4 +110,4 @@ def load_dataset(
         reshuffle_each_iteration=True,
     )
 
-    return datasets, dataset_info
+    return datasets, dataset_info, metadata

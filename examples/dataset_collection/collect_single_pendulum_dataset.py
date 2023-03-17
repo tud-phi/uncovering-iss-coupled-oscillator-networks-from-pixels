@@ -15,9 +15,7 @@ from pathlib import Path
 from src.dataset_collection import collect_dataset
 from src.rendering import render_pendulum
 
-sym_exp_filepath = (
-    Path("symbolic_expressions") / "single_pendulum.dill"
-)
+sym_exp_filepath = Path("symbolic_expressions") / "single_pendulum.dill"
 
 robot_params = {
     "m": jnp.array([10.0]),
@@ -35,7 +33,7 @@ horizon = 1e-1  # duration of each simulation [s]
 # maximum magnitude of the initial joint velocity [rad/s]
 max_q_d_0 = 30 * jnp.ones((num_links,))
 
-dataset_dir = Path("data") / "raw_datasets" / "single_pendulum"
+dataset_dir = Path("data") / "raw_datasets" / "single_pendulum_64x64px"
 
 # Pseudo random number generator
 rng = random.PRNGKey(seed=0)
@@ -81,4 +79,5 @@ if __name__ == "__main__":
         state_init_max=state_init_max,
         dataset_dir=str(dataset_dir),
         solver=Dopri5(),
+        system_params=robot_params,
     )

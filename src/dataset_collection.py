@@ -1,11 +1,12 @@
 from alive_progress import alive_bar
 import cv2
-from diffrax import AbstractERK, diffeqsolve, Dopri5, ODETerm, SaveAt
+from diffrax import AbstractERK, AbstractSolver, diffeqsolve, Dopri5, ODETerm, SaveAt
+import dill
 from jax import Array, lax, random
 import jax.numpy as jnp
 from pathlib import Path
 import shutil
-from typing import Callable, Dict, Generic, Type, TypeVar
+from typing import Callable, Dict, Type, TypeVar
 
 
 def collect_dataset(
@@ -18,7 +19,8 @@ def collect_dataset(
     state_init_min: Array,
     state_init_max: Array,
     dataset_dir: str,
-    solver: Generic = Dopri5(),
+    solver: AbstractSolver = Dopri5(),
+    system_params: Dict[str, Array] = None,
 ):
     """
     Collect a simulated dataset for a given ODE system. The initial state is uniformly sampled from the given bounds.
@@ -35,6 +37,7 @@ def collect_dataset(
         state_init_max: Array with maximal values for the initial state of the simulation.
         dataset_dir: Directory to save the dataset.
         solver: Diffrax solver to use for the simulation.
+        system_params: Dictionary with system parameters.
     """
     # initiate ODE term from `ode_fn`
     ode_term = ODETerm(ode_fn)
@@ -48,10 +51,24 @@ def collect_dataset(
     state_dim = state_init_min.shape[0]
 
     # dataset directory
-    dataset_dir = Path(dataset_dir)
-    dataset_dir.mkdir(parents=True, exist_ok=True)
-    # empty the directory
-    shutil.rmtree(dataset_dir)
+    dataset_path = Path(dataset_dir)
+    if dataset_path.exists():
+        # empty the directory
+        shutil.rmtree(dataset_dir)
+    # (re)create the directory
+    dataset_path.mkdir(parents=True, exist_ok=True)
+
+    print("Dataset will be saved in:", dataset_path.resolve())
+
+    # save the metadata
+    metadata = dict(
+        solver_class=type(solver)
+    )
+    if system_params is not None:
+        metadata["system_params"] = system_params
+    # save the metadata in the `dataset_dir`
+    with open(str(dataset_path / "metadata.pkl"), "wb") as f:
+        dill.dump(metadata, f)
 
     print("Generating dataset...")
 
@@ -89,7 +106,7 @@ def collect_dataset(
             n_q = n_x // 2
 
             # folder to save the simulation data
-            sim_dir = dataset_dir / f"sim-{sim_idx}"
+            sim_dir = dataset_path / f"sim-{sim_idx}"
             sim_dir.mkdir(parents=True, exist_ok=True)
 
             labels = dict(t_ts=ts, x_ts=x_ts)
