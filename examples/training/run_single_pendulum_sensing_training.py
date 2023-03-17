@@ -28,7 +28,7 @@ logdir = Path("logs") / "single_pendulum_sensing" / f"{now:%Y-%m-%d_%H-%M-%S}"
 logdir.mkdir(parents=True, exist_ok=True)
 
 if __name__ == "__main__":
-    datasets = load_dataset(
+    datasets, dataset_info = load_dataset(
         "mechanical_system/single_pendulum_64x64px",
         seed=seed,
         batch_size=batch_size,

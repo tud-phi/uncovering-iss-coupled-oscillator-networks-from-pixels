@@ -16,7 +16,7 @@ def load_dataset(
     prefetch: int = 2,
     normalize: bool = True,
     grayscale: bool = False,
-) -> Dict[str, tf.data.Dataset]:
+) -> Tuple[Dict[str, tf.data.Dataset], tfds.core.DatasetInfo]:
     """
     Loads the dataset and splits it into a training, validation and test set.
     Args:
@@ -28,12 +28,15 @@ def load_dataset(
         val_perc: Percentage of validation dataset with respect to the entire dataset size. Needs to be in interval [0, 100].
         test_perc: Percentage of single_pendulum dataset with respect to the entire dataset size. Needs to be in interval [0, 100].
         num_threads: Number of threads to use for parallel processing.
+        prefetch: Number of batches to prefetch.
         normalize: Whether to normalize the rendering image to [0, 1].
         grayscale: Whether to convert the rendering image to grayscale.
     Returns:
-        train_ds: trainings set.
-        val_ds: validation set.
-        test_ds: test set.
+        datasets: A dictionary with the following keys:
+            train: trainings set.
+            val: validation set.
+            test: test set.
+        dataset_info: Object with information about the dataset.
     """
     assert 0 <= val_perc <= 100, "Validation ratio needs to be in interval [0, 100]."
     assert 0 <= test_perc <= 100, "Test ratio needs to be in interval [0, 100]."
@@ -44,7 +47,7 @@ def load_dataset(
     datasets = {}
     # percentage of the dataset that is used for training
     train_perc = 100 - val_perc - test_perc
-    datasets["train"], datasets["val"], datasets["test"] = tfds.load(
+    (datasets["train"], datasets["val"], datasets["test"]), dataset_info = tfds.load(
         name,
         data_dir=Path("data/tensorflow_datasets"),
         split=[
@@ -52,6 +55,7 @@ def load_dataset(
             f"train[{train_perc}%:{train_perc + val_perc}%]",  # use the second part for validation
             f"train[{train_perc + val_perc}%:]",  # use the third part for testing
         ],
+        with_info=True,
     )
 
     options = tf.data.Options()
@@ -99,4 +103,4 @@ def load_dataset(
         reshuffle_each_iteration=True,
     )
 
-    return datasets
+    return datasets, dataset_info
