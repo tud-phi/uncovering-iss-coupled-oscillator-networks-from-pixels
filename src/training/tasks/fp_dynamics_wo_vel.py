@@ -94,11 +94,11 @@ def task_factory(
             t_ts[0],  # initial time
             t_ts[-1],  # final time
             dt,  # time step
-            x_0_bt  # initial state
+            x_0_bt.astype(jnp.float64)  # initial state
         )
 
         # extract the rolled-out latent representations
-        q_dynamic_pred_bt = sol_bt.ys[..., :n_q]
+        q_dynamic_pred_bt = sol_bt.ys[..., :n_q].astype(jnp.float32)
 
         # if necessary, normalize the joint angles
         if system_type == "pendulum":
