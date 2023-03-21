@@ -2,6 +2,21 @@
 
 ## Installation
 
+### Install System Dependencies
+On Ubuntu, please install the following system dependencies:
+
+```bash
+sudo apt install ffmpeg
+```
+
+or with Conda:
+
+```bash
+conda install -c conda-forge ffmpeg
+```
+
+### Install the Python dependencies
+
 Please install the Python dependencies using the following command:
 ```bash
 pip install -r requirements.txt

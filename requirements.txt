@@ -9,6 +9,7 @@ jax-metrics
 jax-soft-robot-modelling
 matplotlib
 natsort
+numpy
 opencv-python
 optax
 tensorboard
