@@ -42,15 +42,15 @@ def render_pendulum(
         batched_forward_kinematics_fn(params, q, link_indices)
     )
 
-    img = 255 * onp.ones((w, h, 3), dtype=jnp.uint8)  # initialize background to white
+    img = 255 * onp.ones((h, w, 3), dtype=jnp.uint8)  # initialize background to white
     curve_origin = onp.array(
-        [w // 2, h // 2], dtype=onp.int32
+        [h // 2, w // 2], dtype=onp.int32
     )  # in x-y pixel coordinates
     # transform robot poses to pixel coordinates
     # should be of shape (N, 2)
     curve = onp.array((curve_origin + chi_ls[:2, :].T * ppm), dtype=onp.int32)
     # invert the v pixel coordinate
-    curve[:, 1] = h - curve[:, 1]
+    curve[:, 1] = w - curve[:, 1]
     cv2.polylines(
         img, [curve], isClosed=False, color=robot_color, thickness=line_thickness
     )
