@@ -12,6 +12,7 @@ natsort
 numpy
 opencv-python
 optax
+orbax-checkpoint
 tensorboard
 tensorflow  # required for tensorflow-datasets
 tensorflow-datasets

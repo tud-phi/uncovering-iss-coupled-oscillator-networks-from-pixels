@@ -11,6 +11,7 @@ import tensorflow as tf
 from typing import Callable, Dict, List, Tuple
 
 from src.structs import TaskCallables, TrainState
+from src.training.checkpoint import OrbaxCheckpoint
 from src.training.initialization import initialize_train_state
 from src.training.optim import create_learning_rate_fn
 
@@ -165,7 +166,7 @@ def run_training(
     callbacks = []
     if logdir is not None:
         callbacks.append(
-            ciclo.checkpoint(
+            OrbaxCheckpoint(
                 logdir,
                 monitor="loss_val",
                 mode="min",
