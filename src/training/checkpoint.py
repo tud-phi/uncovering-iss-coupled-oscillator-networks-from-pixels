@@ -1,5 +1,6 @@
+from flax import linen as nn  # Linen API
 from flax.training import orbax_utils
-import orbax
+from orbax.checkpoint import Checkpointer, CheckpointManager, CheckpointManagerOptions, PyTreeCheckpointer
 import os
 from typing import Optional, Union
 
@@ -43,15 +44,15 @@ class OrbaxCheckpoint(LoopCallbackBase[S]):
         self.minimize = self.mode == OptimizationMode.min
         self._best: Optional[float] = None
 
-        self.mngr_options = orbax.checkpoint.CheckpointManagerOptions(
+        self.mngr_options = CheckpointManagerOptions(
             save_interval_steps=save_interval_steps,
             max_to_keep=max_to_keep,
             keep_time_interval=keep_time_interval,
             keep_period=keep_period,
             create=True
         )
-        orbax_checkpointer = orbax.checkpoint.PyTreeCheckpointer()
-        self.mngr = orbax.checkpoint.CheckpointManager(
+        orbax_checkpointer = PyTreeCheckpointer()
+        self.mngr = CheckpointManager(
             ckpt_dir, orbax_checkpointer, self.mngr_options
         )
 

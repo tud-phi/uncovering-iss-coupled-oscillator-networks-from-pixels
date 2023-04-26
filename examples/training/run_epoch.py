@@ -3,7 +3,7 @@ import tensorflow as tf
 
 from src.neural_networks.simple_cnn import Encoder
 from src.training.tasks import sensing
-from src.training.initialization import initialize_train_state
+from src.training.train_state_utils import initialize_train_state
 from src.training.load_dataset import load_dataset
 from src.training.loops import train_epoch, eval_model
 from src.training.optim import create_learning_rate_fn
