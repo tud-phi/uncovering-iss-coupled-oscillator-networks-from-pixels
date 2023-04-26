@@ -69,3 +69,41 @@ if __name__ == "__main__":
         f"rmse_rec_static_stps={rmse_rec_static_stps[-1]:.3f}, "
         f"rmse_rec_dynamic_stps={rmse_rec_dynamic_stps[-1]:.3f}"
     )
+
+    test_batch = next(test_ds.as_numpy_iterator())
+    test_preds = task_callables.forward_fn(test_batch, state.params)
+
+    import matplotlib.pyplot as plt
+
+    for i in range(test_batch["x_ts"].shape[0]):
+        print("Trajectory:", i)
+        for t in range(test_batch["x_ts"].shape[1]):
+            print("Time step:", t)
+            q_gt = test_batch["x_ts"][i, t, :n_q] / jnp.pi * 180
+            q_pred = test_preds["q_dynamic_ts"][i, t, :n_q] / jnp.pi * 180
+            error_q = pendulum.normalize_joint_angles(
+                test_preds["q_dynamic_ts"][i, t, :n_q] - test_batch["x_ts"][i, t, :n_q]
+            )
+            print(
+                "Ground-truth q:",
+                q_gt,
+                "deg",
+                "Predicted q:",
+                q_pred,
+                "deg",
+                "Error:",
+                error_q / jnp.pi * 180,
+                "deg",
+            )
+
+            img_gt = (128 * (1.0 + test_batch["rendering_ts"][i, t])).astype(jnp.uint8)
+            img_rec = (128 * (1.0 + test_preds["rendering_dynamic_ts"][i, t])).astype(jnp.uint8)
+
+            fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, 5))
+            img_gt_plot = axes[0].imshow(img_gt, vmin=0, vmax=255)
+            plt.colorbar(img_gt_plot, ax=axes[0])
+            axes[0].set_title("Original")
+            img_rec_plot = axes[1].imshow(img_rec, vmin=0, vmax=255)
+            plt.colorbar(img_rec_plot, ax=axes[1])
+            axes[1].set_title("Reconstruction")
+            plt.show()
