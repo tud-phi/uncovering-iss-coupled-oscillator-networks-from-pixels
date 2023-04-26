@@ -24,7 +24,7 @@ rng = random.PRNGKey(seed=seed)
 
 num_epochs = 25
 batch_size = 8
-base_lr = 5e-4
+base_lr = 2e-4
 warmup_epochs = 2
 loss_weights = dict(mse_q=1.0, mse_rec_static=5.0, mse_rec_dynamic=5.0)
 
