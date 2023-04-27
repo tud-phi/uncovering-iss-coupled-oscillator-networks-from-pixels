@@ -168,6 +168,7 @@ def run_training(
         callbacks.append(
             OrbaxCheckpoint(
                 logdir,
+                max_to_keep=1,
                 monitor="loss_val",
                 mode="min",
             ),
