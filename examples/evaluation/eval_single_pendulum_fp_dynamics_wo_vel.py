@@ -33,6 +33,7 @@ if __name__ == "__main__":
 
     # extract the robot parameters from the dataset
     robot_params = dataset_metadata["system_params"]
+    print(f"Robot parameters: {robot_params}")
     n_q = train_ds.element_spec["x_ts"].shape[-1] // 2
     img_shape = train_ds.element_spec["rendering_ts"].shape[-3:]  # image shape
     forward_kinematics_fn, dynamical_matrices_fn = pendulum.factory(sym_exp_filepath)
