@@ -1,13 +1,13 @@
 import jax.numpy as jnp
 from jsrm.integration import ode_factory
-from jsrm.systems import euler_lagrangian, pendulum
+from jsrm.systems import pendulum
 from pathlib import Path
 import tensorflow as tf
 
 from src.neural_networks.simple_cnn import Autoencoder
 from src.training.load_dataset import load_dataset
-from src.training.loops import run_training, run_eval
-from src.training.tasks import fp_dynamics_wo_vel
+from src.training.loops import run_eval
+from src.tasks import fp_dynamics_wo_vel
 from src.training.train_state_utils import restore_train_state
 
 # prevent tensorflow from loading everything onto the GPU, as we don't have enough memory for that

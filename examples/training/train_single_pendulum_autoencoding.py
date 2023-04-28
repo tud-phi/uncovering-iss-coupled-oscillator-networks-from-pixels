@@ -8,7 +8,7 @@ import tensorflow as tf
 
 
 from src.neural_networks.simple_cnn import Autoencoder
-from src.training.tasks import autoencoding
+from src.tasks import autoencoding
 from src.training.load_dataset import load_dataset
 from src.training.loops import run_training, run_eval
 

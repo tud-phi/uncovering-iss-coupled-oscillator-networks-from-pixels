@@ -1,19 +1,18 @@
-from diffrax import Dopri5
 from datetime import datetime
 from jax import random
 from jax import config as jax_config
 import jax.numpy as jnp
 from jsrm.integration import ode_factory
-from jsrm.systems import euler_lagrangian, pendulum
+from jsrm.systems import pendulum
 from pathlib import Path
 import tensorflow as tf
 
 # jax_config.update("jax_platform_name", "cpu")  # set default device to 'cpu'
 
 from src.neural_networks.simple_cnn import Autoencoder
-from src.training.tasks import fp_dynamics_wo_vel
+from src.tasks import fp_dynamics_wo_vel
 from src.training.load_dataset import load_dataset
-from src.training.loops import run_training, run_eval
+from src.training.loops import run_training
 
 # prevent tensorflow from loading everything onto the GPU, as we don't have enough memory for that
 tf.config.experimental.set_visible_devices([], "GPU")
