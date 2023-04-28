@@ -1,4 +1,5 @@
 from flax import linen as nn  # Linen API
+import jax.numpy as jnp
 from typing import Callable, Tuple
 
 
@@ -20,6 +21,10 @@ class Encoder(nn.Module):
         x = nn.Dense(features=256)(x)
         x = self.nonlinearity(x)
         x = nn.Dense(features=self.latent_dim)(x)
+
+        # clip to [-1, 1]
+        # doesn't seem to work.
+        # x = -1.0 + 2 * nn.softmax(x)
 
         return x
 

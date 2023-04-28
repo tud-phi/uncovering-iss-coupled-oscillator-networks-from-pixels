@@ -62,13 +62,19 @@ def task_factory(
 
         # static predictions by passing the image through the encoder
         # output will be of shape batch_dim * time_dim x latent_dim
+        # if the system is a pendulum, the latent dim should be 2*n_q
         q_static_pred_flat_bt = nn_model.apply(
             {"params": nn_params}, img_flat_bt, method=nn_model.encode
         )
 
-        # if necessary, normalize the joint angles
         if system_type == "pendulum":
-            q_static_pred_flat_bt = normalize_joint_angles(q_static_pred_flat_bt)
+            # if the system is a pendulum, we interpret the encoder output as sin(theta) and cos(theta) for each joint
+            # e.g. for two joints: z = [sin(q_1), sin(q_2), cos(q_1), cos(q_2)]
+            # output of arctan2 will be in the range [-pi, pi]
+            q_static_pred_flat_bt = jnp.arctan2(
+                q_static_pred_flat_bt[..., :n_q],
+                q_static_pred_flat_bt[..., n_q:]
+            )
 
         # reshape to batch_dim x time_dim x n_q
         q_static_pred_bt = q_static_pred_flat_bt.reshape((batch_size, -1, *q_static_pred_flat_bt.shape[1:]))
@@ -100,13 +106,22 @@ def task_factory(
         # extract the rolled-out latent representations
         q_dynamic_pred_bt = sol_bt.ys[..., :n_q].astype(jnp.float32)
 
-        # if necessary, normalize the joint angles
-        if system_type == "pendulum":
-            q_dynamic_pred_bt = normalize_joint_angles(q_dynamic_pred_bt)
-
-        # send the rolled-out latent representations through the decoder
+        # flatten the dynamic configuration predictions
         q_dynamic_pred_flat_bt = q_dynamic_pred_bt.reshape((-1, *q_dynamic_pred_bt.shape[2:]))
 
+        if system_type == "pendulum":
+            # if the system is a pendulum, the input into the decoder should be sin(theta) and cos(theta) for each joint
+            # e.g. for two joints: z = [sin(q_1), sin(q_2), cos(q_1), cos(q_2)]
+            q_static_pred_flat_bt = jnp.concatenate([
+                jnp.sin(q_static_pred_flat_bt),
+                jnp.cos(q_static_pred_flat_bt)
+            ], axis=-1)
+            q_dynamic_pred_flat_bt = jnp.concatenate([
+                jnp.sin(q_dynamic_pred_flat_bt),
+                jnp.cos(q_dynamic_pred_flat_bt),
+            ], axis=-1)
+
+        # send the rolled-out latent representations through the decoder
         # output will be of shape batch_dim * time_dim x width x height x channels
         img_static_pred_flat_bt = nn_model.apply(
             {"params": nn_params}, q_static_pred_flat_bt, method=nn_model.decode
