@@ -1,11 +1,11 @@
 from flax.core import FrozenDict
 from flax import linen as nn  # Linen API
 from functools import partial
-from jax import Array, jit
+from jax import Array, debug, jit, lax
 import jax.numpy as jnp
 import jax_metrics as jm
 from jsrm.systems.pendulum import normalize_joint_angles
-from typing import Callable, Dict, Tuple
+from typing import Any, Callable, Dict, List, Tuple, Union
 
 from src.metrics import NoReduce
 from src.structs import TaskCallables
@@ -24,11 +24,20 @@ def assemble_input(batch) -> Array:
 
 def task_factory(system_type: str, nn_model: nn.Module) -> Tuple[TaskCallables, jm.Metrics]:
     @jit
-    def forward_fn(batch: Dict[str, Array], nn_params: FrozenDict) -> Dict[str, Array]:
+    def forward_fn(
+            batch: Dict[str, Array],
+            nn_params: FrozenDict,
+            nn_batch_stats: Any = None,
+            train: bool = False,
+            mutable: Union[bool, List[str]] = False
+    ) -> Tuple[Dict[str, Array], Any]:
         img_bt = assemble_input(batch)
 
         # output will be of shape batch_dim * time_dim x latent_dim
-        q_pred_bt = nn_model.apply({"params": nn_params}, img_bt)
+        q_pred_bt, updates = nn_model.apply({
+            "params": nn_params,
+            "batch_stats": nn_batch_stats
+        }, img_bt, mutable=mutable)
 
         # if necessary, normalize the joint angles
         if system_type == "pendulum":
@@ -41,13 +50,23 @@ def task_factory(system_type: str, nn_model: nn.Module) -> Tuple[TaskCallables, 
 
         preds = dict(q_ts=q_pred_bt)
 
-        return preds
+        return preds, updates["batch_stats"]
 
     @jit
     def loss_fn(
-        batch: Dict[str, Array], nn_params: FrozenDict
-    ) -> Tuple[Array, Dict[str, Array]]:
-        preds = forward_fn(batch, nn_params)
+        batch: Dict[str, Array],
+        nn_params: FrozenDict,
+        nn_batch_stats: Any = None,
+        train: bool = False,
+        mutable: Union[bool, List[str]] = False
+    ) -> Tuple[Array, Tuple[Dict[str, Array], Any]]:
+        preds, nn_batch_stats = forward_fn(
+            batch,
+            nn_params,
+            nn_batch_stats=nn_batch_stats,
+            train=train,
+            mutable=mutable
+        )
 
         q_pred_bt = preds["q_ts"]
         q_target_bt = batch["x_ts"][..., : batch["x_ts"].shape[-1] // 2]
@@ -62,7 +81,7 @@ def task_factory(system_type: str, nn_model: nn.Module) -> Tuple[TaskCallables, 
         # compute the mean squared error
         mse = jnp.mean(jnp.square(error_q))
 
-        return mse, preds
+        return mse, (preds, nn_batch_stats)
 
     @jit
     def compute_metrics(

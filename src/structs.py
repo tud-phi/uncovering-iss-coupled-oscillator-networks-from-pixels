@@ -1,7 +1,7 @@
 from flax import struct
 from flax.training import train_state
 import jax_metrics as jm
-from typing import Callable
+from typing import Any, Callable
 
 
 @struct.dataclass
@@ -14,3 +14,4 @@ class TaskCallables:
 
 class TrainState(train_state.TrainState):
     metrics: jm.Metrics
+    batch_stats: Any

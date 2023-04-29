@@ -39,12 +39,21 @@ def train_step(
         state: updated training state of the neural network
         metrics: Dictionary of training metrics
     """
-    loss_fn = partial(task_callables.loss_fn, batch)
+    loss_fn = partial(
+        task_callables.loss_fn,
+        batch,
+        nn_batch_stats=state.batch_stats,
+        train=True,
+        mutable=False,
+    )
     grad_fn = jax.value_and_grad(loss_fn, argnums=0, has_aux=True)
-    (loss, preds), grad_nn_params = grad_fn(state.params)
+    (loss, (preds, nn_batch_stats)), grad_nn_params = grad_fn(state.params)
+
+    print("nn_batch_stats", nn_batch_stats)
 
     # optimize the neural network parameters with gradient descent
     state = state.apply_gradients(grads=grad_nn_params)
+    state = state.replace(batch_stats=nn_batch_stats)
 
     # extract the learning rate for the current step
     lr = learning_rate_fn(state.step)
@@ -79,7 +88,7 @@ def eval_step(
     Returns:
         metrics: Dictionary of validation metrics
     """
-    loss, preds = task_callables.loss_fn(batch, state.params)
+    loss, (preds, nn_batch_stats) = task_callables.loss_fn(batch, state.params, train=False)
 
     # compute metrics
     metrics_dict = task_callables.compute_metrics_fn(batch, preds)
