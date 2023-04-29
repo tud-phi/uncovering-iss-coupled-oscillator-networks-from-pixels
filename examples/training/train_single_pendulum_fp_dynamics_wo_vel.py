@@ -23,9 +23,9 @@ rng = random.PRNGKey(seed=seed)
 
 num_epochs = 25
 batch_size = 8
-base_lr = 1e-3
-warmup_epochs = 2
 loss_weights = dict(mse_q=0.0, mse_rec_static=5.0, mse_rec_dynamic=0.0)
+base_lr = 2e-3
+warmup_epochs = 3
 
 now = datetime.now()
 logdir = Path("logs") / "single_pendulum_fp_dynamics_wo_vel" / f"{now:%Y-%m-%d_%H-%M-%S}"
