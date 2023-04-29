@@ -32,7 +32,7 @@ num_simulations = 20000  # number of simulations to run
 dt = 1e-2  # time step used for simulation [s]
 horizon = 1e-1  # duration of each simulation [s]
 # maximum magnitude of the initial joint velocity [rad/s]
-max_q_d_0 = 30 * jnp.ones((num_links,))
+max_q_d_0 = 2 * jnp.pi * jnp.ones((num_links,))
 
 dataset_dir = Path("data") / "raw_datasets" / "double_pendulum_64x64px"
 
