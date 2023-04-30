@@ -4,6 +4,7 @@ from flax import linen as nn  # Linen API
 from functools import partial
 import jax
 from jax import Array, debug, jit, random
+from jax.experimental import enable_x64
 import jax.numpy as jnp
 import jax_metrics as jm
 from pathlib import Path
@@ -153,15 +154,17 @@ def run_training(
     # assemble input for dummy batch
     nn_dummy_input = task_callables.assemble_input_fn(nn_dummy_batch)
 
-    # initialize the train state
-    state = initialize_train_state(
-        rng,
-        nn_model,
-        nn_dummy_input=nn_dummy_input,
-        metrics=metrics,
-        learning_rate_fn=lr_fn,
-        weight_decay=weight_decay,
-    )
+    # use float32 for initialization of neural network parameters
+    with enable_x64(False):
+        # initialize the train state
+        state = initialize_train_state(
+            rng,
+            nn_model,
+            nn_dummy_input=nn_dummy_input,
+            metrics=metrics,
+            learning_rate_fn=lr_fn,
+            weight_decay=weight_decay,
+        )
 
     callbacks = []
     if logdir is not None:
