@@ -6,7 +6,6 @@ from typing import Callable, Tuple
 class Encoder(nn.Module):
     """A simple CNN encoder."""
 
-    img_shape: Tuple[int, int, int]
     latent_dim: int
     nonlinearity: Callable = nn.leaky_relu
 
@@ -72,7 +71,6 @@ class Autoencoder(nn.Module):
 
     def setup(self):
         self.encoder = Encoder(
-            img_shape=self.img_shape,
             latent_dim=self.latent_dim,
             nonlinearity=self.nonlinearity,
         )

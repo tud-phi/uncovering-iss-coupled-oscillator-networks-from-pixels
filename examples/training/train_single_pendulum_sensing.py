@@ -43,7 +43,7 @@ if __name__ == "__main__":
     # initialize the model
     nn_model = Encoder(
         latent_dim=n_q,
-        img_shape=img_shape
+        deterministic=True,
     )
 
     # call the factory function for the sensing task
