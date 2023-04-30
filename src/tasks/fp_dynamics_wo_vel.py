@@ -54,7 +54,7 @@ def task_factory(
     @jit
     def forward_fn(batch: Dict[str, Array], nn_params: FrozenDict) -> Dict[str, Array]:
         img_flat_bt = assemble_input(batch)
-        t_ts = batch["t_ts"][0] # we just assume that the time steps are the same for all batch items
+        t_ts = batch["t_ts"][0]  # we just assume that the time steps are the same for all batch items
         dt = (t_ts[1:] - t_ts[:-1]).mean()
         
         batch_size = batch["rendering_ts"].shape[0]

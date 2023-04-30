@@ -1,6 +1,7 @@
 from datetime import datetime
-from jax import random
 from jax import config as jax_config
+jax_config.update("jax_enable_x64", True)
+from jax import random
 import jax.numpy as jnp
 from jsrm.integration import ode_factory
 from jsrm.systems import pendulum
