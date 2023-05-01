@@ -3,8 +3,8 @@ from jax import random
 from pathlib import Path
 import tensorflow as tf
 
-
 from src.neural_networks.simple_cnn import Encoder
+from src.neural_networks.convnext import ConvNeXtEncoder
 from src.tasks import sensing
 from src.training.load_dataset import load_dataset
 from src.training.loops import run_training, run_eval
@@ -41,9 +41,8 @@ if __name__ == "__main__":
     img_shape = train_ds.element_spec["rendering_ts"].shape[-3:]
 
     # initialize the model
-    nn_model = Encoder(
-        latent_dim=n_q,
-        deterministic=True,
+    nn_model = ConvNeXtEncoder(
+        latent_dim=n_q
     )
 
     # call the factory function for the sensing task
