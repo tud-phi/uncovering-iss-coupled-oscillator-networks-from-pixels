@@ -180,7 +180,7 @@ class ConvNeXtDecoder(nn.Module):
         deterministic (bool): Optional argument, if True, network becomes deterministic and dropout is not applied.
     """
     depths: Sequence = (3, 9, 3, 3)
-    dims: Sequence = (768, 384, 192, 96)
+    dims: Sequence = (384, 192, 96, 1)
     drop_path: float = 0.0
     layer_scale_init_value: float = 1e-6
     head_init_scale: float = 1.0
@@ -282,11 +282,15 @@ class ConvNeXtAutoencoder(nn.Module):
             int(self.img_shape[1] / (4 * 2**3)),
             self.dims[-1],
         )
-        print("Computed downsampled image dimension", downsampled_img_dim)
+        print("Computed downsampled image dimension:", downsampled_img_dim)
+
+        # compute the decoder dimensions
+        decoder_dims = tuple(reversed(self.dims[:-1])) + (1, )
+        print("Computed decoder dimensions:", decoder_dims)
 
         self.decoder = ConvNeXtDecoder(
             depths=tuple(reversed(self.depths)),
-            dims=tuple(reversed(self.dims)),
+            dims=decoder_dims,
             drop_path=self.drop_path,
             layer_scale_init_value=self.layer_scale_init_value,
             head_init_scale=self.head_init_scale,
