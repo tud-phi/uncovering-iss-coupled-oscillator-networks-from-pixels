@@ -7,9 +7,10 @@ from jax import Array, debug, jit, random
 from jax.experimental import enable_x64
 import jax.numpy as jnp
 import jax_metrics as jm
+import optax
 from pathlib import Path
 import tensorflow as tf
-from typing import Callable, Dict, List, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 from src.structs import TaskCallables, TrainState
 from src.training.checkpoint import OrbaxCheckpoint
@@ -108,11 +109,12 @@ def run_training(
     rng: random.PRNGKey,
     train_ds: tf.data.Dataset,
     val_ds: tf.data.Dataset,
-    nn_model: nn.Module,
     task_callables: TaskCallables,
     metrics: jm.Metrics,
     num_epochs: int,
-    base_lr: float,
+    state: Optional[TrainState] = None,
+    nn_model: Optional[nn.Module] = None,
+    base_lr: Optional[float] = None,
     warmup_epochs: int = 0,
     weight_decay: float = 0.0,
     logdir: Path = None,
@@ -123,10 +125,11 @@ def run_training(
         rng: PRNG key for pseudo-random number generation.
         train_ds: Training dataset as tf.data.Dataset object.
         val_ds: Validation dataset as tf.data.Dataset object.
-        nn_model: Neural network model.
         task_callables: struct containing the functions for the learning task
         metrics: Struct containing the metrics to be computed during training.
         num_epochs: Number of epochs to train for.
+        state: TrainState object. If provided, the training will continue from this state.
+        nn_model: Neural network model. Only needed if no TrainState is provided.
         base_lr: Base learning rate (after warmup and before decay).
         warmup_epochs: Number of epochs for warmup.
         weight_decay: Weight decay.
@@ -149,22 +152,30 @@ def run_training(
         warmup_epochs=warmup_epochs,
     )
 
-    # extract dummy batch from dataset
-    nn_dummy_batch = next(train_ds.as_numpy_iterator())
-    # assemble input for dummy batch
-    nn_dummy_input = task_callables.assemble_input_fn(nn_dummy_batch)
+    # if no state is provided, initialize the train state
+    if state is None:
+        assert nn_model is not None, "If no state is provided, a neural network model must be provided."
 
-    # use float32 for initialization of neural network parameters
-    with enable_x64(False):
-        # initialize the train state
-        state = initialize_train_state(
-            rng,
-            nn_model,
-            nn_dummy_input=nn_dummy_input,
-            metrics=metrics,
-            learning_rate_fn=lr_fn,
-            weight_decay=weight_decay,
-        )
+        # extract dummy batch from dataset
+        nn_dummy_batch = next(train_ds.as_numpy_iterator())
+        # assemble input for dummy batch
+        nn_dummy_input = task_callables.assemble_input_fn(nn_dummy_batch)
+
+        # use float32 for initialization of neural network parameters
+        with enable_x64(False):
+            # initialize the train state
+            state = initialize_train_state(
+                rng,
+                nn_model,
+                nn_dummy_input=nn_dummy_input,
+                metrics=metrics,
+                learning_rate_fn=lr_fn,
+                weight_decay=weight_decay,
+            )
+    else:
+        # initialize the Adam with weight decay optimizer for both neural networks
+        tx = optax.adamw(lr_fn, weight_decay=weight_decay)
+        state = state.replace(tx=tx)
 
     callbacks = []
     if logdir is not None:
