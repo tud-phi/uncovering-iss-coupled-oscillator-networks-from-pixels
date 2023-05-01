@@ -3,6 +3,7 @@ import jax
 import jax.numpy as jnp
 from jax_models.layers import DropPath
 from jax_models.models.convnext import ConvNeXtBlock, initializer
+import math
 from typing import Callable, List, Optional, Sequence, Tuple, Union
 
 
@@ -198,11 +199,11 @@ class ConvNeXtDecoder(nn.Module):
         curr = 0
 
         if self.attach_head:
-            head_out_dim = self.downsampled_img_dim[0] * self.downsampled_img_dim[1] * self.downsampled_img_dim[2]
-            x = nn.Dense(head_out_dim, kernel_init=initializer, name="head")(x)
-            x = jnp.reshape(x, (
-                -1, self.downsampled_img_dim[0], self.downsampled_img_dim[1], self.downsampled_img_dim[2])
-            )
+            x = nn.Dense(math.prod(self.downsampled_img_dim), kernel_init=initializer, name="head")(x)
+            x = x.reshape((
+                x.shape[0],  # batch size
+                *self.downsampled_img_dim
+            ))  # unflatten
 
         # Upsample layers
         for i in range(3):
@@ -243,6 +244,9 @@ class ConvNeXtDecoder(nn.Module):
                 name=f"stages3{j}",
             )(x, deterministic)
         curr += self.depths[3]
+
+        # clip to [-1, 1]
+        x = -1.0 + 2 * nn.sigmoid(x)
 
         return x
 
