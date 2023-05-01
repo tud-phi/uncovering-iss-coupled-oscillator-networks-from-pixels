@@ -285,7 +285,7 @@ class ConvNeXtAutoencoder(nn.Module):
         print("Computed downsampled image dimension:", downsampled_img_dim)
 
         # compute the decoder dimensions
-        decoder_dims = tuple(reversed(self.dims[:-1])) + (1, )
+        decoder_dims = tuple(reversed(self.dims[:-1])) + (self.img_shape[-1], )
         print("Computed decoder dimensions:", decoder_dims)
 
         self.decoder = ConvNeXtDecoder(
