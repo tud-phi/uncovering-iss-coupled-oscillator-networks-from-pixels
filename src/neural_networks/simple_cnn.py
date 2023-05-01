@@ -32,7 +32,7 @@ class Encoder(nn.Module):
 
 class Decoder(nn.Module):
     """A simple CNN decoder."""
-
+    img_shape: Tuple[int, int, int] = (64, 64, 3)
     downsampled_img_dim: Sequence = (2, 2, 768)
     strides: Tuple[int, int] = (1, 1)
     nonlinearity: Callable = nn.leaky_relu
@@ -50,9 +50,9 @@ class Decoder(nn.Module):
             )
         )  # unflatten
 
-        x = nn.Conv(features=16, kernel_size=(3, 3), strides=self.strides)(x)
+        x = nn.ConvTranspose(features=16, kernel_size=(3, 3), strides=self.strides)(x)
         x = self.nonlinearity(x)
-        x = nn.Conv(features=self.img_shape[-1], kernel_size=(3, 3), strides=self.strides)(x)
+        x = nn.ConvTranspose(features=self.img_shape[-1], kernel_size=(3, 3), strides=self.strides)(x)
 
         # clip to [-1, 1]
         x = -1.0 + 2 * nn.sigmoid(x)
@@ -80,11 +80,12 @@ class Autoencoder(nn.Module):
         downsampled_img_dim = (
             int(self.img_shape[0] / (self.strides[0] ** 2)),
             int(self.img_shape[1] / (self.strides[0] ** 2)),
-            self.dims[-1],
+            32,  # number of channels of the encoded image
         )
         print("Computed downsampled image dimension:", downsampled_img_dim)
 
         self.decoder = Decoder(
+            img_shape=self.img_shape,
             downsampled_img_dim=downsampled_img_dim,
             strides=self.strides,
             nonlinearity=self.nonlinearity,
