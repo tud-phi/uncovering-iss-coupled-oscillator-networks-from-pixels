@@ -1,6 +1,11 @@
 from flax import linen as nn  # Linen API
 from flax.training import orbax_utils
-from orbax.checkpoint import Checkpointer, CheckpointManager, CheckpointManagerOptions, PyTreeCheckpointer
+from orbax.checkpoint import (
+    Checkpointer,
+    CheckpointManager,
+    CheckpointManagerOptions,
+    PyTreeCheckpointer,
+)
 import os
 from typing import Optional, Union
 
@@ -18,15 +23,15 @@ from ciclo.types import S
 
 class OrbaxCheckpoint(LoopCallbackBase[S]):
     def __init__(
-            self,
-            ckpt_dir: Union[str, os.PathLike],
-            save_interval_steps: int = 1,
-            max_to_keep: Optional[int] = None,
-            keep_time_interval: Optional[int] = None,
-            keep_period: Optional[int] = None,
-            monitor: Optional[str] = None,
-            mode: Union[str, OptimizationMode] = "min",
-            use_orbax_save_args: bool = True
+        self,
+        ckpt_dir: Union[str, os.PathLike],
+        save_interval_steps: int = 1,
+        max_to_keep: Optional[int] = None,
+        keep_time_interval: Optional[int] = None,
+        keep_period: Optional[int] = None,
+        monitor: Optional[str] = None,
+        mode: Union[str, OptimizationMode] = "min",
+        use_orbax_save_args: bool = True,
     ):
         if isinstance(mode, str):
             mode = OptimizationMode[mode]
@@ -49,16 +54,12 @@ class OrbaxCheckpoint(LoopCallbackBase[S]):
             max_to_keep=max_to_keep,
             keep_time_interval=keep_time_interval,
             keep_period=keep_period,
-            create=True
+            create=True,
         )
         orbax_checkpointer = PyTreeCheckpointer()
-        self.mngr = CheckpointManager(
-            ckpt_dir, orbax_checkpointer, self.mngr_options
-        )
+        self.mngr = CheckpointManager(ckpt_dir, orbax_checkpointer, self.mngr_options)
 
-    def __call__(
-            self, elapsed: Elapsed, state: S, logs: Optional[Logs] = None
-    ) -> None:
+    def __call__(self, elapsed: Elapsed, state: S, logs: Optional[Logs] = None) -> None:
         save_checkpoint = True
         step_or_metric = elapsed.steps
 
@@ -73,19 +74,15 @@ class OrbaxCheckpoint(LoopCallbackBase[S]):
             try:
                 value = logs.entry_value(self.monitor)
             except KeyError:
-                raise ValueError(
-                    f"Monitored value '{self.monitor}' not found in logs"
-                )
+                raise ValueError(f"Monitored value '{self.monitor}' not found in logs")
 
             if (
-                    self._best is None
-                    or (self.minimize and value < self._best)
-                    or (not self.minimize and value > self._best)
+                self._best is None
+                or (self.minimize and value < self._best)
+                or (not self.minimize and value > self._best)
             ):
                 self._best = value
-                step_or_metric = (
-                    value if self.mode == OptimizationMode.max else -value
-                )
+                step_or_metric = value if self.mode == OptimizationMode.max else -value
             else:
                 save_checkpoint = False
 
@@ -93,17 +90,15 @@ class OrbaxCheckpoint(LoopCallbackBase[S]):
             save_kwargs = None
             if self.use_orbax_save_args:
                 save_args = orbax_utils.save_args_from_target(state)
-                save_kwargs = {'save_args': save_args}
+                save_kwargs = {"save_args": save_args}
 
-            self.mngr.save(
-                elapsed.steps, state, save_kwargs=save_kwargs
-            )
+            self.mngr.save(elapsed.steps, state, save_kwargs=save_kwargs)
 
     def __loop_callback__(self, loop_state: LoopState[S]) -> CallbackOutput[S]:
         self(loop_state.elapsed, loop_state.state, loop_state.accumulated_logs)
         return Logs(), loop_state.state
 
     def on_epoch_end(
-            self, state, batch, elapsed, loop_state: LoopState[S]
+        self, state, batch, elapsed, loop_state: LoopState[S]
     ) -> CallbackOutput[S]:
         return self.__loop_callback__(loop_state)

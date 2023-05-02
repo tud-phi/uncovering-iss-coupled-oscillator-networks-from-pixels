@@ -47,7 +47,7 @@ class DepthwiseConvTranpose2D(nn.Module):
             strides=self.stride,
             padding=self.padding,
             rhs_dilation=(1,) * len(self.kernel_shape),
-            dimension_numbers=("NHWC", "HWIO", "NHWC")
+            dimension_numbers=("NHWC", "HWIO", "NHWC"),
         )
         if self.use_bias:
             bias = jnp.broadcast_to(b, conv.shape)
@@ -67,7 +67,9 @@ class ConvNeXtBlockTranspose(nn.Module):
 
     @nn.compact
     def __call__(self, inputs, deterministic=None):
-        x = DepthwiseConvTranpose2D((7, 7), weights_init=initializer, name="upconv")(inputs)
+        x = DepthwiseConvTranpose2D((7, 7), weights_init=initializer, name="upconv")(
+            inputs
+        )
         x = nn.LayerNorm(name="norm")(x)
         x = nn.Dense(4 * self.dim, kernel_init=initializer, name="pwconv1")(x)
         x = nn.gelu(x)
@@ -96,6 +98,7 @@ class ConvNeXtEncoder(nn.Module):
         latent_dim (int): Dimension of latent space. Only works if attach_head is True. Default is 1000.
         deterministic (bool): Optional argument, if True, network becomes deterministic and dropout is not applied.
     """
+
     depths: Sequence = (3, 3, 9, 3)
     dims: Sequence = (96, 192, 384, 768)
     drop_path: float = 0.0
@@ -120,7 +123,7 @@ class ConvNeXtEncoder(nn.Module):
             kernel_size=(4, 4),
             strides=4,
             kernel_init=initializer,
-            name="downsample_layers00"
+            name="downsample_layers00",
         )(inputs)
         x = nn.LayerNorm(name="downsample_layers01")(x)
 
@@ -179,6 +182,7 @@ class ConvNeXtDecoder(nn.Module):
             Default is 384.
         deterministic (bool): Optional argument, if True, network becomes deterministic and dropout is not applied.
     """
+
     depths: Sequence = (3, 9, 3, 3)
     dims: Sequence = (384, 192, 96, 1)
     drop_path: float = 0.0
@@ -199,11 +203,14 @@ class ConvNeXtDecoder(nn.Module):
         curr = 0
 
         if self.attach_head:
-            x = nn.Dense(math.prod(self.downsampled_img_dim), kernel_init=initializer, name="head")(x)
-            x = x.reshape((
-                x.shape[0],  # batch size
-                *self.downsampled_img_dim
-            ))  # unflatten
+            x = nn.Dense(
+                math.prod(self.downsampled_img_dim),
+                kernel_init=initializer,
+                name="head",
+            )(x)
+            x = x.reshape(
+                (x.shape[0], *self.downsampled_img_dim)  # batch size
+            )  # unflatten
 
         # Upsample layers
         for i in range(3):
@@ -232,7 +239,7 @@ class ConvNeXtDecoder(nn.Module):
             kernel_size=(4, 4),
             strides=(4, 4),
             kernel_init=initializer,
-            name="upsample_layers30"
+            name="upsample_layers30",
         )(x)
         x = nn.LayerNorm(name="upsample_layers31")(x)
 
@@ -253,6 +260,7 @@ class ConvNeXtDecoder(nn.Module):
 
 class ConvNeXtAutoencoder(nn.Module):
     """A simple CNN autoencoder."""
+
     img_shape: Tuple[int, int, int]
     latent_dim: int
     depths: Sequence = (3, 3, 9, 3)
@@ -278,14 +286,14 @@ class ConvNeXtAutoencoder(nn.Module):
         # the size of the image after the encoder, but before the head (i.e. before the MLP)
         # the first layer uses a stride of 4, the other 3 use a stride of 2
         downsampled_img_dim = (
-            int(self.img_shape[0] / (4 * 2**3)),
-            int(self.img_shape[1] / (4 * 2**3)),
+            int(self.img_shape[0] / (4 * 2 ** 3)),
+            int(self.img_shape[1] / (4 * 2 ** 3)),
             self.dims[-1],
         )
         print("Computed downsampled image dimension:", downsampled_img_dim)
 
         # compute the decoder dimensions
-        decoder_dims = tuple(reversed(self.dims[:-1])) + (self.img_shape[-1], )
+        decoder_dims = tuple(reversed(self.dims[:-1])) + (self.img_shape[-1],)
         print("Computed decoder dimensions:", decoder_dims)
 
         self.decoder = ConvNeXtDecoder(

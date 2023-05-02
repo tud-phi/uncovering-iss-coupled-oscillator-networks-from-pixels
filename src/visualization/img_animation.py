@@ -26,7 +26,9 @@ def animate_pred_vs_target_image_cv2(
     """
     img_h, img_w, num_channels = img_pred_ts.shape[-3:]  # height, width, channels
 
-    assert img_pred_ts.shape[-1] == img_target_ts.shape[-1], "The height of the predicted and target images must be the same."
+    assert (
+        img_pred_ts.shape[-1] == img_target_ts.shape[-1]
+    ), "The height of the predicted and target images must be the same."
 
     # averaged time step
     dt = onp.mean(t_ts[1:] - t_ts[:-1])
@@ -79,14 +81,14 @@ def animate_pred_vs_target_image_pyplot(
     frames = onp.arange(0, t_ts.shape[0], step=step_skip)
 
     # create the figure
-    fig, axes = plt.subplots(1, 2, num="Prediction vs. target images", figsize=(6, 4), dpi=200)
+    fig, axes = plt.subplots(
+        1, 2, num="Prediction vs. target images", figsize=(6, 4), dpi=200
+    )
 
     im_pred = axes[0].imshow(cv2.cvtColor(img_pred_ts[0], cv2.COLOR_BGR2RGB))
     im_target = axes[1].imshow(cv2.cvtColor(img_target_ts[0], cv2.COLOR_BGR2RGB))
     text_time = fig.text(
-        x=0.5, y=0.1,
-        s="",
-        color="black", fontsize=11, ha="center", va="center"
+        x=0.5, y=0.1, s="", color="black", fontsize=11, ha="center", va="center"
     )
 
     axes[0].set_title("Prediction")
@@ -109,7 +111,7 @@ def animate_pred_vs_target_image_pyplot(
         fig,
         animate,
         frames=frames,
-        interval=step_skip*1000/sample_rate,
+        interval=step_skip * 1000 / sample_rate,
         blit=False,
     )
 

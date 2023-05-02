@@ -3,7 +3,12 @@ from flax.training import orbax_utils
 from jax import Array, random
 import jax.numpy as jnp
 import jax_metrics as jm
-from orbax.checkpoint import Checkpointer, CheckpointManager, CheckpointManagerOptions, PyTreeCheckpointer
+from orbax.checkpoint import (
+    Checkpointer,
+    CheckpointManager,
+    CheckpointManagerOptions,
+    PyTreeCheckpointer,
+)
 import optax
 import os
 from typing import Callable, Type, Union

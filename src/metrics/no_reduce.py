@@ -9,6 +9,7 @@ import typing as tp
 
 class NoReduce(Metric):
     """Leave the step-time metric as it is and do not reduce it in any way over the steps of an epoch."""
+
     values: Array
     dtype: jnp.dtype = static_field()
 

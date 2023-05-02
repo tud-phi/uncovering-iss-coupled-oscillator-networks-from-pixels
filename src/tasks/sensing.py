@@ -22,7 +22,9 @@ def assemble_input(batch) -> Array:
     return img_bt
 
 
-def task_factory(system_type: str, nn_model: nn.Module) -> Tuple[TaskCallables, jm.Metrics]:
+def task_factory(
+    system_type: str, nn_model: nn.Module
+) -> Tuple[TaskCallables, jm.Metrics]:
     @jit
     def forward_fn(batch: Dict[str, Array], nn_params: FrozenDict) -> Dict[str, Array]:
         img_bt = assemble_input(batch)

@@ -46,10 +46,7 @@ if __name__ == "__main__":
     img_shape = train_ds.element_spec["rendering_ts"].shape[-3:]
 
     # initialize the model
-    nn_model = Autoencoder(
-        latent_dim=2*n_q,
-        img_shape=img_shape
-    )
+    nn_model = Autoencoder(latent_dim=2 * n_q, img_shape=img_shape)
 
     # call the factory function for the sensing task
     task_callables, metrics = autoencoding.task_factory(

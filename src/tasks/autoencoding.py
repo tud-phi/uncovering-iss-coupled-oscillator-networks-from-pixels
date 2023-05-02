@@ -55,17 +55,13 @@ def task_factory(
             # if the system is a pendulum, we interpret the encoder output as sin(theta) and cos(theta) for each joint
             # e.g. for two joints: z = [sin(q_1), sin(q_2), cos(q_1), cos(q_2)]
             # output of arctan2 will be in the range [-pi, pi]
-            q_pred_bt = jnp.arctan2(
-                q_pred_bt[..., :n_q],
-                q_pred_bt[..., n_q:]
-            )
+            q_pred_bt = jnp.arctan2(q_pred_bt[..., :n_q], q_pred_bt[..., n_q:])
 
             # if the system is a pendulum, the input into the decoder should be sin(theta) and cos(theta) for each joint
             # e.g. for two joints: z = [sin(q_1), sin(q_2), cos(q_1), cos(q_2)]
-            input_decoder = jnp.concatenate([
-                jnp.sin(q_pred_bt),
-                jnp.cos(q_pred_bt)
-            ], axis=-1)
+            input_decoder = jnp.concatenate(
+                [jnp.sin(q_pred_bt), jnp.cos(q_pred_bt)], axis=-1
+            )
         else:
             input_decoder = q_pred_bt
 

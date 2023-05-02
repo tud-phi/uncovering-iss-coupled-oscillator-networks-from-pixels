@@ -1,4 +1,5 @@
 from jax import config as jax_config
+
 jax_config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 from jsrm.integration import ode_factory
@@ -41,10 +42,7 @@ if __name__ == "__main__":
     forward_kinematics_fn, dynamical_matrices_fn = pendulum.factory(sym_exp_filepath)
 
     # initialize the model
-    nn_model = Autoencoder(
-        latent_dim=2*n_q,
-        img_shape=img_shape
-    )
+    nn_model = Autoencoder(latent_dim=2 * n_q, img_shape=img_shape)
 
     # call the factory function for the sensing task
     task_callables, metrics = fp_dynamics_wo_vel.task_factory(
@@ -63,8 +61,10 @@ if __name__ == "__main__":
         rmse_q_static_stps,
         rmse_q_dynamic_stps,
         rmse_rec_static_stps,
-        rmse_rec_dynamic_stps
-    ) = test_history.collect("rmse_q_static", "rmse_q_dynamic", "rmse_rec_static", "rmse_rec_dynamic")
+        rmse_rec_dynamic_stps,
+    ) = test_history.collect(
+        "rmse_q_static", "rmse_q_dynamic", "rmse_rec_static", "rmse_rec_dynamic"
+    )
     print(
         "\n"
         f"Final test metrics: rmse_q_static_stps={rmse_q_static_stps[-1]:.3f}, "
@@ -100,7 +100,9 @@ if __name__ == "__main__":
             )
 
             img_gt = (128 * (1.0 + test_batch["rendering_ts"][i, t])).astype(jnp.uint8)
-            img_rec = (128 * (1.0 + test_preds["rendering_dynamic_ts"][i, t])).astype(jnp.uint8)
+            img_rec = (128 * (1.0 + test_preds["rendering_dynamic_ts"][i, t])).astype(
+                jnp.uint8
+            )
 
             fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, 5))
             img_gt_plot = axes[0].imshow(img_gt, vmin=0, vmax=255)

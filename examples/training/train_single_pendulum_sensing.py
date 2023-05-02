@@ -41,9 +41,7 @@ if __name__ == "__main__":
     img_shape = train_ds.element_spec["rendering_ts"].shape[-3:]
 
     # initialize the model
-    nn_model = ConvNeXtEncoder(
-        latent_dim=n_q
-    )
+    nn_model = ConvNeXtEncoder(latent_dim=n_q)
 
     # call the factory function for the sensing task
     task_callables, metrics = sensing.task_factory("pendulum", nn_model)

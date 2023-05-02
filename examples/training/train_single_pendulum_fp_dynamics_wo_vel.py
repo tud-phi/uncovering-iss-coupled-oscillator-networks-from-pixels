@@ -1,5 +1,6 @@
 from datetime import datetime
 from jax import config as jax_config
+
 jax_config.update("jax_enable_x64", True)
 from jax import random
 import jax.numpy as jnp
@@ -29,7 +30,9 @@ warmup_epochs = 3
 loss_weights = dict(mse_q=0.0, mse_rec_static=5.0, mse_rec_dynamic=25.0)
 
 now = datetime.now()
-logdir = Path("logs") / "single_pendulum_fp_dynamics_wo_vel" / f"{now:%Y-%m-%d_%H-%M-%S}"
+logdir = (
+    Path("logs") / "single_pendulum_fp_dynamics_wo_vel" / f"{now:%Y-%m-%d_%H-%M-%S}"
+)
 logdir.mkdir(parents=True, exist_ok=True)
 
 sym_exp_filepath = Path("symbolic_expressions") / "single_pendulum.dill"
@@ -52,10 +55,7 @@ if __name__ == "__main__":
     forward_kinematics_fn, dynamical_matrices_fn = pendulum.factory(sym_exp_filepath)
 
     # initialize the model
-    nn_model = Autoencoder(
-        latent_dim=2*n_q,
-        img_shape=img_shape
-    )
+    nn_model = Autoencoder(latent_dim=2 * n_q, img_shape=img_shape)
 
     # call the factory function for the sensing task
     task_callables, metrics = fp_dynamics_wo_vel.task_factory(

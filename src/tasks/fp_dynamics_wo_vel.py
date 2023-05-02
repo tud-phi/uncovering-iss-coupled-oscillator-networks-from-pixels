@@ -28,7 +28,7 @@ def task_factory(
     nn_model: nn.Module,
     ode_fn: Callable,
     loss_weights: Optional[Dict[str, float]] = None,
-    solver: AbstractSolver = Dopri5()
+    solver: AbstractSolver = Dopri5(),
 ) -> Tuple[TaskCallables, jm.Metrics]:
     """
     Factory function for the task of learning a representation using first-principle dynamics while using the
@@ -54,9 +54,11 @@ def task_factory(
     @jit
     def forward_fn(batch: Dict[str, Array], nn_params: FrozenDict) -> Dict[str, Array]:
         img_flat_bt = assemble_input(batch)
-        t_ts = batch["t_ts"][0]  # we just assume that the time steps are the same for all batch items
+        t_ts = batch["t_ts"][
+            0
+        ]  # we just assume that the time steps are the same for all batch items
         dt = (t_ts[1:] - t_ts[:-1]).mean()
-        
+
         batch_size = batch["rendering_ts"].shape[0]
         n_q = batch["x_ts"].shape[-1] // 2  # number of generalized coordinates
 
@@ -72,17 +74,24 @@ def task_factory(
             # e.g. for two joints: z = [sin(q_1), sin(q_2), cos(q_1), cos(q_2)]
             # output of arctan2 will be in the range [-pi, pi]
             q_static_pred_flat_bt = jnp.arctan2(
-                q_static_pred_flat_bt[..., :n_q],
-                q_static_pred_flat_bt[..., n_q:]
+                q_static_pred_flat_bt[..., :n_q], q_static_pred_flat_bt[..., n_q:]
             )
 
         # reshape to batch_dim x time_dim x n_q
-        q_static_pred_bt = q_static_pred_flat_bt.reshape((batch_size, -1, *q_static_pred_flat_bt.shape[1:]))
+        q_static_pred_bt = q_static_pred_flat_bt.reshape(
+            (batch_size, -1, *q_static_pred_flat_bt.shape[1:])
+        )
 
         # specify initial state for the dynamic rollout
-        q_0_bt = q_static_pred_bt[:, 0, ...]  # initial state at time t=0 as provided by the encoder
-        q_d_0_bt = batch["x_ts"][:, 0, n_q:]  # initial ground-truth velocity at time t=0
-        x_0_bt = jnp.concatenate((q_0_bt, q_d_0_bt), axis=-1)  # initial state at time t=0
+        q_0_bt = q_static_pred_bt[
+            :, 0, ...
+        ]  # initial state at time t=0 as provided by the encoder
+        q_d_0_bt = batch["x_ts"][
+            :, 0, n_q:
+        ]  # initial ground-truth velocity at time t=0
+        x_0_bt = jnp.concatenate(
+            (q_0_bt, q_d_0_bt), axis=-1
+        )  # initial state at time t=0
 
         # compute the dynamic rollout of the latent representation
         ode_solve_fn = partial(
@@ -90,36 +99,38 @@ def task_factory(
             ode_term,
             solver,
             saveat=SaveAt(ts=t_ts),
-            max_steps=t_ts.shape[-1]
+            max_steps=t_ts.shape[-1],
         )
         # simulate
-        sol_bt = vmap(
-            ode_solve_fn,
-            in_axes=(None, None, None, 0)
-        )(
+        sol_bt = vmap(ode_solve_fn, in_axes=(None, None, None, 0))(
             t_ts[0],  # initial time
             t_ts[-1],  # final time
             dt,  # time step
-            x_0_bt.astype(jnp.float64)  # initial state
+            x_0_bt.astype(jnp.float64),  # initial state
         )
 
         # extract the rolled-out latent representations
         q_dynamic_pred_bt = sol_bt.ys[..., :n_q].astype(jnp.float32)
 
         # flatten the dynamic configuration predictions
-        q_dynamic_pred_flat_bt = q_dynamic_pred_bt.reshape((-1, *q_dynamic_pred_bt.shape[2:]))
+        q_dynamic_pred_flat_bt = q_dynamic_pred_bt.reshape(
+            (-1, *q_dynamic_pred_bt.shape[2:])
+        )
 
         if system_type == "pendulum":
             # if the system is a pendulum, the input into the decoder should be sin(theta) and cos(theta) for each joint
             # e.g. for two joints: z = [sin(q_1), sin(q_2), cos(q_1), cos(q_2)]
-            q_static_pred_flat_bt = jnp.concatenate([
-                jnp.sin(q_static_pred_flat_bt),
-                jnp.cos(q_static_pred_flat_bt)
-            ], axis=-1)
-            q_dynamic_pred_flat_bt = jnp.concatenate([
-                jnp.sin(q_dynamic_pred_flat_bt),
-                jnp.cos(q_dynamic_pred_flat_bt),
-            ], axis=-1)
+            q_static_pred_flat_bt = jnp.concatenate(
+                [jnp.sin(q_static_pred_flat_bt), jnp.cos(q_static_pred_flat_bt)],
+                axis=-1,
+            )
+            q_dynamic_pred_flat_bt = jnp.concatenate(
+                [
+                    jnp.sin(q_dynamic_pred_flat_bt),
+                    jnp.cos(q_dynamic_pred_flat_bt),
+                ],
+                axis=-1,
+            )
 
         # send the rolled-out latent representations through the decoder
         # output will be of shape batch_dim * time_dim x width x height x channels
@@ -131,14 +142,18 @@ def task_factory(
         )
 
         # reshape to batch_dim x time_dim x width x height x channels
-        img_static_pred_bt = img_static_pred_flat_bt.reshape((batch_size, -1, *img_static_pred_flat_bt.shape[1:]))
-        img_dynamic_pred_bt = img_dynamic_pred_flat_bt.reshape((batch_size, -1, *img_dynamic_pred_flat_bt.shape[1:]))
+        img_static_pred_bt = img_static_pred_flat_bt.reshape(
+            (batch_size, -1, *img_static_pred_flat_bt.shape[1:])
+        )
+        img_dynamic_pred_bt = img_dynamic_pred_flat_bt.reshape(
+            (batch_size, -1, *img_dynamic_pred_flat_bt.shape[1:])
+        )
 
         preds = dict(
             q_static_ts=q_static_pred_bt,
             rendering_static_ts=img_static_pred_bt,
             q_dynamic_ts=q_dynamic_pred_bt,
-            rendering_dynamic_ts=img_dynamic_pred_bt
+            rendering_dynamic_ts=img_dynamic_pred_bt,
         )
 
         return preds
@@ -163,15 +178,19 @@ def task_factory(
         mse_q = jnp.mean(jnp.square(error_q))
 
         # supervised MSE loss on the reconstructed image of the static predictions
-        mse_rec_static = jnp.mean(jnp.square(preds["rendering_static_ts"] - batch["rendering_ts"]))
+        mse_rec_static = jnp.mean(
+            jnp.square(preds["rendering_static_ts"] - batch["rendering_ts"])
+        )
         # supervised MSE loss on the reconstructed image of the dynamic predictions
-        mse_rec_dynamic = jnp.mean(jnp.square(preds["rendering_dynamic_ts"] - batch["rendering_ts"]))
+        mse_rec_dynamic = jnp.mean(
+            jnp.square(preds["rendering_dynamic_ts"] - batch["rendering_ts"])
+        )
 
         # total loss
         loss = (
-                loss_weights["mse_q"] * mse_q
-                + loss_weights["mse_rec_static"] * mse_rec_static
-                + loss_weights["mse_rec_dynamic"] * mse_rec_dynamic
+            loss_weights["mse_q"] * mse_q
+            + loss_weights["mse_rec_static"] * mse_rec_static
+            + loss_weights["mse_rec_dynamic"] * mse_rec_dynamic
         )
 
         return loss, preds
@@ -196,11 +215,15 @@ def task_factory(
         metrics = {
             "rmse_q_static": jnp.sqrt(jnp.mean(jnp.square(error_q_static))),
             "rmse_rec_static": jnp.sqrt(
-                jnp.mean(jnp.square(preds["rendering_static_ts"] - batch["rendering_ts"]))
+                jnp.mean(
+                    jnp.square(preds["rendering_static_ts"] - batch["rendering_ts"])
+                )
             ),
             "rmse_q_dynamic": jnp.sqrt(jnp.mean(jnp.square(error_q_dynamic))),
             "rmse_rec_dynamic": jnp.sqrt(
-                jnp.mean(jnp.square(preds["rendering_dynamic_ts"] - batch["rendering_ts"]))
+                jnp.mean(
+                    jnp.square(preds["rendering_dynamic_ts"] - batch["rendering_ts"])
+                )
             ),
         }
         return metrics

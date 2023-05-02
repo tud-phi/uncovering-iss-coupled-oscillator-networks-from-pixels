@@ -154,7 +154,9 @@ def run_training(
 
     # if no state is provided, initialize the train state
     if state is None:
-        assert nn_model is not None, "If no state is provided, a neural network model must be provided."
+        assert (
+            nn_model is not None
+        ), "If no state is provided, a neural network model must be provided."
 
         # extract dummy batch from dataset
         nn_dummy_batch = next(train_ds.as_numpy_iterator())

@@ -61,9 +61,7 @@ def collect_dataset(
     print("Dataset will be saved in:", dataset_path.resolve())
 
     # save the metadata
-    metadata = dict(
-        solver_class=type(solver)
-    )
+    metadata = dict(solver_class=type(solver))
     if system_params is not None:
         metadata["system_params"] = system_params
     # save the metadata in the `dataset_dir`

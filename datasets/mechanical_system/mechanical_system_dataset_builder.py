@@ -70,7 +70,7 @@ class Builder(tfds.core.GeneratorBasedBuilder):
                     # These are the features of your dataset like images, labels ...
                     "id": tfds.features.Scalar(dtype=jnp.int32),
                     "t_ts": tfds.features.Tensor(
-                        shape=(self.builder_config.horizon_dim, ),
+                        shape=(self.builder_config.horizon_dim,),
                         dtype=jnp.float64,
                     ),
                     "x_ts": tfds.features.Tensor(
@@ -123,7 +123,7 @@ class Builder(tfds.core.GeneratorBasedBuilder):
 
             labels_npz = jnp.load(sim_dir / "labels.npz")
             # convert to dict
-            labels = {key:labels_npz[key] for key in labels_npz}
+            labels = {key: labels_npz[key] for key in labels_npz}
 
             rendering_ts = []
             for img_path in natsorted(sim_dir.glob("*.jpeg"), key=str):
