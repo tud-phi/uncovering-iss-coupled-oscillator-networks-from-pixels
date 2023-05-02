@@ -22,8 +22,8 @@ rng = random.PRNGKey(seed=seed)
 
 num_epochs = 25
 batch_size = 8
-base_lr = 5e-4
-warmup_epochs = 2
+base_lr = 5e-3
+warmup_epochs = 3
 loss_weights = dict(mse_q=1.0, mse_rec=5.0)
 
 now = datetime.now()
