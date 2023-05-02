@@ -47,7 +47,7 @@ if __name__ == "__main__":
 
     # initialize the model
     nn_model = Autoencoder(
-        latent_dim=n_q,
+        latent_dim=2*n_q,
         img_shape=img_shape
     )
 
