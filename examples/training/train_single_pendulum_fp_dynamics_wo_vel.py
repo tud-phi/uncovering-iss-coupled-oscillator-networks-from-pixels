@@ -22,11 +22,11 @@ tf.config.experimental.set_visible_devices([], "GPU")
 seed = 0
 rng = random.PRNGKey(seed=seed)
 
-num_epochs = 25
+num_epochs = 50
 batch_size = 8
-loss_weights = dict(mse_q=0.0, mse_rec_static=5.0, mse_rec_dynamic=0.0)
 base_lr = 2e-3
 warmup_epochs = 3
+loss_weights = dict(mse_q=0.0, mse_rec_static=5.0, mse_rec_dynamic=25.0)
 
 now = datetime.now()
 logdir = Path("logs") / "single_pendulum_fp_dynamics_wo_vel" / f"{now:%Y-%m-%d_%H-%M-%S}"

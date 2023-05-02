@@ -1,3 +1,5 @@
+from jax import config as jax_config
+jax_config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 from jsrm.integration import ode_factory
 from jsrm.systems import pendulum
@@ -18,7 +20,7 @@ batch_size = 8
 loss_weights = dict(mse_q=1.0, mse_rec_static=5.0, mse_rec_dynamic=5.0)
 
 sym_exp_filepath = Path("symbolic_expressions") / "single_pendulum.dill"
-ckpt_dir = Path("logs") / "single_pendulum_fp_dynamics_wo_vel" / "2023-04-26_11-59-21"
+ckpt_dir = Path("logs") / "single_pendulum_fp_dynamics_wo_vel" / "2023-05-02_10-20-40"
 
 
 if __name__ == "__main__":
