@@ -1,6 +1,7 @@
 from jax import config as jax_config
 
 jax_config.update("jax_enable_x64", True)
+from jax import random
 import jax.numpy as jnp
 from jsrm.integration import ode_factory
 from jsrm.systems import pendulum
@@ -17,6 +18,8 @@ from src.training.train_state_utils import restore_train_state
 tf.config.experimental.set_visible_devices([], "GPU")
 
 seed = 0
+rng = random.PRNGKey(seed=seed)
+
 batch_size = 8
 loss_weights = dict(mse_q=1.0, mse_rec_static=5.0, mse_rec_dynamic=5.0)
 
@@ -53,7 +56,7 @@ if __name__ == "__main__":
         solver=dataset_metadata["solver_class"](),
     )
 
-    state = restore_train_state(ckpt_dir, nn_model, metrics)
+    state = restore_train_state(rng, ckpt_dir, nn_model, metrics)
 
     print("Run testing...")
     test_history = run_eval(test_ds, state, task_callables)

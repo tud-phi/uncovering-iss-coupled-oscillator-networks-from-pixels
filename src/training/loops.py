@@ -41,7 +41,10 @@ def train_step(
         state: updated training state of the neural network
         metrics: Dictionary of training metrics
     """
-    loss_fn = partial(task_callables.loss_fn, batch)
+    # split the PRNG key
+    rng, rng_loss_fn = random.split(state.rng)
+
+    loss_fn = partial(task_callables.loss_fn, batch, rng=rng_loss_fn)
     grad_fn = jax.value_and_grad(loss_fn, argnums=0, has_aux=True)
     (loss, preds), grad_nn_params = grad_fn(state.params)
 
@@ -50,6 +53,9 @@ def train_step(
 
     # extract the learning rate for the current step
     lr = learning_rate_fn(state.step)
+
+    # update the PRNG key in the training state
+    state = state.replace(rng=rng)
 
     # compute metrics
     metrics_dict = task_callables.compute_metrics_fn(batch, preds)
@@ -81,7 +87,13 @@ def eval_step(
     Returns:
         metrics: Dictionary of validation metrics
     """
-    loss, preds = task_callables.loss_fn(batch, state.params)
+    # split the PRNG key
+    rng, rng_loss_fn = random.split(state.rng)
+
+    loss, preds = task_callables.loss_fn(batch, state.params, rng=rng_loss_fn)
+
+    # update the PRNG key in the training state
+    state = state.replace(rng=rng)
 
     # compute metrics
     metrics_dict = task_callables.compute_metrics_fn(batch, preds)

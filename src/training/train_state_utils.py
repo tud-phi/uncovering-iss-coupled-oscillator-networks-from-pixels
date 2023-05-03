@@ -46,13 +46,14 @@ def initialize_train_state(
 
     # create the TrainState object for both neural networks
     state = TrainState.create(
-        apply_fn=nn_model.apply, params=nn_params, tx=tx, metrics=metrics
+        apply_fn=nn_model.apply, params=nn_params, tx=tx, rng=rng, metrics=metrics
     )
 
     return state
 
 
 def restore_train_state(
+    rng: random.KeyArray,
     ckpt_dir: os.PathLike,
     nn_model: nn.Module,
     metrics: jm.Metrics,
@@ -70,14 +71,15 @@ def restore_train_state(
 
     # restore_args = orbax_utils.restore_args_from_target(nn_model, mesh=None)
     # nn_model = ckpt_mgr.restore(step, items=nn_model, restore_kwargs={'restore_args': restore_args})
-    nn_params = ckpt_mgr.restore(step)["params"]
+    restored_ckpt = ckpt_mgr.restore(step)
+    nn_params = restored_ckpt["params"]
 
     # initialize the Adam with weight decay optimizer for both neural networks
     tx = optax.adamw(learning_rate_fn, weight_decay=weight_decay)
 
     # create the TrainState object for both neural networks
     state = TrainState.create(
-        apply_fn=nn_model.apply, params=nn_params, tx=tx, metrics=metrics
+        apply_fn=nn_model.apply, params=nn_params, rng=rng, tx=tx, metrics=metrics
     )
 
     return state

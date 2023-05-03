@@ -2,7 +2,7 @@ from diffrax import AbstractSolver, diffeqsolve, Dopri5, ODETerm, SaveAt
 from flax.core import FrozenDict
 from flax import linen as nn  # Linen API
 from functools import partial
-from jax import Array, debug, jit, vmap
+from jax import Array, debug, jit, random, vmap
 import jax.numpy as jnp
 import jax_metrics as jm
 from jsrm.systems.pendulum import normalize_joint_angles
@@ -160,7 +160,9 @@ def task_factory(
 
     @jit
     def loss_fn(
-        batch: Dict[str, Array], nn_params: FrozenDict
+        batch: Dict[str, Array],
+        nn_params: FrozenDict,
+        rng: Optional[random.PRNGKey] = None,
     ) -> Tuple[Array, Dict[str, Array]]:
         preds = forward_fn(batch, nn_params)
 

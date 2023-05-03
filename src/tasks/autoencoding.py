@@ -1,11 +1,11 @@
 from flax.core import FrozenDict
 from flax import linen as nn  # Linen API
 from functools import partial
-from jax import Array, jit
+from jax import Array, debug, jit, random
 import jax.numpy as jnp
 import jax_metrics as jm
 from jsrm.systems.pendulum import normalize_joint_angles
-from typing import Callable, Dict, Tuple
+from typing import Callable, Dict, Optional, Tuple
 
 from src.metrics import NoReduce
 from src.structs import TaskCallables
@@ -23,7 +23,12 @@ def assemble_input(batch) -> Array:
 
 
 def task_factory(
-    system_type: str, nn_model: nn.Module, loss_weights: Dict[str, float] = None
+    system_type: str,
+    nn_model: nn.Module,
+    loss_weights: Dict[str, float] = None,
+    normalize_latent_space: bool = True,
+    use_wae: bool = False,
+    sigma_z: float = 1.0,
 ) -> Tuple[TaskCallables, jm.Metrics]:
     """
     Factory function for the autoencoding task.
@@ -33,12 +38,21 @@ def task_factory(
         system_type: the system type to create the task for. For example "pendulum".
         nn_model: the neural network model to use
         loss_weights: the weights for the different loss terms
+        normalize_latent_space: whether to normalize the latent space by for example projecting angles to [-pi, pi]
+        use_wae: whether to apply the Wasserstein Autoencoder regularization
+        sigma_z: the standard deviation of the Gaussian prior P_z to sample from for the WAE regularization
     Returns:
         task_callables: struct containing the functions for the learning task
         metrics: struct containing the metrics for the learning task
     """
     if loss_weights is None:
         loss_weights = dict(mse_q=1.0, mse_rec=1.0)
+
+    if use_wae:
+        from src.losses import wae
+
+        mmd_kernel_fn = partial(wae.imq_kernel, kernel_bandwidth=sigma_z)
+        wae_mmd_loss_fn = partial(wae.wae_mmd_loss, kernel_fn=mmd_kernel_fn)
 
     @jit
     def forward_fn(batch: Dict[str, Array], nn_params: FrozenDict) -> Dict[str, Array]:
@@ -51,7 +65,7 @@ def task_factory(
             {"params": nn_params}, img_bt, method=nn_model.encode
         )
 
-        if system_type == "pendulum":
+        if normalize_latent_space and system_type == "pendulum":
             # if the system is a pendulum, we interpret the encoder output as sin(theta) and cos(theta) for each joint
             # e.g. for two joints: z = [sin(q_1), sin(q_2), cos(q_1), cos(q_2)]
             # output of arctan2 will be in the range [-pi, pi]
@@ -80,7 +94,9 @@ def task_factory(
 
     @jit
     def loss_fn(
-        batch: Dict[str, Array], nn_params: FrozenDict
+        batch: Dict[str, Array],
+        nn_params: FrozenDict,
+        rng: Optional[random.PRNGKey] = None,
     ) -> Tuple[Array, Dict[str, Array]]:
         preds = forward_fn(batch, nn_params)
 
@@ -102,6 +118,27 @@ def task_factory(
 
         # total loss
         loss = loss_weights["mse_q"] * mse_q + loss_weights["mse_rec"] * mse_rec
+
+        if use_wae:
+            latent_dim = preds["q_ts"].shape[-1]
+
+            img_target_bt = assemble_input(batch)
+            img_pred_bt = preds["rendering_ts"].reshape(
+                (-1, *preds["rendering_ts"].shape[2:])
+            )
+            q_pred_bt = preds["q_ts"].reshape((-1, latent_dim))
+
+            # sample a latent variable from a Gaussian prior distribution from N(0, sigma_z)
+            q_prior = sigma_z * random.normal(
+                rng, shape=(img_target_bt.shape[0], latent_dim)
+            )
+
+            # Wasserstein Autoencoder MMD loss
+            mmd_loss = wae_mmd_loss_fn(
+                x_rec=img_pred_bt, x_target=img_target_bt, z=q_pred_bt, z_prior=q_prior
+            )
+
+            loss = loss + loss_weights["mmd"] * mmd_loss
 
         return loss, preds
 
