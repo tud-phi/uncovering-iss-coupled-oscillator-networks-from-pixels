@@ -3,6 +3,7 @@ from jax import random
 from jax import config as jax_config
 import jax.numpy as jnp
 from jsrm.systems.pendulum import normalize_joint_angles
+import matplotlib.pyplot as plt
 from pathlib import Path
 import tensorflow as tf
 
@@ -11,7 +12,7 @@ from src.neural_networks.simple_cnn import Autoencoder
 from src.neural_networks.convnext import ConvNeXtAutoencoder
 from src.tasks import autoencoding
 from src.training.load_dataset import load_dataset
-from src.training.loops import run_training, run_eval
+from src.training.loops import run_eval
 from src.training.train_state_utils import restore_train_state
 
 # prevent tensorflow from loading everything onto the GPU, as we don't have enough memory for that
@@ -81,7 +82,28 @@ if __name__ == "__main__":
     test_batch = next(test_ds.as_numpy_iterator())
     test_preds = task_callables.forward_fn(test_batch, state.params)
 
-    import matplotlib.pyplot as plt
+    # try interpolating between two latent vectors
+    img_gt1 = test_batch["rendering_ts"][0, 0]
+    img_gt2 = test_batch["rendering_ts"][0, -1]
+    img_bt = jnp.stack([img_gt1, img_gt2])
+    z_pred_bt = nn_model.apply(
+            {"params": state.params}, img_bt, method=nn_model.encode
+    )
+    # interpolate 10 points between the two latent vectors
+    z_interp_bt = jnp.linspace(z_pred_bt[0], z_pred_bt[1], 10)
+    img_rec_bt = nn_model.apply(
+            {"params": state.params}, z_interp_bt, method=nn_model.decode
+    )
+    # unnormalize the images to the range [0, 255]
+    img_rec_bt_unnorm = (128 * (1.0 + img_rec_bt)).astype(jnp.uint8)
+
+    fig, axes = plt.subplots(nrows=1, ncols=img_rec_bt.shape[0], figsize=(10, 5))
+    interpolation_plts = []
+    for i in range(len(axes)):
+        interpolation_plts.append(axes[i].imshow(img_rec_bt_unnorm[i], vmin=0, vmax=255))
+    plt.colorbar(interpolation_plts[-1], ax=axes[-1])
+    plt.suptitle("Interpolation between two latent vectors")
+    plt.show()
 
     for i in range(test_batch["x_ts"].shape[0]):
         print("test sample:", i)
