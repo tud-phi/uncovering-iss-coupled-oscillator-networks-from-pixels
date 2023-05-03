@@ -141,13 +141,21 @@ if __name__ == "__main__":
         return _q_ts
 
 
-    jac_fn = jacfwd(pendulum_encode)
-    z_pred = pendulum_encode(img_gt_ts[time_idx:time_idx + 1, ...]).squeeze(0)
+    dt = t_ts[time_idx] - t_ts[time_idx - 1]
+
+    # first, we apply finite differences directly in latent space using the predicted configuration
+    # encode images
+    z_pred_ts = pendulum_encode(img_gt_ts)
+    z_pred = z_pred_ts[time_idx, ...]
     print("z_pred:", z_pred)
+    # apply finite differences
+    z_d_fd = jnp.gradient(z_pred_ts, dt, axis=0)[time_idx, ...]
+    print("Predicted latent-space velocity using finite differences:", z_d_fd)
+
+    jac_fn = jacfwd(pendulum_encode)
     dz_dimg = jac_fn(img_gt_ts[time_idx:time_idx + 1, ...]).squeeze((0, 1))
 
     # use finite differences to compute the velocity in image space
-    dt = t_ts[time_idx] - t_ts[time_idx - 1]
     # img_d_fd = (img_gt_ts[time_idx, ...] - img_gt_ts[time_idx - 1, ...]) / dt  # naive finite differences
     img_d_fd = jnp.gradient(img_gt_ts, dt, axis=0)[time_idx, ...]
     # apply the chain rule to compute the velocity in latent space
@@ -156,4 +164,4 @@ if __name__ == "__main__":
     img_d_fd_flat = img_d_fd.flatten()
     z_d_hat_flat = jnp.matmul(dz_dimg_flat, img_d_fd_flat)
     z_d_hat = z_d_hat_flat.reshape(z_pred.shape)
-    print("Estimated latent-space velocity:", z_d_hat)
+    print("Estimated latent-space velocity by applying finite differences in image-space:", z_d_hat)
