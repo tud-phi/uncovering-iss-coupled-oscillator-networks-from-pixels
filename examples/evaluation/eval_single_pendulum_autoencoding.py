@@ -42,7 +42,6 @@ else:
     loss_weights = dict(mse_q=1.0, mse_rec=5.0)
 
 sym_exp_filepath = Path("symbolic_expressions") / "single_pendulum.dill"
-ckpt_dir = Path("logs") / "single_pendulum_autoencoding" / "2023-05-03_11-11-05"
 
 if __name__ == "__main__":
     datasets, dataset_info, dataset_metadata = load_dataset(
@@ -106,7 +105,7 @@ if __name__ == "__main__":
             [jnp.sin(z_interp_bt), jnp.cos(z_interp_bt)], axis=-1
         )
     else:
-        input_decoder = z_pred_bt
+        input_decoder = z_interp_bt
     img_rec_bt = nn_model.apply(
             {"params": state.params}, input_decoder, method=nn_model.decode
     )
@@ -117,7 +116,6 @@ if __name__ == "__main__":
     interpolation_plts = []
     for i in range(len(axes)):
         interpolation_plts.append(axes[i].imshow(img_rec_bt_unnorm[i], vmin=0, vmax=255))
-    plt.colorbar(interpolation_plts[-1], ax=axes[-1])
     plt.suptitle("Interpolation between two latent vectors")
     plt.show()
 
