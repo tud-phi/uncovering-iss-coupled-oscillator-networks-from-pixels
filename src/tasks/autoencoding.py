@@ -28,7 +28,6 @@ def task_factory(
     loss_weights: Dict[str, float] = None,
     normalize_latent_space: bool = True,
     use_wae: bool = False,
-    sigma_z: float = 1.0,
 ) -> Tuple[TaskCallables, jm.Metrics]:
     """
     Factory function for the autoencoding task.
@@ -40,7 +39,6 @@ def task_factory(
         loss_weights: the weights for the different loss terms
         normalize_latent_space: whether to normalize the latent space by for example projecting angles to [-pi, pi]
         use_wae: whether to apply the Wasserstein Autoencoder regularization
-        sigma_z: the standard deviation of the Gaussian prior P_z to sample from for the WAE regularization
     Returns:
         task_callables: struct containing the functions for the learning task
         metrics: struct containing the metrics for the learning task
@@ -51,8 +49,13 @@ def task_factory(
     if use_wae:
         from src.losses import wae
 
-        mmd_kernel_fn = partial(wae.imq_kernel, kernel_bandwidth=sigma_z)
-        wae_mmd_loss_fn = partial(wae.wae_mmd_loss, kernel_fn=mmd_kernel_fn)
+        if system_type == "pendulum":
+            uniform_distr_range = (-jnp.pi, jnp.pi)
+        else:
+            uniform_distr_range = (-1.0, 1.0)
+        wae_mmd_loss_fn = wae.make_wae_mdd_loss(
+            distribution="uniform", uniform_distr_range=uniform_distr_range
+        )
 
     @jit
     def forward_fn(batch: Dict[str, Array], nn_params: FrozenDict) -> Dict[str, Array]:
@@ -128,14 +131,9 @@ def task_factory(
             )
             q_pred_bt = preds["q_ts"].reshape((-1, latent_dim))
 
-            # sample a latent variable from a Gaussian prior distribution from N(0, sigma_z)
-            q_prior = sigma_z * random.normal(
-                rng, shape=(img_target_bt.shape[0], latent_dim)
-            )
-
             # Wasserstein Autoencoder MMD loss
             mmd_loss = wae_mmd_loss_fn(
-                x_rec=img_pred_bt, x_target=img_target_bt, z=q_pred_bt, z_prior=q_prior
+                x_rec=img_pred_bt, x_target=img_target_bt, z=q_pred_bt, rng=rng
             )
 
             loss = loss + loss_weights["mmd"] * mmd_loss

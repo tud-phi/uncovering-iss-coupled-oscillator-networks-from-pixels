@@ -117,7 +117,9 @@ if __name__ == "__main__":
 
     # Experiment with predicting the latent-space velocity
     batch_idx = 0  # batch index of sample for which we want to predict the latent-space velocity
-    time_idx = 1  # time index of sample for which we want to predict the latent-space velocity
+    time_idx = (
+        1  # time index of sample for which we want to predict the latent-space velocity
+    )
     t_ts = test_batch["t_ts"][batch_idx, :]
     img_gt_ts = test_batch["rendering_ts"][batch_idx, :]
     x_gt_ts = test_batch["x_ts"][batch_idx, :]
@@ -125,7 +127,6 @@ if __name__ == "__main__":
     q_d_gt_ts = x_gt_ts[:, n_q:]
 
     print("q", q_gt_ts[time_idx, :], "q_d_0", q_d_gt_ts[time_idx, :])
-
 
     def pendulum_encode(_img_ts: Array):
         _encoder_output = nn_model.apply(
@@ -135,11 +136,8 @@ if __name__ == "__main__":
         # if the system is a pendulum, we interpret the encoder output as sin(theta) and cos(theta) for each joint
         # e.g. for two joints: z = [sin(q_1), sin(q_2), cos(q_1), cos(q_2)]
         # output of arctan2 will be in the range [-pi, pi]
-        _q_ts = jnp.arctan2(
-            _encoder_output[..., :n_q], _encoder_output[..., n_q:]
-        )
+        _q_ts = jnp.arctan2(_encoder_output[..., :n_q], _encoder_output[..., n_q:])
         return _q_ts
-
 
     dt = t_ts[time_idx] - t_ts[time_idx - 1]
 
@@ -153,7 +151,7 @@ if __name__ == "__main__":
     print("Predicted latent-space velocity using finite differences:", z_d_fd)
 
     jac_fn = jacfwd(pendulum_encode)
-    dz_dimg = jac_fn(img_gt_ts[time_idx:time_idx + 1, ...]).squeeze((0, 1))
+    dz_dimg = jac_fn(img_gt_ts[time_idx : time_idx + 1, ...]).squeeze((0, 1))
 
     # use finite differences to compute the velocity in image space
     # img_d_fd = (img_gt_ts[time_idx, ...] - img_gt_ts[time_idx - 1, ...]) / dt  # naive finite differences
@@ -164,4 +162,7 @@ if __name__ == "__main__":
     img_d_fd_flat = img_d_fd.flatten()
     z_d_hat_flat = jnp.matmul(dz_dimg_flat, img_d_fd_flat)
     z_d_hat = z_d_hat_flat.reshape(z_pred.shape)
-    print("Estimated latent-space velocity by applying finite differences in image-space:", z_d_hat)
+    print(
+        "Estimated latent-space velocity by applying finite differences in image-space:",
+        z_d_hat,
+    )

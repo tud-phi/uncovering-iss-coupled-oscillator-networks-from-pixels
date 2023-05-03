@@ -22,23 +22,19 @@ tf.config.experimental.set_visible_devices([], "GPU")
 seed = 0
 rng = random.PRNGKey(seed=seed)
 
-use_wae = False
-sigma_z = 1.0
+use_wae = True
 
+latent_dim = 2
+normalize_latent_space = True
 num_epochs = 25
 warmup_epochs = 3
+batch_size = 8
 
 if use_wae:
-    ckpt_dir = Path("logs") / "single_pendulum_autoencoding" / "2023-05-03_14-32-27"
-    latent_dim = 3
-    normalize_latent_space = False
-    batch_size = 10
+    ckpt_dir = Path("logs") / "single_pendulum_autoencoding" / "2023-05-03_22-20-30"
     loss_weights = dict(mse_q=0.0, mse_rec=5.0, mmd=1.0)
 else:
     ckpt_dir = Path("logs") / "single_pendulum_autoencoding" / "2023-04-26_15-57-20"
-    latent_dim = 2
-    normalize_latent_space = True
-    batch_size = 8
     loss_weights = dict(mse_q=1.0, mse_rec=5.0)
 
 sym_exp_filepath = Path("symbolic_expressions") / "single_pendulum.dill"
@@ -67,8 +63,7 @@ if __name__ == "__main__":
         nn_model,
         loss_weights=loss_weights,
         normalize_latent_space=normalize_latent_space,
-        use_wae=use_wae,
-        sigma_z=sigma_z,
+        use_wae=use_wae
     )
 
     state = restore_train_state(rng, ckpt_dir, nn_model, metrics)
@@ -88,9 +83,7 @@ if __name__ == "__main__":
     img_gt2 = test_batch["rendering_ts"][1, -1]
     img_bt = jnp.stack([img_gt1, img_gt2])
     # two latent vectors
-    z_pred_bt = nn_model.apply(
-            {"params": state.params}, img_bt, method=nn_model.encode
-    )
+    z_pred_bt = nn_model.apply({"params": state.params}, img_bt, method=nn_model.encode)
     if normalize_latent_space:
         # if the system is a pendulum, we interpret the encoder output as sin(theta) and cos(theta) for each joint
         # e.g. for two joints: z = [sin(q_1), sin(q_2), cos(q_1), cos(q_2)]
@@ -107,7 +100,7 @@ if __name__ == "__main__":
     else:
         input_decoder = z_interp_bt
     img_rec_bt = nn_model.apply(
-            {"params": state.params}, input_decoder, method=nn_model.decode
+        {"params": state.params}, input_decoder, method=nn_model.decode
     )
     # unnormalize the images to the range [0, 255]
     img_rec_bt_unnorm = (128 * (1.0 + img_rec_bt)).astype(jnp.uint8)
@@ -115,7 +108,10 @@ if __name__ == "__main__":
     fig, axes = plt.subplots(nrows=1, ncols=img_rec_bt.shape[0], figsize=(18, 4))
     interpolation_plts = []
     for i in range(len(axes)):
-        interpolation_plts.append(axes[i].imshow(img_rec_bt_unnorm[i], vmin=0, vmax=255))
+        axes[i].set_title("z = " + str(z_interp_bt[i]), fontdict={"fontsize": 10})
+        interpolation_plts.append(
+            axes[i].imshow(img_rec_bt_unnorm[i], vmin=0, vmax=255)
+        )
     plt.suptitle("Interpolation between two latent vectors")
     plt.show()
 

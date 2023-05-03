@@ -20,21 +20,18 @@ tf.config.experimental.set_visible_devices([], "GPU")
 seed = 0
 rng = random.PRNGKey(seed=seed)
 
-use_wae = False
-sigma_z = 1.0
+use_wae = True
 
-num_epochs = 25
+latent_dim = 2
+normalize_latent_space = True
+num_epochs = 50
 
 if use_wae:
-    latent_dim = 3
-    normalize_latent_space = False
-    batch_size = 10
-    loss_weights = dict(mse_q=0.0, mse_rec=5.0, mmd=1e-3)
-    base_lr = 2e-3
+    batch_size = 15
+    loss_weights = dict(mse_q=0.0, mse_rec=5.0, mmd=1e-1)
+    base_lr = 5e-3
     warmup_epochs = 5
 else:
-    latent_dim = 2
-    normalize_latent_space = True
     batch_size = 8
     loss_weights = dict(mse_q=1.0, mse_rec=5.0)
     base_lr = 5e-3
@@ -69,7 +66,6 @@ if __name__ == "__main__":
         loss_weights=loss_weights,
         normalize_latent_space=normalize_latent_space,
         use_wae=use_wae,
-        sigma_z=sigma_z,
     )
 
     # run the training loop
