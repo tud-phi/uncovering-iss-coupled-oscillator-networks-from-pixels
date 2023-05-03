@@ -22,18 +22,20 @@ tf.config.experimental.set_visible_devices([], "GPU")
 seed = 0
 rng = random.PRNGKey(seed=seed)
 
-use_wae = True
+use_wae = False
 sigma_z = 1.0
 
 num_epochs = 25
 warmup_epochs = 3
 
 if use_wae:
-    latent_dim = 8
+    ckpt_dir = Path("logs") / "single_pendulum_autoencoding" / "2023-05-03_14-32-27"
+    latent_dim = 3
     normalize_latent_space = False
     batch_size = 10
     loss_weights = dict(mse_q=0.0, mse_rec=5.0, mmd=1.0)
 else:
+    ckpt_dir = Path("logs") / "single_pendulum_autoencoding" / "2023-04-26_15-57-20"
     latent_dim = 2
     normalize_latent_space = True
     batch_size = 8

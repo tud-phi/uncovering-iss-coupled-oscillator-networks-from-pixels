@@ -24,20 +24,21 @@ use_wae = False
 sigma_z = 1.0
 
 num_epochs = 25
-warmup_epochs = 3
 
 if use_wae:
-    latent_dim = 8
+    latent_dim = 3
     normalize_latent_space = False
     batch_size = 10
-    loss_weights = dict(mse_q=0.0, mse_rec=5.0, mmd=1.0)
-    base_lr = 1e-3
+    loss_weights = dict(mse_q=0.0, mse_rec=5.0, mmd=1e-3)
+    base_lr = 2e-3
+    warmup_epochs = 5
 else:
     latent_dim = 2
     normalize_latent_space = True
     batch_size = 8
     loss_weights = dict(mse_q=1.0, mse_rec=5.0)
     base_lr = 5e-3
+    warmup_epochs = 3
 
 now = datetime.now()
 logdir = Path("logs") / "single_pendulum_autoencoding" / f"{now:%Y-%m-%d_%H-%M-%S}"
