@@ -29,6 +29,7 @@ def task_factory(
     ode_fn: Callable,
     loss_weights: Optional[Dict[str, float]] = None,
     solver: AbstractSolver = Dopri5(),
+    start_time_idx: int = 1,
 ) -> Tuple[TaskCallables, jm.Metrics]:
     """
     Factory function for the task of learning a representation using first-principle dynamics while using the
@@ -41,6 +42,8 @@ def task_factory(
             ode_fn(t, x) -> x_dot
         loss_weights: the weights for the different loss terms
         solver: Diffrax solver to use for the simulation.
+        start_time_idx: the index of the time step to start the simulation at. Needs to be >=1 to enable the application
+            of finite differences for the latent-space velocity.
     Returns:
         task_callables: struct containing the functions for the learning task
         metrics: struct containing the metrics for the learning task
@@ -84,31 +87,35 @@ def task_factory(
             (batch_size, -1, *q_static_pred_flat_bt.shape[1:])
         )
 
+        # apply finite differences to the static latent representation to get the static latent velocity
+        q_d_static_fd_bt = vmap(
+            lambda _q: jnp.gradient(_q, dt, axis=0), in_axes=(0, ), out_axes=0
+        )(q_static_pred_bt)
+
         # specify initial state for the dynamic rollout
-        q_0_bt = q_static_pred_bt[
-            :, 0, ...
-        ]  # initial configuration at time t=0 as provided by the encoder
-        q_d_0_bt = batch["x_ts"][
-            :, 0, n_q:
-        ]  # initial ground-truth velocity at time t=0
-        x_0_bt = jnp.concatenate(
-            (q_0_bt, q_d_0_bt), axis=-1
-        )  # initial state at time t=0
+        # initial configuration at initial time provided by the encoder
+        q_init_bt = q_static_pred_bt[:, start_time_idx, ...]
+        # initial configuration velocity as estimated by finite differences
+        q_d_init_bt = q_d_static_fd_bt[:, start_time_idx, ...]
+        # initial state
+        x_init_bt = jnp.concatenate(
+            (q_init_bt, q_d_init_bt), axis=-1
+        )
 
         # compute the dynamic rollout of the latent representation
         ode_solve_fn = partial(
             diffeqsolve,
             ode_term,
             solver,
-            saveat=SaveAt(ts=t_ts),
-            max_steps=t_ts.shape[-1],
+            saveat=SaveAt(ts=t_ts[start_time_idx:]),
+            max_steps=t_ts[start_time_idx:].shape[-1],
         )
         # simulate
         sol_bt = vmap(ode_solve_fn, in_axes=(None, None, None, 0))(
-            t_ts[0],  # initial time
+            t_ts[start_time_idx],  # initial time
             t_ts[-1],  # final time
             dt,  # time step
-            x_0_bt.astype(jnp.float64),  # initial state
+            x_init_bt.astype(jnp.float64),  # initial state
         )
 
         # extract the rolled-out latent representations
@@ -175,7 +182,7 @@ def task_factory(
         q_dynamic_pred_bt = preds["q_dynamic_ts"]
 
         # compute the configuration error
-        error_q = q_dynamic_pred_bt - q_static_pred_bt
+        error_q = q_dynamic_pred_bt - q_static_pred_bt[:, start_time_idx:]
 
         # if necessary, normalize the joint angle error
         if system_type == "pendulum":
@@ -190,7 +197,7 @@ def task_factory(
         )
         # supervised MSE loss on the reconstructed image of the dynamic predictions
         mse_rec_dynamic = jnp.mean(
-            jnp.square(preds["rendering_dynamic_ts"] - batch["rendering_ts"])
+            jnp.square(preds["rendering_dynamic_ts"] - batch["rendering_ts"][:, start_time_idx:])
         )
 
         # total loss
@@ -212,7 +219,7 @@ def task_factory(
 
         # compute the configuration error
         error_q_static = q_static_pred_bt - q_target_bt
-        error_q_dynamic = q_dynamic_pred_bt - q_target_bt
+        error_q_dynamic = q_dynamic_pred_bt - q_target_bt[:, start_time_idx:]
 
         # if necessary, normalize the joint angle error
         if system_type == "pendulum":
@@ -229,7 +236,7 @@ def task_factory(
             "rmse_q_dynamic": jnp.sqrt(jnp.mean(jnp.square(error_q_dynamic))),
             "rmse_rec_dynamic": jnp.sqrt(
                 jnp.mean(
-                    jnp.square(preds["rendering_dynamic_ts"] - batch["rendering_ts"])
+                    jnp.square(preds["rendering_dynamic_ts"] - batch["rendering_ts"][:, start_time_idx:])
                 )
             ),
         }
