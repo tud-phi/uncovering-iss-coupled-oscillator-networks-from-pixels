@@ -1,10 +1,11 @@
 from jax import config as jax_config
 
 jax_config.update("jax_enable_x64", True)
-from jax import random
+from jax import Array, jacfwd, random
 import jax.numpy as jnp
 from jsrm.integration import ode_factory
 from jsrm.systems import pendulum
+import matplotlib.pyplot as plt
 from pathlib import Path
 import tensorflow as tf
 
@@ -79,8 +80,6 @@ if __name__ == "__main__":
     test_batch = next(test_ds.as_numpy_iterator())
     test_preds = task_callables.forward_fn(test_batch, state.params)
 
-    import matplotlib.pyplot as plt
-
     for i in range(test_batch["x_ts"].shape[0]):
         print("Trajectory:", i)
         for t in range(test_batch["x_ts"].shape[1]):
@@ -115,3 +114,46 @@ if __name__ == "__main__":
             plt.colorbar(img_rec_plot, ax=axes[1])
             axes[1].set_title("Reconstruction")
             plt.show()
+
+    # Experiment with predicting the latent-space velocity
+    batch_idx = 0  # batch index of sample for which we want to predict the latent-space velocity
+    time_idx = 1  # time index of sample for which we want to predict the latent-space velocity
+    t_ts = test_batch["t_ts"][batch_idx, :]
+    img_gt_ts = test_batch["rendering_ts"][batch_idx, :]
+    x_gt_ts = test_batch["x_ts"][batch_idx, :]
+    q_gt_ts = x_gt_ts[:, :n_q]
+    q_d_gt_ts = x_gt_ts[:, n_q:]
+
+    print("q", q_gt_ts[time_idx, :], "q_d_0", q_d_gt_ts[time_idx, :])
+
+
+    def pendulum_encode(_img_ts: Array):
+        _encoder_output = nn_model.apply(
+            {"params": state.params}, _img_ts, method=nn_model.encode
+        )
+
+        # if the system is a pendulum, we interpret the encoder output as sin(theta) and cos(theta) for each joint
+        # e.g. for two joints: z = [sin(q_1), sin(q_2), cos(q_1), cos(q_2)]
+        # output of arctan2 will be in the range [-pi, pi]
+        _q_ts = jnp.arctan2(
+            _encoder_output[..., :n_q], _encoder_output[..., n_q:]
+        )
+        return _q_ts
+
+
+    jac_fn = jacfwd(pendulum_encode)
+    z_pred = pendulum_encode(img_gt_ts[time_idx:time_idx + 1, ...]).squeeze(0)
+    print("z_pred:", z_pred)
+    dz_dimg = jac_fn(img_gt_ts[time_idx:time_idx + 1, ...]).squeeze((0, 1))
+
+    # use finite differences to compute the velocity in image space
+    dt = t_ts[time_idx] - t_ts[time_idx - 1]
+    # img_d_fd = (img_gt_ts[time_idx, ...] - img_gt_ts[time_idx - 1, ...]) / dt  # naive finite differences
+    img_d_fd = jnp.gradient(img_gt_ts, dt, axis=0)[time_idx, ...]
+    # apply the chain rule to compute the velocity in latent space
+    # flatten so we can do matrix multiplication
+    dz_dimg_flat = dz_dimg.reshape((dz_dimg.shape[0], -1))
+    img_d_fd_flat = img_d_fd.flatten()
+    z_d_hat_flat = jnp.matmul(dz_dimg_flat, img_d_fd_flat)
+    z_d_hat = z_d_hat_flat.reshape(z_pred.shape)
+    print("Estimated latent-space velocity:", z_d_hat)
