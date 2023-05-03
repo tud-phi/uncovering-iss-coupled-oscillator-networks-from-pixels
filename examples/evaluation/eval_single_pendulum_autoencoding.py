@@ -83,21 +83,35 @@ if __name__ == "__main__":
     test_preds = task_callables.forward_fn(test_batch, state.params)
 
     # try interpolating between two latent vectors
-    img_gt1 = test_batch["rendering_ts"][0, 0]
-    img_gt2 = test_batch["rendering_ts"][0, -1]
+    img_gt1 = test_batch["rendering_ts"][1, 0]
+    img_gt2 = test_batch["rendering_ts"][1, -1]
     img_bt = jnp.stack([img_gt1, img_gt2])
+    # two latent vectors
     z_pred_bt = nn_model.apply(
             {"params": state.params}, img_bt, method=nn_model.encode
     )
+    if normalize_latent_space:
+        # if the system is a pendulum, we interpret the encoder output as sin(theta) and cos(theta) for each joint
+        # e.g. for two joints: z = [sin(q_1), sin(q_2), cos(q_1), cos(q_2)]
+        # output of arctan2 will be in the range [-pi, pi]
+        z_pred_bt = jnp.arctan2(z_pred_bt[..., :n_q], z_pred_bt[..., n_q:])
     # interpolate 10 points between the two latent vectors
     z_interp_bt = jnp.linspace(z_pred_bt[0], z_pred_bt[1], 10)
+    if normalize_latent_space:
+        # if the system is a pendulum, the input into the decoder should be sin(theta) and cos(theta) for each joint
+        # e.g. for two joints: z = [sin(q_1), sin(q_2), cos(q_1), cos(q_2)]
+        input_decoder = jnp.concatenate(
+            [jnp.sin(z_interp_bt), jnp.cos(z_interp_bt)], axis=-1
+        )
+    else:
+        input_decoder = z_pred_bt
     img_rec_bt = nn_model.apply(
-            {"params": state.params}, z_interp_bt, method=nn_model.decode
+            {"params": state.params}, input_decoder, method=nn_model.decode
     )
     # unnormalize the images to the range [0, 255]
     img_rec_bt_unnorm = (128 * (1.0 + img_rec_bt)).astype(jnp.uint8)
 
-    fig, axes = plt.subplots(nrows=1, ncols=img_rec_bt.shape[0], figsize=(10, 5))
+    fig, axes = plt.subplots(nrows=1, ncols=img_rec_bt.shape[0], figsize=(18, 4))
     interpolation_plts = []
     for i in range(len(axes)):
         interpolation_plts.append(axes[i].imshow(img_rec_bt_unnorm[i], vmin=0, vmax=255))
@@ -106,7 +120,7 @@ if __name__ == "__main__":
     plt.show()
 
     for i in range(test_batch["x_ts"].shape[0]):
-        print("test sample:", i)
+        print("test sample:", i, "latent variable z:", test_preds["q_ts"][i, 0])
         img_gt = (128 * (1.0 + test_batch["rendering_ts"][i, 0])).astype(jnp.uint8)
         img_rec = (128 * (1.0 + test_preds["rendering_ts"][i, 0])).astype(jnp.uint8)
 
