@@ -8,7 +8,7 @@ def masked_mse_loss(
         target: Array,
         threshold_for_masking: float = 0.0,
         threshold_cond_sign: int = 1,
-        masked_loss_weight: float = 0.5
+        weight_loss_masked_area: float = 0.5
 ) -> Array:
     """
     Compute the MSE loss separately for masked elements and unmasked elements.
@@ -18,7 +18,7 @@ def masked_mse_loss(
         threshold_for_masking: the threshold for masking applied to the target array.
             if threshold_cond_sign * target(i) > threshold_for_masking, the element is masked.
         threshold_cond_sign: the sign of the threshold condition. If -1, the condition is target(i) < threshold_for_masking.
-        masked_loss_weight: the weight for the masked loss. The weight for the unmasked loss is 1 - masked_loss_weight.
+        weight_loss_masked_area: the weight for the masked loss. The weight for the unmasked loss is 1 - masked_loss_weight.
     Returns:
         loss: the total MSE loss computed separately for masked elements and unmasked elements
     """
@@ -34,5 +34,5 @@ def masked_mse_loss(
     mase_loss_inv_masked_area = jnp.sum(jnp.square(inv_masked_input - target)) / (num_total_elements - num_masked_elements)
 
     # compute the total loss
-    loss = masked_loss_weight * mse_loss_masked_area + (1.0 - masked_loss_weight) * mase_loss_inv_masked_area
+    loss = weight_loss_masked_area * mse_loss_masked_area + (1.0 - weight_loss_masked_area) * mase_loss_inv_masked_area
     return loss

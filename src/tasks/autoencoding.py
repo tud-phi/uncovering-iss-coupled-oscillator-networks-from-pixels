@@ -7,6 +7,7 @@ import jax_metrics as jm
 from jsrm.systems.pendulum import normalize_joint_angles
 from typing import Callable, Dict, Optional, Tuple
 
+from src.losses.masked_mse import masked_mse_loss
 from src.metrics import NoReduce
 from src.structs import TaskCallables
 
@@ -27,6 +28,7 @@ def task_factory(
     nn_model: nn.Module,
     loss_weights: Dict[str, float] = None,
     normalize_latent_space: bool = True,
+    weight_on_foreground: float = None,
     use_wae: bool = False,
 ) -> Tuple[TaskCallables, jm.Metrics]:
     """
@@ -38,6 +40,8 @@ def task_factory(
         nn_model: the neural network model to use
         loss_weights: the weights for the different loss terms
         normalize_latent_space: whether to normalize the latent space by for example projecting angles to [-pi, pi]
+        weight_on_foreground: if None, a normal MSE loss will be used. Otherwise, a masked MSE loss will be used
+            with the given weight for the masked area (usually the foreground).
         use_wae: whether to apply the Wasserstein Autoencoder regularization
     Returns:
         task_callables: struct containing the functions for the learning task
@@ -117,7 +121,16 @@ def task_factory(
         mse_q = jnp.mean(jnp.square(error_q))
 
         # supervised MSE loss on the reconstructed image
-        mse_rec = jnp.mean(jnp.square(preds["rendering_ts"] - batch["rendering_ts"]))
+        if weight_on_foreground is None:
+            mse_rec = jnp.mean(jnp.square(preds["rendering_ts"] - batch["rendering_ts"]))
+        else:
+            # allows to equally weigh the importance of correctly reconstructing the foreground and background
+            mse_rec = masked_mse_loss(
+                preds["rendering_ts"],
+                batch["rendering_ts"],
+                threshold_cond_sign=-1,
+                weight_loss_masked_area=weight_on_foreground
+            )
 
         # total loss
         loss = loss_weights["mse_q"] * mse_q + loss_weights["mse_rec"] * mse_rec
@@ -160,17 +173,29 @@ def task_factory(
                 jnp.mean(jnp.square(preds["rendering_ts"] - batch["rendering_ts"]))
             ),
         }
+
+        if weight_on_foreground is not None:
+            # allows to equally weigh the importance of correctly reconstructing the foreground and background
+            metrics["masked_rmse_rec"] = masked_mse_loss(
+                preds["rendering_ts"],
+                batch["rendering_ts"],
+                threshold_cond_sign=-1,
+                weight_loss_masked_area=weight_on_foreground
+            )
         return metrics
 
     task_callables = TaskCallables(assemble_input, forward_fn, loss_fn, compute_metrics)
 
-    metrics = jm.Metrics(
-        {
-            "loss": jm.metrics.Mean().from_argument("loss"),
-            "lr": NoReduce().from_argument("lr"),
-            "rmse_q": jm.metrics.Mean().from_argument("rmse_q"),
-            "rmse_rec": jm.metrics.Mean().from_argument("rmse_rec"),
-        }
-    )
+    accumulated_metrics_dict = {
+        "loss": jm.metrics.Mean().from_argument("loss"),
+        "lr": NoReduce().from_argument("lr"),
+        "rmse_q": jm.metrics.Mean().from_argument("rmse_q"),
+        "rmse_rec": jm.metrics.Mean().from_argument("rmse_rec")
+    }
 
-    return task_callables, metrics
+    if weight_on_foreground is not None:
+        accumulated_metrics_dict["masked_rmse_rec"] = jm.metrics.Mean().from_argument("masked_rmse_rec")
+
+    accumulated_metrics = jm.Metrics(accumulated_metrics_dict)
+
+    return task_callables, accumulated_metrics
