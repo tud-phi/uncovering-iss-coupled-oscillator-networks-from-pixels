@@ -4,11 +4,11 @@ import jax.numpy as jnp
 
 @jit
 def masked_mse_loss(
-        input: Array,
-        target: Array,
-        threshold_for_masking: float = 0.0,
-        threshold_cond_sign: int = 1,
-        weight_loss_masked_area: float = 0.5
+    input: Array,
+    target: Array,
+    threshold_for_masking: float = 0.0,
+    threshold_cond_sign: int = 1,
+    weight_loss_masked_area: float = 0.5,
 ) -> Array:
     """
     Compute the MSE loss separately for masked elements and unmasked elements.
@@ -30,9 +30,16 @@ def masked_mse_loss(
     inv_masked_input = jnp.where(mask, x=target, y=input)
 
     # compute loss for the masked elements and unmasked elements separately
-    mse_loss_masked_area = jnp.sum(jnp.square(masked_input - target)) / num_masked_elements
-    mase_loss_inv_masked_area = jnp.sum(jnp.square(inv_masked_input - target)) / (num_total_elements - num_masked_elements)
+    mse_loss_masked_area = (
+        jnp.sum(jnp.square(masked_input - target)) / num_masked_elements
+    )
+    mase_loss_inv_masked_area = jnp.sum(jnp.square(inv_masked_input - target)) / (
+        num_total_elements - num_masked_elements
+    )
 
     # compute the total loss
-    loss = weight_loss_masked_area * mse_loss_masked_area + (1.0 - weight_loss_masked_area) * mase_loss_inv_masked_area
+    loss = (
+        weight_loss_masked_area * mse_loss_masked_area
+        + (1.0 - weight_loss_masked_area) * mase_loss_inv_masked_area
+    )
     return loss

@@ -122,14 +122,16 @@ def task_factory(
 
         # supervised MSE loss on the reconstructed image
         if weight_on_foreground is None:
-            mse_rec = jnp.mean(jnp.square(preds["rendering_ts"] - batch["rendering_ts"]))
+            mse_rec = jnp.mean(
+                jnp.square(preds["rendering_ts"] - batch["rendering_ts"])
+            )
         else:
             # allows to equally weigh the importance of correctly reconstructing the foreground and background
             mse_rec = masked_mse_loss(
                 preds["rendering_ts"],
                 batch["rendering_ts"],
                 threshold_cond_sign=-1,
-                weight_loss_masked_area=weight_on_foreground
+                weight_loss_masked_area=weight_on_foreground,
             )
 
         # total loss
@@ -180,7 +182,7 @@ def task_factory(
                 preds["rendering_ts"],
                 batch["rendering_ts"],
                 threshold_cond_sign=-1,
-                weight_loss_masked_area=weight_on_foreground
+                weight_loss_masked_area=weight_on_foreground,
             )
         return metrics
 
@@ -190,11 +192,13 @@ def task_factory(
         "loss": jm.metrics.Mean().from_argument("loss"),
         "lr": NoReduce().from_argument("lr"),
         "rmse_q": jm.metrics.Mean().from_argument("rmse_q"),
-        "rmse_rec": jm.metrics.Mean().from_argument("rmse_rec")
+        "rmse_rec": jm.metrics.Mean().from_argument("rmse_rec"),
     }
 
     if weight_on_foreground is not None:
-        accumulated_metrics_dict["masked_rmse_rec"] = jm.metrics.Mean().from_argument("masked_rmse_rec")
+        accumulated_metrics_dict["masked_rmse_rec"] = jm.metrics.Mean().from_argument(
+            "masked_rmse_rec"
+        )
 
     accumulated_metrics = jm.Metrics(accumulated_metrics_dict)
 

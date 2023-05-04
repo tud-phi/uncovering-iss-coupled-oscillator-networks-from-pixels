@@ -65,7 +65,7 @@ def make_wae_mdd_loss(
     kernel_fn: Callable = imq_kernel,
     distribution: str = "normal",
     sigma_z: Array = jnp.array(1.0),
-    uniform_distr_range: Sequence = (-1.0, 1.0)
+    uniform_distr_range: Sequence = (-1.0, 1.0),
 ) -> Callable:
     """
     Factory function to create a wae_mmd_loss function with a given kernel function.

@@ -89,7 +89,7 @@ def task_factory(
 
         # apply finite differences to the static latent representation to get the static latent velocity
         q_d_static_fd_bt = vmap(
-            lambda _q: jnp.gradient(_q, dt, axis=0), in_axes=(0, ), out_axes=0
+            lambda _q: jnp.gradient(_q, dt, axis=0), in_axes=(0,), out_axes=0
         )(q_static_pred_bt)
 
         # specify initial state for the dynamic rollout
@@ -98,9 +98,7 @@ def task_factory(
         # initial configuration velocity as estimated by finite differences
         q_d_init_bt = q_d_static_fd_bt[:, start_time_idx, ...]
         # initial state
-        x_init_bt = jnp.concatenate(
-            (q_init_bt, q_d_init_bt), axis=-1
-        )
+        x_init_bt = jnp.concatenate((q_init_bt, q_d_init_bt), axis=-1)
 
         # compute the dynamic rollout of the latent representation
         ode_solve_fn = partial(
@@ -197,7 +195,10 @@ def task_factory(
         )
         # supervised MSE loss on the reconstructed image of the dynamic predictions
         mse_rec_dynamic = jnp.mean(
-            jnp.square(preds["rendering_dynamic_ts"] - batch["rendering_ts"][:, start_time_idx:])
+            jnp.square(
+                preds["rendering_dynamic_ts"]
+                - batch["rendering_ts"][:, start_time_idx:]
+            )
         )
 
         # total loss
@@ -236,7 +237,10 @@ def task_factory(
             "rmse_q_dynamic": jnp.sqrt(jnp.mean(jnp.square(error_q_dynamic))),
             "rmse_rec_dynamic": jnp.sqrt(
                 jnp.mean(
-                    jnp.square(preds["rendering_dynamic_ts"] - batch["rendering_ts"][:, start_time_idx:])
+                    jnp.square(
+                        preds["rendering_dynamic_ts"]
+                        - batch["rendering_ts"][:, start_time_idx:]
+                    )
                 )
             ),
         }
