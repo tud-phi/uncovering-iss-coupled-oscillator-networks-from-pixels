@@ -100,6 +100,9 @@ def task_factory(
                 q_d_static_fd_bt = vmap(
                     lambda _q_ts: jnp.gradient(_q_ts, dt, axis=0), in_axes=(0,), out_axes=0
                 )(q_static_pred_bt)
+
+                # initial configuration velocity as estimated by finite differences
+                q_d_init_bt = q_d_static_fd_bt[:, start_time_idx, ...]
             case "image-space-finite-differences":
                 # apply finite differences to the image space to get the image velocity
                 img_d_fd_bt = vmap(
@@ -109,7 +112,7 @@ def task_factory(
                 def encode_img_to_configuration(_img) -> Array:
                     _encoder_output = nn_model.apply(
                         {"params": nn_params}, jnp.expand_dims(_img, axis=0), method=nn_model.encode
-                    )
+                    ).squeeze(axis=0)
 
                     if system_type == "pendulum":
                         # if the system is a pendulum, we interpret the encoder output as sin(theta) and cos(theta) for each joint
@@ -125,29 +128,30 @@ def task_factory(
                 img_init_fd_bt = img_bt[:, start_time_idx, ...]
                 img_d_init_fd_bt = img_d_fd_bt[:, start_time_idx, ...]
 
-                print(img_init_fd_bt.shape)
-
-                dq_dimg_bt = vmap(
+                dq_dimg_init_bt = vmap(
                     lambda _img: jacrev(encode_img_to_configuration)(_img),
                     in_axes=(0,),
                     out_axes=0,
-                )(
-                    img_init_fd_bt
-                )
+                )(img_init_fd_bt)
 
                 # flatten so we can do matrix multiplication
-                dq_dimg_bt_flat = dq_dimg_bt.reshape((dq_dimg_bt.shape[0], -1))
-                img_d_fd_bt_flat = img_d_init_fd_bt.flatten()
+                # establish shape (batch_dim, n_q, -1)
+                dq_dimg_init_bt_flat = dq_dimg_init_bt.reshape((*dq_dimg_init_bt.shape[0:2], -1))
+                # establish shape (batch_dim, -1)
+                img_d_init_fd_bt_flat = img_d_init_fd_bt.reshape((img_d_init_fd_bt.shape[0], -1))
 
                 # apply the chain rule to compute the velocity in latent space
-                q_d_hat_bt_flat = jnp.matmul(dq_dimg_bt_flat, img_d_fd_bt_flat)
-                q_d_static_fd_bt = q_d_hat_bt_flat.reshape(q_static_pred_bt.shape)
+                q_d_init_hat_bt_flat = vmap(
+                    jnp.matmul,
+                    in_axes=0,
+                    out_axes=0
+                )(dq_dimg_init_bt_flat, img_d_init_fd_bt_flat)
+
+                # reshape the result to (batch_dim, n_q)
+                q_d_init_bt = q_d_init_hat_bt_flat.reshape(q_init_bt.shape)
             case _:
                 raise ValueError(f"configuration_velocity_source must be either 'direct-finite-differences' "
                                  f"or 'image-space-finite-differences', but is {configuration_velocity_source}")
-
-        # initial configuration velocity as estimated by finite differences
-        q_d_init_bt = q_d_static_fd_bt[:, start_time_idx, ...]
 
         # specify initial state for the dynamic rollout
         x_init_bt = jnp.concatenate((q_init_bt, q_d_init_bt), axis=-1)
