@@ -65,6 +65,7 @@ if __name__ == "__main__":
         nn_model,
         loss_weights=loss_weights,
         normalize_latent_space=normalize_latent_space,
+        weight_on_foreground=0.15,
         use_wae=use_wae,
     )
 
