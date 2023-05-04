@@ -1,7 +1,7 @@
 from jax import config as jax_config
 
 jax_config.update("jax_enable_x64", True)
-from jax import Array, jacfwd, random
+from jax import Array, jacfwd, jacrev, random
 import jax.numpy as jnp
 from jsrm.integration import ode_factory
 from jsrm.systems import pendulum
@@ -150,7 +150,7 @@ if __name__ == "__main__":
     z_d_fd = jnp.gradient(z_pred_ts, dt, axis=0)[time_idx, ...]
     print("Predicted latent-space velocity using finite differences:", z_d_fd)
 
-    jac_fn = jacfwd(pendulum_encode)
+    jac_fn = jacrev(pendulum_encode)
     dz_dimg = jac_fn(img_gt_ts[time_idx : time_idx + 1, ...]).squeeze((0, 1))
 
     # use finite differences to compute the velocity in image space
