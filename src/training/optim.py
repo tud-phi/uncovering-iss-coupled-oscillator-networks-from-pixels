@@ -38,7 +38,7 @@ def create_learning_rate_fn(
         boundaries.append(epoch_idx * steps_per_epoch)
 
     if cosine_decay_epochs is None:
-        max(num_epochs - warmup_epochs, 0)
+        cosine_decay_epochs = max(num_epochs - warmup_epochs, 0)
 
     assert (
         warmup_epochs + cosine_decay_epochs <= num_epochs
