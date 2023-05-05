@@ -128,6 +128,7 @@ def run_training(
     nn_model: Optional[nn.Module] = None,
     base_lr: Optional[float] = None,
     warmup_epochs: int = 0,
+    cosine_decay_epochs: int = None,
     weight_decay: float = 0.0,
     logdir: Path = None,
 ) -> Tuple[TrainState, History]:
@@ -145,6 +146,7 @@ def run_training(
         base_lr: Base learning rate (after warmup and before decay).
         warmup_epochs: Number of epochs for warmup.
         weight_decay: Weight decay.
+        cosine_decay_epochs: Number of epochs for cosine decay. If None, will use num_epochs - warmup_epochs.
         logdir: Path to the directory where the training logs should be saved.
     Returns:
         val_loss_history: Array of validation losses for each epoch.
@@ -162,6 +164,7 @@ def run_training(
         steps_per_epoch=steps_per_epoch,
         base_lr=base_lr,
         warmup_epochs=warmup_epochs,
+        cosine_decay_epochs=cosine_decay_epochs
     )
 
     # if no state is provided, initialize the train state
