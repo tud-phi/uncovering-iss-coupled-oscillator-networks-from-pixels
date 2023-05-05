@@ -63,7 +63,7 @@ if __name__ == "__main__":
         nn_model,
         loss_weights=loss_weights,
         normalize_latent_space=normalize_latent_space,
-        use_wae=use_wae
+        use_wae=use_wae,
     )
 
     state = restore_train_state(rng, ckpt_dir, nn_model, metrics)

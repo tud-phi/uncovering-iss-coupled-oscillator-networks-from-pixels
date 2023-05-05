@@ -104,7 +104,7 @@ def make_wae_mdd_loss(
         N = z.shape[0]  # batch size
 
         if distribution == "normal":
-            C = 2 * z.shape[-1] * sigma_z ** 2
+            C = 2 * z.shape[-1] * sigma_z**2
         elif distribution == "uniform":
             C = z.shape[-1]
         else:
@@ -137,7 +137,7 @@ def make_wae_mdd_loss(
         mmd_zprior_zprior = (
             k_zprior_zprior - jnp.diag(jnp.diag(k_zprior_zprior))
         ).sum() / (N * (N - 1))
-        mmd_z_zprior = k_z_zprior.sum() / (N ** 2)
+        mmd_z_zprior = k_z_zprior.sum() / (N**2)
 
         mmd_loss = mmd_zz + mmd_zprior_zprior - 2 * mmd_z_zprior
 

@@ -3,7 +3,11 @@ from typing import Callable
 
 
 def create_learning_rate_fn(
-    num_epochs: int, steps_per_epoch: int, base_lr: float, warmup_epochs: int = 0, cosine_decay_epochs: int = None
+    num_epochs: int,
+    steps_per_epoch: int,
+    base_lr: float,
+    warmup_epochs: int = 0,
+    cosine_decay_epochs: int = None,
 ) -> Callable:
     """
     Creates a learning rate schedule function. THe learning rate scheduler implements the following procedure:
@@ -36,7 +40,9 @@ def create_learning_rate_fn(
     if cosine_decay_epochs is None:
         max(num_epochs - warmup_epochs, 0)
 
-    assert warmup_epochs + cosine_decay_epochs <= num_epochs, "The sum of warmup_epochs and cosine_decay_epochs should be less than or equal to num_epochs"
+    assert (
+        warmup_epochs + cosine_decay_epochs <= num_epochs
+    ), "The sum of warmup_epochs and cosine_decay_epochs should be less than or equal to num_epochs"
     if warmup_epochs + cosine_decay_epochs < num_epochs:
         # have a period of constant learning rate
         constant_lr_fn = optax.constant_schedule(base_lr)

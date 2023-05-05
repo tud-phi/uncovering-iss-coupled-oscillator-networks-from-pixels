@@ -194,7 +194,6 @@ class ConvNeXtDecoder(nn.Module):
 
     @nn.compact
     def __call__(self, x, deterministic=None):
-
         deterministic = nn.merge_param(
             "deterministic", self.deterministic, deterministic
         )
@@ -286,8 +285,8 @@ class ConvNeXtAutoencoder(nn.Module):
         # the size of the image after the encoder, but before the head (i.e. before the MLP)
         # the first layer uses a stride of 4, the other 3 use a stride of 2
         downsampled_img_dim = (
-            int(self.img_shape[0] / (4 * 2 ** 3)),
-            int(self.img_shape[1] / (4 * 2 ** 3)),
+            int(self.img_shape[0] / (4 * 2**3)),
+            int(self.img_shape[1] / (4 * 2**3)),
             self.dims[-1],
         )
         print("Computed downsampled image dimension:", downsampled_img_dim)
