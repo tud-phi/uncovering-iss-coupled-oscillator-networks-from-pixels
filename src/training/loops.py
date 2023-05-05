@@ -44,7 +44,7 @@ def train_step(
     # split the PRNG key
     rng, rng_loss_fn = random.split(state.rng)
 
-    loss_fn = partial(task_callables.loss_fn, batch, rng=rng_loss_fn)
+    loss_fn = partial(task_callables.loss_fn, batch, rng=rng_loss_fn, step=state.step)
     grad_fn = jax.value_and_grad(loss_fn, argnums=0, has_aux=True)
     (loss, preds), grad_nn_params = grad_fn(state.params)
 

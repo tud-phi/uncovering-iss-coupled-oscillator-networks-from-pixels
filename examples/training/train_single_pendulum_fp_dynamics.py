@@ -6,6 +6,7 @@ from jax import random
 import jax.numpy as jnp
 from jsrm.integration import ode_factory
 from jsrm.systems import pendulum
+import optax
 from pathlib import Path
 import tensorflow as tf
 
@@ -44,6 +45,7 @@ if __name__ == "__main__":
         grayscale=True,
     )
     train_ds, val_ds, test_ds = datasets["train"], datasets["val"], datasets["test"]
+    steps_per_epoch = len(train_ds)
 
     # extract the robot parameters from the dataset
     robot_params = dataset_metadata["system_params"]
@@ -55,6 +57,11 @@ if __name__ == "__main__":
     # initialize the model
     nn_model = Autoencoder(latent_dim=2 * n_q, img_shape=img_shape)
 
+    # initialize the schedule for the configuration velocity source
+    direct_finite_differences_weight_ratio_scheduler = optax.linear_schedule(
+        init_value=0.0, end_value=1.0, transition_steps=num_epochs * steps_per_epoch
+    )
+
     # call the factory function for the sensing task
     task_callables, metrics = fp_dynamics.task_factory(
         "pendulum",
@@ -62,7 +69,8 @@ if __name__ == "__main__":
         ode_fn=ode_factory(dynamical_matrices_fn, robot_params, tau=jnp.zeros((n_q,))),
         loss_weights=loss_weights,
         solver=dataset_metadata["solver_class"](),
-        configuration_velocity_source="image-space-finite-differences",
+        configuration_velocity_source="combined",
+        direct_finite_differences_weight_ratio_scheduler=direct_finite_differences_weight_ratio_scheduler,
     )
 
     # run the training loop

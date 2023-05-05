@@ -31,6 +31,7 @@ def task_factory(
     solver: AbstractSolver = Dopri5(),
     start_time_idx: int = 1,
     configuration_velocity_source: str = "direct-finite-differences",
+    direct_finite_differences_weight_ratio_scheduler: Optional[Callable] = None,
 ) -> Tuple[TaskCallables, jm.Metrics]:
     """
     Factory function for the task of learning a representation using first-principle dynamics while using the
@@ -46,7 +47,10 @@ def task_factory(
         start_time_idx: the index of the time step to start the simulation at. Needs to be >=1 to enable the application
             of finite differences for the latent-space velocity.
         configuration_velocity_source: the source of the configuration velocity.
-            Can be either "direct-finite-differences", or "image-space-finite-differences"
+            Can be either "direct-finite-differences", "image-space-finite-differences", or "combined".
+        direct_finite_differences_weight_ratio_scheduler: scheduler for the direct finite differences weight ratio.
+            Only used if configuration_velocity_source is "combined". Interface:
+                direct_finite_differences_weight_ratio_scheduler(step: int) -> direct_finite_differences_weight_ratio
     Returns:
         task_callables: struct containing the functions for the learning task
         metrics: struct containing the metrics for the learning task
@@ -58,7 +62,22 @@ def task_factory(
     ode_term = ODETerm(ode_fn)
 
     @jit
-    def forward_fn(batch: Dict[str, Array], nn_params: FrozenDict) -> Dict[str, Array]:
+    def forward_fn(
+            batch: Dict[str, Array],
+            nn_params: FrozenDict,
+            direct_finite_differences_weight_ratio: float = 1.0,
+    ) -> Dict[str, Array]:
+        """
+        Forward pass of the model.
+        Args:
+            batch: batch of data
+            nn_params: parameters of the neural network
+            direct_finite_differences_weight_ratio: only used if configuration_velocity_source is "combined".
+                The ratio of the direct finite differences weight to the image-space finite differences weight.
+                The estimated configuration velocity will be a weighted sum of the two:
+                q_d_est = direct_finite_differences_weight_ratio * q_d_static_fd
+                          + (1 - direct_finite_differences_weight_ratio) * q_d_img_fd
+        """
         img_bt = batch["rendering_ts"]
         img_flat_bt = assemble_input(batch)
         t_ts = batch["t_ts"][
@@ -94,75 +113,102 @@ def task_factory(
         # initial configuration at initial time provided by the encoder
         q_init_bt = q_static_pred_bt[:, start_time_idx, ...]
 
+        use_direct_finite_differences = False
+        use_image_space_finite_differences = False
         match configuration_velocity_source:
             case "direct-finite-differences":
-                # apply finite differences to the static latent representation to get the static latent velocity
-                q_d_static_fd_bt = vmap(
-                    lambda _q_ts: jnp.gradient(_q_ts, dt, axis=0),
-                    in_axes=(0,),
-                    out_axes=0,
-                )(q_static_pred_bt)
-
-                # initial configuration velocity as estimated by finite differences
-                q_d_init_bt = q_d_static_fd_bt[:, start_time_idx, ...]
+                use_direct_finite_differences = True
             case "image-space-finite-differences":
-                # apply finite differences to the image space to get the image velocity
-                img_d_fd_bt = vmap(
-                    lambda _img_ts: jnp.gradient(_img_ts, dt, axis=0),
-                    in_axes=(0,),
-                    out_axes=0,
-                )(img_bt)
-
-                def encode_img_to_configuration(_img) -> Array:
-                    _encoder_output = nn_model.apply(
-                        {"params": nn_params},
-                        jnp.expand_dims(_img, axis=0),
-                        method=nn_model.encode,
-                    ).squeeze(axis=0)
-
-                    if system_type == "pendulum":
-                        # if the system is a pendulum, we interpret the encoder output as sin(theta) and cos(theta) for each joint
-                        # e.g. for two joints: z = [sin(q_1), sin(q_2), cos(q_1), cos(q_2)]
-                        # output of arctan2 will be in the range [-pi, pi]
-                        _q = jnp.arctan2(
-                            _encoder_output[..., :n_q], _encoder_output[..., n_q:]
-                        )
-                    else:
-                        _q = _encoder_output
-
-                    return _q
-
-                # choose where we want to compute the configuration velocity
-                img_init_fd_bt = img_bt[:, start_time_idx, ...]
-                img_d_init_fd_bt = img_d_fd_bt[:, start_time_idx, ...]
-
-                dq_dimg_init_bt = vmap(
-                    lambda _img: jacrev(encode_img_to_configuration)(_img),
-                    in_axes=(0,),
-                    out_axes=0,
-                )(img_init_fd_bt)
-
-                # flatten so we can do matrix multiplication
-                # establish shape (batch_dim, n_q, -1)
-                dq_dimg_init_bt_flat = dq_dimg_init_bt.reshape(
-                    (*dq_dimg_init_bt.shape[0:2], -1)
-                )
-                # establish shape (batch_dim, -1)
-                img_d_init_fd_bt_flat = img_d_init_fd_bt.reshape(
-                    (img_d_init_fd_bt.shape[0], -1)
-                )
-
-                # apply the chain rule to compute the velocity in latent space
-                q_d_init_hat_bt_flat = vmap(jnp.matmul, in_axes=0, out_axes=0)(
-                    dq_dimg_init_bt_flat, img_d_init_fd_bt_flat
-                )
-
-                # reshape the result to (batch_dim, n_q)
-                q_d_init_bt = q_d_init_hat_bt_flat.reshape(q_init_bt.shape)
+                use_image_space_finite_differences = True
+            case "combined":
+                use_direct_finite_differences = True
+                use_image_space_finite_differences = True
             case _:
                 raise ValueError(
                     f"configuration_velocity_source must be either 'direct-finite-differences' "
                     f"or 'image-space-finite-differences', but is {configuration_velocity_source}"
+                )
+
+        if use_direct_finite_differences:
+            # apply finite differences to the static latent representation to get the static latent velocity
+            q_d_static_fd_bt = vmap(
+                lambda _q_ts: jnp.gradient(_q_ts, dt, axis=0),
+                in_axes=(0,),
+                out_axes=0,
+            )(q_static_pred_bt)
+
+            # initial configuration velocity as estimated by finite differences
+            q_d_init_bt_dfd = q_d_static_fd_bt[:, start_time_idx, ...]
+
+        if use_image_space_finite_differences:
+            # apply finite differences to the image space to get the image velocity
+            img_d_fd_bt = vmap(
+                lambda _img_ts: jnp.gradient(_img_ts, dt, axis=0),
+                in_axes=(0,),
+                out_axes=0,
+            )(img_bt)
+
+            def encode_img_to_configuration(_img) -> Array:
+                _encoder_output = nn_model.apply(
+                    {"params": nn_params},
+                    jnp.expand_dims(_img, axis=0),
+                    method=nn_model.encode,
+                ).squeeze(axis=0)
+
+                if system_type == "pendulum":
+                    # if the system is a pendulum, we interpret the encoder output as sin(theta) and cos(theta) for each joint
+                    # e.g. for two joints: z = [sin(q_1), sin(q_2), cos(q_1), cos(q_2)]
+                    # output of arctan2 will be in the range [-pi, pi]
+                    _q = jnp.arctan2(
+                        _encoder_output[..., :n_q], _encoder_output[..., n_q:]
+                    )
+                else:
+                    _q = _encoder_output
+
+                return _q
+
+            # choose where we want to compute the configuration velocity
+            img_init_fd_bt = img_bt[:, start_time_idx, ...]
+            img_d_init_fd_bt = img_d_fd_bt[:, start_time_idx, ...]
+
+            dq_dimg_init_bt = vmap(
+                lambda _img: jacrev(encode_img_to_configuration)(_img),
+                in_axes=(0,),
+                out_axes=0,
+            )(img_init_fd_bt)
+
+            # flatten so we can do matrix multiplication
+            # establish shape (batch_dim, n_q, -1)
+            dq_dimg_init_bt_flat = dq_dimg_init_bt.reshape(
+                (*dq_dimg_init_bt.shape[0:2], -1)
+            )
+            # establish shape (batch_dim, -1)
+            img_d_init_fd_bt_flat = img_d_init_fd_bt.reshape(
+                (img_d_init_fd_bt.shape[0], -1)
+            )
+
+            # apply the chain rule to compute the velocity in latent space
+            q_d_init_hat_bt_flat = vmap(jnp.matmul, in_axes=0, out_axes=0)(
+                dq_dimg_init_bt_flat, img_d_init_fd_bt_flat
+            )
+
+            # reshape the result to (batch_dim, n_q)
+            q_d_init_bt_isfd = q_d_init_hat_bt_flat.reshape(q_init_bt.shape)
+
+        match configuration_velocity_source:
+            case "direct-finite-differences":
+                q_d_init_bt = q_d_init_bt_dfd
+            case "image-space-finite-differences":
+                q_d_init_bt = q_d_init_bt_isfd
+            case "combined":
+                q_d_init_bt = (
+                        direct_finite_differences_weight_ratio * q_d_init_bt_dfd
+                        + (1.0 - direct_finite_differences_weight_ratio) * q_d_init_bt_isfd
+                )
+            case _:
+                raise ValueError(
+                    f"configuration_velocity_source must be either 'direct-finite-differences' "
+                    f"'image-space-finite-differences', but is {configuration_velocity_source}"
                 )
 
         # specify initial state for the dynamic rollout
@@ -241,8 +287,28 @@ def task_factory(
         batch: Dict[str, Array],
         nn_params: FrozenDict,
         rng: Optional[random.PRNGKey] = None,
+        step: Optional[int] = 0
     ) -> Tuple[Array, Dict[str, Array]]:
-        preds = forward_fn(batch, nn_params)
+        """
+        Computes the loss for a batch of data.
+        Args:
+            batch: A batch of data.
+            nn_params: The parameters of the neural network.
+            rng: A PRNGKey to be used for random number generation.
+            step: optionally, the current training step. Only needed for "combined" configuration_velocity_source.
+        Returns:
+            loss: The total loss.
+            preds: The predictions of the model.
+        """
+        if configuration_velocity_source == "combined":
+            direct_finite_differences_weight_ratio = direct_finite_differences_weight_ratio_scheduler(step)
+        else:
+            direct_finite_differences_weight_ratio = 1.0
+
+        preds = forward_fn(
+            batch, nn_params,
+            direct_finite_differences_weight_ratio=direct_finite_differences_weight_ratio
+        )
 
         q_static_pred_bt = preds["q_static_ts"]
         q_dynamic_pred_bt = preds["q_dynamic_ts"]

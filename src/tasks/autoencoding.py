@@ -104,6 +104,7 @@ def task_factory(
         batch: Dict[str, Array],
         nn_params: FrozenDict,
         rng: Optional[random.PRNGKey] = None,
+        step: Optional[int] = 0
     ) -> Tuple[Array, Dict[str, Array]]:
         preds = forward_fn(batch, nn_params)
 
