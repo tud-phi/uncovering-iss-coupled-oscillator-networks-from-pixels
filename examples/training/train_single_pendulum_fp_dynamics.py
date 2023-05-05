@@ -29,6 +29,7 @@ batch_size = 10
 base_lr = 2e-3
 warmup_epochs = 5
 loss_weights = dict(mse_q=0.0, mse_rec_static=5.0, mse_rec_dynamic=35.0)
+dfd_weight_ratio_num_cosine_decay_epochs = 25
 
 now = datetime.now()
 logdir = Path("logs") / "single_pendulum_fp_dynamics" / f"{now:%Y-%m-%d_%H-%M-%S}"
@@ -61,12 +62,17 @@ if __name__ == "__main__":
     # direct_finite_differences_weight_ratio_scheduler = optax.linear_schedule(
     #     init_value=0.0, end_value=1.0, transition_steps=num_epochs * steps_per_epoch
     # )
-    direct_finite_differences_weight_ratio_scheduler = lambda _step: 1.0 - optax.cosine_decay_schedule(
+    dfd_weight_ratio_constant_scheduler = optax.constant_schedule(0.0)
+    dfd_weight_ratio_cosine_decay_scheduler = lambda _step: 1.0 - optax.cosine_decay_schedule(
         init_value=1.0,
-        decay_steps=num_epochs * steps_per_epoch,
+        decay_steps=dfd_weight_ratio_num_cosine_decay_epochs * steps_per_epoch,
         alpha=0.0,
         exponent=1.0,
     )(_step)
+    direct_finite_differences_weight_ratio_scheduler = optax.join_schedules(
+        schedules=[dfd_weight_ratio_constant_scheduler, dfd_weight_ratio_cosine_decay_scheduler],
+        boundaries=[(num_epochs - dfd_weight_ratio_num_cosine_decay_epochs) * steps_per_epoch],
+    )
 
     # call the factory function for the sensing task
     task_callables, metrics = fp_dynamics.task_factory(
