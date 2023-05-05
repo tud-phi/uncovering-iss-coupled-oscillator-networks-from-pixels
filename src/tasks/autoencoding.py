@@ -5,7 +5,7 @@ from jax import Array, debug, jit, random
 import jax.numpy as jnp
 import jax_metrics as jm
 from jsrm.systems.pendulum import normalize_joint_angles
-from typing import Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple
 
 from src.losses.masked_mse import masked_mse_loss
 from src.metrics import NoReduce
@@ -26,6 +26,10 @@ def assemble_input(batch) -> Array:
 def task_factory(
     system_type: str,
     nn_model: nn.Module,
+    encode_fn: Callable = None,
+    decode_fn: Callable = None,
+    encode_kwargs: Dict[str, Any] = None,
+    decode_kwargs: Dict[str, Any] = None,
     loss_weights: Dict[str, float] = None,
     normalize_latent_space: bool = True,
     weight_on_foreground: float = None,
@@ -38,6 +42,10 @@ def task_factory(
     Args:
         system_type: the system type to create the task for. For example "pendulum".
         nn_model: the neural network model to use
+        encode_fn: the function to use for encoding the input image to the latent space
+        decode_fn: the function to use for decoding the latent space to the output image
+        encode_kwargs: additional kwargs to pass to the encode_fn
+        decode_kwargs: additional kwargs to pass to the decode_fn
         loss_weights: the weights for the different loss terms
         normalize_latent_space: whether to normalize the latent space by for example projecting angles to [-pi, pi]
         weight_on_foreground: if None, a normal MSE loss will be used. Otherwise, a masked MSE loss will be used
@@ -47,6 +55,11 @@ def task_factory(
         task_callables: struct containing the functions for the learning task
         metrics: struct containing the metrics for the learning task
     """
+    if encode_fn is None:
+        encode_fn = nn_model.encode
+    if decode_fn is None:
+        decode_fn = nn_model.decode
+
     if loss_weights is None:
         loss_weights = dict(mse_q=1.0, mse_rec=1.0)
 
@@ -69,7 +82,7 @@ def task_factory(
 
         # output will be of shape batch_dim * time_dim x latent_dim
         q_pred_bt = nn_model.apply(
-            {"params": nn_params}, img_bt, method=nn_model.encode
+            {"params": nn_params}, img_bt, method=encode_fn, **encode_kwargs
         )
 
         if normalize_latent_space and system_type == "pendulum":
@@ -88,7 +101,7 @@ def task_factory(
 
         # output will be of shape batch_dim * time_dim x width x height x channels
         img_pred_bt = nn_model.apply(
-            {"params": nn_params}, input_decoder, method=nn_model.decode
+            {"params": nn_params}, input_decoder, method=decode_fn, **decode_kwargs
         )
 
         # reshape to batch_dim x time_dim x ...
