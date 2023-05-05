@@ -58,9 +58,15 @@ if __name__ == "__main__":
     nn_model = Autoencoder(latent_dim=2 * n_q, img_shape=img_shape)
 
     # initialize the schedule for the configuration velocity source
-    direct_finite_differences_weight_ratio_scheduler = optax.linear_schedule(
-        init_value=0.0, end_value=1.0, transition_steps=num_epochs * steps_per_epoch
-    )
+    # direct_finite_differences_weight_ratio_scheduler = optax.linear_schedule(
+    #     init_value=0.0, end_value=1.0, transition_steps=num_epochs * steps_per_epoch
+    # )
+    direct_finite_differences_weight_ratio_scheduler = lambda _step: 1.0 - optax.cosine_decay_schedule(
+        init_value=1.0,
+        decay_steps=num_epochs * steps_per_epoch,
+        alpha=0.0,
+        exponent=1.0,
+    )(_step)
 
     # call the factory function for the sensing task
     task_callables, metrics = fp_dynamics.task_factory(
