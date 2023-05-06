@@ -52,7 +52,7 @@ hyperparams = [
 ]
 
 now = datetime.now()
-logdir = Path("logs") / "single_pendulum_fp_dynamics" / f"{now:%Y-%m-%d_%H-%M-%S}"
+logdir = Path("logs") / "single_pendulum_staged_rp_learning" / f"{now:%Y-%m-%d_%H-%M-%S}"
 logdir.mkdir(parents=True, exist_ok=True)
 
 sym_exp_filepath = Path("symbolic_expressions") / "single_pendulum.dill"
