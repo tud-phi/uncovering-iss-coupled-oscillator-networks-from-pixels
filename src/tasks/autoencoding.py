@@ -81,23 +81,24 @@ def task_factory(
         n_q = batch["x_ts"].shape[-1] // 2  # number of generalized coordinates
 
         # output will be of shape batch_dim * time_dim x latent_dim
-        q_pred_bt = nn_model.apply(
+        z_pred_bt = nn_model.apply(
             {"params": nn_params}, img_bt, method=encode_fn, **encode_kwargs
         )
 
         if normalize_latent_space and system_type == "pendulum":
+            latent_dim = z_pred_bt.shape[-1] // 2
             # if the system is a pendulum, we interpret the encoder output as sin(theta) and cos(theta) for each joint
             # e.g. for two joints: z = [sin(q_1), sin(q_2), cos(q_1), cos(q_2)]
             # output of arctan2 will be in the range [-pi, pi]
-            q_pred_bt = jnp.arctan2(q_pred_bt[..., :n_q], q_pred_bt[..., n_q:])
+            z_pred_bt = jnp.arctan2(z_pred_bt[..., :latent_dim], z_pred_bt[..., latent_dim:])
 
             # if the system is a pendulum, the input into the decoder should be sin(theta) and cos(theta) for each joint
             # e.g. for two joints: z = [sin(q_1), sin(q_2), cos(q_1), cos(q_2)]
             input_decoder = jnp.concatenate(
-                [jnp.sin(q_pred_bt), jnp.cos(q_pred_bt)], axis=-1
+                [jnp.sin(z_pred_bt), jnp.cos(z_pred_bt)], axis=-1
             )
         else:
-            input_decoder = q_pred_bt
+            input_decoder = z_pred_bt
 
         # output will be of shape batch_dim * time_dim x width x height x channels
         img_pred_bt = nn_model.apply(
@@ -105,10 +106,10 @@ def task_factory(
         )
 
         # reshape to batch_dim x time_dim x ...
-        q_pred_bt = q_pred_bt.reshape((batch_size, -1, *q_pred_bt.shape[1:]))
+        z_pred_bt = z_pred_bt.reshape((batch_size, -1, *z_pred_bt.shape[1:]))
         img_pred_bt = img_pred_bt.reshape((batch_size, -1, *img_pred_bt.shape[1:]))
 
-        preds = dict(q_ts=q_pred_bt, rendering_ts=img_pred_bt)
+        preds = dict(q_ts=z_pred_bt, rendering_ts=img_pred_bt)
 
         return preds
 
