@@ -136,6 +136,8 @@ if __name__ == "__main__":
         )
     )
     fp_dynamics_tx = optax.multi_transform(partition_optimizers, param_partitions)
+    # reset training step
+    state = state.replace(step=0)
 
     # run the dynamic learning training loop
     print("Run dynamic learning of configuration space...")
