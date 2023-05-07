@@ -43,6 +43,9 @@ def initialize_train_state(
     Returns:
         state: TrainState object for the neural network.
     """
+    if init_kwargs is None:
+        init_kwargs = {}
+
     # initialize parameters of the neural networks by passing a dummy input through the network
     # Hint: pass the `rng` and a dummy input to the `init` method of the neural network object
     nn_params = nn_model.init(rng, nn_dummy_input, method=init_fn, **init_kwargs)["params"]

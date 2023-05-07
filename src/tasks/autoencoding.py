@@ -59,6 +59,10 @@ def task_factory(
         encode_fn = nn_model.encode
     if decode_fn is None:
         decode_fn = nn_model.decode
+    if encode_kwargs is None:
+        encode_kwargs = {}
+    if decode_kwargs is None:
+        decode_kwargs = {}
 
     if loss_weights is None:
         loss_weights = dict(mse_q=1.0, mse_rec=1.0)
