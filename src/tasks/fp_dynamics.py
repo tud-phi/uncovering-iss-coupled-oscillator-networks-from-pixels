@@ -86,7 +86,7 @@ def task_factory(
         # output will be of shape batch_dim * time_dim x latent_dim
         # if the system is a pendulum, the latent dim should be 2*n_q
         encoder_output = nn_model.apply(
-            {"params": nn_params}, img_flat_bt, method=encode_fn
+            {"params": nn_params}, img_flat_bt, method=encode_fn, **encode_kwargs
         )
 
         if system_type == "pendulum":
@@ -130,7 +130,8 @@ def task_factory(
                     _encoder_output = nn_model.apply(
                         {"params": nn_params},
                         jnp.expand_dims(_img, axis=0),
-                        method=encode_fn
+                        method=encode_fn,
+                        **encode_kwargs,
                     ).squeeze(axis=0)
 
                     if system_type == "pendulum":
@@ -226,10 +227,10 @@ def task_factory(
         # send the rolled-out latent representations through the decoder
         # output will be of shape batch_dim * time_dim x width x height x channels
         img_static_pred_flat_bt = nn_model.apply(
-            {"params": nn_params}, decoder_static_input, method=decode_fn
+            {"params": nn_params}, decoder_static_input, method=decode_fn, **decode_kwargs
         )
         img_dynamic_pred_flat_bt = nn_model.apply(
-            {"params": nn_params}, decoder_dynamic_input, method=decode_fn
+            {"params": nn_params}, decoder_dynamic_input, method=decode_fn, **decode_kwargs
         )
 
         # reshape to batch_dim x time_dim x width x height x channels
