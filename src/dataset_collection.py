@@ -43,7 +43,7 @@ def collect_dataset(
     ode_term = ODETerm(ode_fn)
 
     # initiate time steps array
-    ts = jnp.arange(0, horizon, dt)
+    ts = jnp.arange(0, horizon + dt, dt)
 
     # number of total samples
     num_samples = num_simulations * (ts.shape[0] - 1)
