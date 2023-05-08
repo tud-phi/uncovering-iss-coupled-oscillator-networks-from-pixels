@@ -6,7 +6,7 @@ from jax import Array, debug, jit, random, vmap
 import jax.numpy as jnp
 import jax_metrics as jm
 from jsrm.systems.pendulum import normalize_joint_angles
-from typing import Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple
 
 from src.metrics import NoReduce
 from src.structs import TaskCallables
@@ -27,6 +27,10 @@ def task_factory(
     system_type: str,
     nn_model: nn.Module,
     ode_fn: Callable,
+    encode_fn: Callable = None,
+    decode_fn: Callable = None,
+    encode_kwargs: Dict[str, Any] = None,
+    decode_kwargs: Dict[str, Any] = None,
     loss_weights: Optional[Dict[str, float]] = None,
     solver: AbstractSolver = Dopri5(),
 ) -> Tuple[TaskCallables, jm.Metrics]:
@@ -37,6 +41,10 @@ def task_factory(
     Args:
         system_type: the system type to create the task for. For example "pendulum".
         nn_model: the neural network model to use
+        encode_fn: the function to use for encoding the input image to the latent space
+        decode_fn: the function to use for decoding the latent space to the output image
+        encode_kwargs: additional kwargs to pass to the encode_fn
+        decode_kwargs: additional kwargs to pass to the decode_fn
         ode_fn: ODE function. It should have the following signature:
             ode_fn(t, x) -> x_dot
         loss_weights: the weights for the different loss terms
@@ -45,6 +53,15 @@ def task_factory(
         task_callables: struct containing the functions for the learning task
         metrics: struct containing the metrics for the learning task
     """
+    if encode_fn is None:
+        encode_fn = nn_model.encode
+    if decode_fn is None:
+        decode_fn = nn_model.decode
+    if encode_kwargs is None:
+        encode_kwargs = {}
+    if decode_kwargs is None:
+        decode_kwargs = {}
+
     if loss_weights is None:
         loss_weights = dict(mse_q=1.0, mse_rec_static=1.0, mse_rec_dynamic=1.0)
 
@@ -66,7 +83,7 @@ def task_factory(
         # output will be of shape batch_dim * time_dim x latent_dim
         # if the system is a pendulum, the latent dim should be 2*n_q
         encoder_output = nn_model.apply(
-            {"params": nn_params}, img_flat_bt, method=nn_model.encode
+            {"params": nn_params}, img_flat_bt, method=encode_fn, **encode_kwargs
         )
 
         if system_type == "pendulum":
@@ -140,10 +157,10 @@ def task_factory(
         # send the rolled-out latent representations through the decoder
         # output will be of shape batch_dim * time_dim x width x height x channels
         img_static_pred_flat_bt = nn_model.apply(
-            {"params": nn_params}, decoder_static_input, method=nn_model.decode
+            {"params": nn_params}, decoder_static_input, method=decode_fn, **decode_kwargs
         )
         img_dynamic_pred_flat_bt = nn_model.apply(
-            {"params": nn_params}, decoder_dynamic_input, method=nn_model.decode
+            {"params": nn_params}, decoder_dynamic_input, method=decode_fn, **decode_kwargs
         )
 
         # reshape to batch_dim x time_dim x width x height x channels

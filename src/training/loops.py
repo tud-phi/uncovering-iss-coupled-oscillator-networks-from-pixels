@@ -10,7 +10,7 @@ import jax_metrics as jm
 import optax
 from pathlib import Path
 import tensorflow as tf
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from src.structs import TaskCallables, TrainState
 from src.training.checkpoint import OrbaxCheckpoint
@@ -126,6 +126,10 @@ def run_training(
     num_epochs: int,
     state: Optional[TrainState] = None,
     nn_model: Optional[nn.Module] = None,
+    init_fn: Optional[Callable] = None,
+    init_kwargs: Dict[str, Any] = None,
+    tx: optax.GradientTransformation = None,
+    learning_rate_fn: Optional[Callable] = None,
     base_lr: Optional[float] = None,
     warmup_epochs: int = 0,
     cosine_decay_epochs: int = None,
@@ -143,6 +147,10 @@ def run_training(
         num_epochs: Number of epochs to train for.
         state: TrainState object. If provided, the training will continue from this state.
         nn_model: Neural network model. Only needed if no TrainState is provided.
+        init_fn: Method of the neural network to call for initializing neural network parameters.
+        init_kwargs: Keyword arguments for the `init_fn` of the neural network.
+        tx: optimizer. Either an optimizer needs to be provided or a learning rate function.
+        learning_rate_fn: A function that takes the current step and returns the current learning rate.
         base_lr: Base learning rate (after warmup and before decay).
         warmup_epochs: Number of epochs for warmup.
         weight_decay: Weight decay.
@@ -159,13 +167,14 @@ def run_training(
     num_val_steps = len(val_ds)
 
     # initialize the learning rate scheduler
-    lr_fn = create_learning_rate_fn(
-        num_epochs,
-        steps_per_epoch=steps_per_epoch,
-        base_lr=base_lr,
-        warmup_epochs=warmup_epochs,
-        cosine_decay_epochs=cosine_decay_epochs,
-    )
+    if learning_rate_fn is None:
+        learning_rate_fn = create_learning_rate_fn(
+            num_epochs,
+            steps_per_epoch=steps_per_epoch,
+            base_lr=base_lr,
+            warmup_epochs=warmup_epochs,
+            cosine_decay_epochs=cosine_decay_epochs,
+        )
 
     # if no state is provided, initialize the train state
     if state is None:
@@ -186,13 +195,22 @@ def run_training(
                 nn_model,
                 nn_dummy_input=nn_dummy_input,
                 metrics=metrics,
-                learning_rate_fn=lr_fn,
+                init_fn=init_fn,
+                init_kwargs=init_kwargs,
+                tx=tx,
+                learning_rate_fn=learning_rate_fn,
                 weight_decay=weight_decay,
             )
     else:
-        # initialize the Adam with weight decay optimizer for both neural networks
-        tx = optax.adamw(lr_fn, weight_decay=weight_decay)
-        state = state.replace(tx=tx)
+        state = state.replace(metrics=metrics)
+
+        if tx is None:
+            # initialize the Adam with weight decay optimizer for both neural networks
+            tx = optax.adamw(learning_rate_fn, weight_decay=weight_decay)
+        state = state.replace(
+            tx=tx,
+            opt_state=tx.init(state.params)
+        )
 
     callbacks = []
     if logdir is not None:
@@ -216,7 +234,7 @@ def run_training(
                 partial(
                     train_step,
                     task_callables=task_callables,
-                    learning_rate_fn=lr_fn,
+                    learning_rate_fn=learning_rate_fn,
                 )
             ],
             ciclo.on_test_step: [

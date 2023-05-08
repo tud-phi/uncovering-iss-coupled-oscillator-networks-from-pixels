@@ -11,7 +11,7 @@ from orbax.checkpoint import (
 )
 import optax
 import os
-from typing import Callable, Type, Union
+from typing import Any, Callable, Dict, Optional, Type, Union
 
 from src.structs import TrainState
 
@@ -21,7 +21,10 @@ def initialize_train_state(
     nn_model: nn.Module,
     nn_dummy_input: Array,
     metrics: jm.Metrics,
-    learning_rate_fn: Union[float, Callable],
+    init_fn: Optional[Callable] = None,
+    init_kwargs: Dict[str, Any] = None,
+    tx: optax.GradientTransformation = None,
+    learning_rate_fn: Union[float, Callable] = None,
     weight_decay: float = 0.0,
 ) -> TrainState:
     """
@@ -31,18 +34,25 @@ def initialize_train_state(
         nn_model: Neural network object.
         nn_dummy_input: Dummy input to initialize the neural network parameters.
         metrics: Metrics object for respective task.
+        init_fn: Method of the neural network to call for initializing neural network parameters.
+        init_kwargs: Keyword arguments for the `init_fn` of the neural network.
+        tx: optimizer. Either an optimizer needs to be provided or a learning rate function.
         learning_rate_fn: A function that takes the current step and returns the current learning rate.
             It has the signature learning_rate_fn(step: int) -> lr.
         weight_decay: Weight decay of the Adam optimizer for training the neural networks.
     Returns:
         state: TrainState object for the neural network.
     """
+    if init_kwargs is None:
+        init_kwargs = {}
+
     # initialize parameters of the neural networks by passing a dummy input through the network
     # Hint: pass the `rng` and a dummy input to the `init` method of the neural network object
-    nn_params = nn_model.init(rng, nn_dummy_input)["params"]
+    nn_params = nn_model.init(rng, nn_dummy_input, method=init_fn, **init_kwargs)["params"]
 
-    # initialize the Adam with weight decay optimizer for both neural networks
-    tx = optax.adamw(learning_rate_fn, weight_decay=weight_decay)
+    if tx is None:
+        # initialize the Adam with weight decay optimizer for both neural networks
+        tx = optax.adamw(learning_rate_fn, weight_decay=weight_decay)
 
     # create the TrainState object for both neural networks
     state = TrainState.create(
