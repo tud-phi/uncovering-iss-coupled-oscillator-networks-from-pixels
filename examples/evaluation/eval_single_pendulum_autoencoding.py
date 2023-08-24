@@ -14,6 +14,7 @@ from src.tasks import autoencoding
 from src.training.load_dataset import load_dataset
 from src.training.loops import run_eval
 from src.training.train_state_utils import restore_train_state
+from src.visualization.latent_space import visualize_latent_space
 
 # prevent tensorflow from loading everything onto the GPU, as we don't have enough memory for that
 tf.config.experimental.set_visible_devices([], "GPU")
@@ -74,6 +75,8 @@ if __name__ == "__main__":
     print(
         f"Final test metrics: rmse_q={rmse_q_stps[-1]:.3f}, rmse_rec={rmse_rec_stps[-1]:.3f}"
     )
+
+    visualize_latent_space(test_ds, state, task_callables)
 
     test_batch = next(test_ds.as_numpy_iterator())
     test_preds = task_callables.forward_fn(test_batch, state.params)
