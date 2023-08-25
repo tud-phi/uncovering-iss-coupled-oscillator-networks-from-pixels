@@ -95,5 +95,5 @@ def task_factory(
         }
     )
 
-    task_callables = TaskCallables(assemble_input, forward_fn, loss_fn, compute_metrics)
+    task_callables = TaskCallables(system_type, assemble_input, forward_fn, loss_fn, compute_metrics)
     return task_callables, metrics

@@ -252,7 +252,7 @@ def task_factory(
         }
         return metrics
 
-    task_callables = TaskCallables(assemble_input, forward_fn, loss_fn, compute_metrics)
+    task_callables = TaskCallables(system_type, assemble_input, forward_fn, loss_fn, compute_metrics)
 
     metrics = jm.Metrics(
         {

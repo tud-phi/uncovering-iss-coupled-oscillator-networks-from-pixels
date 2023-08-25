@@ -76,7 +76,7 @@ if __name__ == "__main__":
         f"Final test metrics: rmse_q={rmse_q_stps[-1]:.3f}, rmse_rec={rmse_rec_stps[-1]:.3f}"
     )
 
-    visualize_latent_space(test_ds, state, task_callables)
+    visualize_mapping_from_configuration_to_latent_space(test_ds, state, task_callables)
 
     test_batch = next(test_ds.as_numpy_iterator())
     test_preds = task_callables.forward_fn(test_batch, state.params)

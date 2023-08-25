@@ -204,7 +204,7 @@ def task_factory(
             )
         return metrics
 
-    task_callables = TaskCallables(assemble_input, forward_fn, loss_fn, compute_metrics)
+    task_callables = TaskCallables(system_type, assemble_input, forward_fn, loss_fn, compute_metrics)
 
     accumulated_metrics_dict = {
         "loss": jm.metrics.Mean().from_argument("loss"),
