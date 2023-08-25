@@ -47,6 +47,6 @@ def visualize_latent_space(
     for latent_idx in range(q_pred_ss_sorted.shape[-1]):
         plt.plot(q_ss_sorted[:, 0], q_pred_ss_sorted[:, latent_idx], linestyle="None", marker=".")
     plt.xlabel("q")
-    plt.ylabel("q_pred / z")
+    plt.ylabel("z")
     plt.tight_layout()
     plt.show()
