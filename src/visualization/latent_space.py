@@ -23,7 +23,7 @@ def visualize_latent_space(
     for batch_idx, batch in (pbar := tqdm(enumerate(eval_ds.as_numpy_iterator()))):
         pbar.set_description(f"Plotting latent space: processing batch {batch_idx + 1} / {num_batches}")
         preds = task_callables.forward_fn(batch, state.params)
-        q_bt = batch["x_ts"][..., batch["x_ts"].shape[-1] // 2 :]
+        q_bt = batch["x_ts"][..., :batch["x_ts"].shape[-1] // 2]
         q_pred_bt = preds["q_ts"]
 
         if batch_idx == 0:
