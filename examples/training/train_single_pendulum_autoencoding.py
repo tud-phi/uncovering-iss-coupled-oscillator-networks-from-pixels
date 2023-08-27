@@ -33,8 +33,8 @@ if ae_type == "wae":
     warmup_epochs = 5
 elif ae_type == "beta_vae":
     batch_size = 15
-    loss_weights = dict(mse_q=0.0, mse_rec=5.0, beta=1.0)
-    base_lr = 5e-5
+    loss_weights = dict(mse_q=0.0, mse_rec=5.0, beta=1e-2)
+    base_lr = 1e-3
     warmup_epochs = 5
 else:
     batch_size = 8
