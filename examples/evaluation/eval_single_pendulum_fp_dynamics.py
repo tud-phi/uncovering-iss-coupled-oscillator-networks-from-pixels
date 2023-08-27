@@ -55,7 +55,7 @@ if __name__ == "__main__":
         ode_fn=ode_factory(dynamical_matrices_fn, robot_params, tau=jnp.zeros((n_q,))),
         loss_weights=loss_weights,
         solver=dataset_metadata["solver_class"](),
-        configuration_velocity_source="direct-finite-differences"
+        configuration_velocity_source="direct-finite-differences",
     )
 
     state = restore_train_state(rng, ckpt_dir, nn_model, metrics)

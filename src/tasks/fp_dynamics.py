@@ -231,10 +231,16 @@ def task_factory(
         # send the rolled-out latent representations through the decoder
         # output will be of shape batch_dim * time_dim x width x height x channels
         img_static_pred_flat_bt = nn_model.apply(
-            {"params": nn_params}, decoder_static_input, method=decode_fn, **decode_kwargs
+            {"params": nn_params},
+            decoder_static_input,
+            method=decode_fn,
+            **decode_kwargs,
         )
         img_dynamic_pred_flat_bt = nn_model.apply(
-            {"params": nn_params}, decoder_dynamic_input, method=decode_fn, **decode_kwargs
+            {"params": nn_params},
+            decoder_dynamic_input,
+            method=decode_fn,
+            **decode_kwargs,
         )
 
         # reshape to batch_dim x time_dim x width x height x channels
@@ -332,7 +338,9 @@ def task_factory(
         }
         return metrics
 
-    task_callables = TaskCallables(system_type, assemble_input, forward_fn, loss_fn, compute_metrics)
+    task_callables = TaskCallables(
+        system_type, assemble_input, forward_fn, loss_fn, compute_metrics
+    )
 
     metrics = jm.Metrics(
         {

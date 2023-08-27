@@ -49,7 +49,9 @@ hyperparams = [
 ]
 
 now = datetime.now()
-logdir = Path("logs") / "single_pendulum_staged_rp_learning" / f"{now:%Y-%m-%d_%H-%M-%S}"
+logdir = (
+    Path("logs") / "single_pendulum_staged_rp_learning" / f"{now:%Y-%m-%d_%H-%M-%S}"
+)
 logdir.mkdir(parents=True, exist_ok=True)
 
 sym_exp_filepath = Path("symbolic_expressions") / "single_pendulum.dill"
@@ -81,7 +83,7 @@ if __name__ == "__main__":
         loss_weights=hyperparams[0]["loss_weights"],
         normalize_latent_space=True,
         # weight_on_foreground=0.15,
-        use_wae=True,
+        ae_type="wae",
     )
 
     # run the WAE training loop
@@ -135,4 +137,7 @@ if __name__ == "__main__":
         weight_decay=0.0,
         logdir=logdir / "dynamic_learning",
     )
-    print("Final dynamic learning of configuration space metrics:\n", state.metrics.compute())
+    print(
+        "Final dynamic learning of configuration space metrics:\n",
+        state.metrics.compute(),
+    )

@@ -48,7 +48,9 @@ def initialize_train_state(
 
     # initialize parameters of the neural networks by passing a dummy input through the network
     # Hint: pass the `rng` and a dummy input to the `init` method of the neural network object
-    nn_params = nn_model.init(rng, nn_dummy_input, method=init_fn, **init_kwargs)["params"]
+    nn_params = nn_model.init(rng, nn_dummy_input, method=init_fn, **init_kwargs)[
+        "params"
+    ]
 
     if tx is None:
         # initialize the Adam with weight decay optimizer for both neural networks

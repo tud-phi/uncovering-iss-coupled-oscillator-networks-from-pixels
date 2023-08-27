@@ -14,7 +14,7 @@ from src.tasks import autoencoding
 from src.training.load_dataset import load_dataset
 from src.training.loops import run_eval
 from src.training.train_state_utils import restore_train_state
-from src.visualization.latent_space import visualize_latent_space
+from src.visualization.latent_space import visualize_mapping_from_configuration_to_latent_space
 
 # prevent tensorflow from loading everything onto the GPU, as we don't have enough memory for that
 tf.config.experimental.set_visible_devices([], "GPU")
@@ -23,7 +23,7 @@ tf.config.experimental.set_visible_devices([], "GPU")
 seed = 0
 rng = random.PRNGKey(seed=seed)
 
-use_wae = True
+ae_type = "wae"
 
 latent_dim = 2
 normalize_latent_space = True
@@ -31,7 +31,7 @@ num_epochs = 25
 warmup_epochs = 3
 batch_size = 8
 
-if use_wae:
+if ae_type == "wae":
     ckpt_dir = Path("logs") / "single_pendulum_autoencoding" / "2023-05-03_22-20-30"
     loss_weights = dict(mse_q=0.0, mse_rec=5.0, mmd=1.0)
 else:
@@ -56,7 +56,10 @@ if __name__ == "__main__":
     img_shape = train_ds.element_spec["rendering_ts"].shape[-3:]
 
     # initialize the model
-    nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape)
+    if ae_type == "vae":
+        nn_model = VAE(latent_dim=latent_dim, img_shape=img_shape)
+    else:
+        nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape)
 
     # call the factory function for the sensing task
     task_callables, metrics = autoencoding.task_factory(
@@ -64,7 +67,7 @@ if __name__ == "__main__":
         nn_model,
         loss_weights=loss_weights,
         normalize_latent_space=normalize_latent_space,
-        use_wae=use_wae,
+        ae_type=ae_type,
     )
 
     state = restore_train_state(rng, ckpt_dir, nn_model, metrics)

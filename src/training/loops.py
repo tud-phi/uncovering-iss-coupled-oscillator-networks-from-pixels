@@ -207,10 +207,7 @@ def run_training(
         if tx is None:
             # initialize the Adam with weight decay optimizer for both neural networks
             tx = optax.adamw(learning_rate_fn, weight_decay=weight_decay)
-        state = state.replace(
-            tx=tx,
-            opt_state=tx.init(state.params)
-        )
+        state = state.replace(tx=tx, opt_state=tx.init(state.params))
 
     callbacks = []
     if logdir is not None:

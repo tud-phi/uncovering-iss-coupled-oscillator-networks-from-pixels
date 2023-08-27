@@ -100,6 +100,8 @@ def make_wae_mdd_loss(
             z: latent samples. Shape: (batch_size, latent_dim)
             z_prior: prior latent samples. Shape: (batch_size, latent_dim)
             rng: PRNGKey for random number generation
+        Returns:
+            mmd_loss: the MMD loss. Shape: ()
         """
         N = z.shape[0]  # batch size
 

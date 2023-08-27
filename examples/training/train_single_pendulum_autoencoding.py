@@ -6,9 +6,9 @@ from jsrm.systems.pendulum import normalize_joint_angles
 from pathlib import Path
 import tensorflow as tf
 
-
-from src.neural_networks.simple_cnn import Autoencoder
 from src.neural_networks.convnext import ConvNeXtAutoencoder
+from src.neural_networks.simple_cnn import Autoencoder
+from src.neural_networks.vae import VAE
 from src.tasks import autoencoding
 from src.training.load_dataset import load_dataset
 from src.training.loops import run_training, run_eval
@@ -20,16 +20,21 @@ tf.config.experimental.set_visible_devices([], "GPU")
 seed = 0
 rng = random.PRNGKey(seed=seed)
 
-use_wae = True
+ae_type = "beta_vae"
 
 latent_dim = 2
 normalize_latent_space = True
 num_epochs = 50
 
-if use_wae:
+if ae_type == "wae":
     batch_size = 15
     loss_weights = dict(mse_q=0.0, mse_rec=5.0, mmd=1e-1)
     base_lr = 5e-3
+    warmup_epochs = 5
+elif ae_type == "beta_vae":
+    batch_size = 15
+    loss_weights = dict(mse_q=0.0, mse_rec=5.0, beta=1.0)
+    base_lr = 5e-5
     warmup_epochs = 5
 else:
     batch_size = 8
@@ -57,7 +62,10 @@ if __name__ == "__main__":
     img_shape = train_ds.element_spec["rendering_ts"].shape[-3:]
 
     # initialize the model
-    nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape)
+    if ae_type == "beta_vae":
+        nn_model = VAE(latent_dim=latent_dim, img_shape=img_shape)
+    else:
+        nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape)
 
     # call the factory function for the sensing task
     task_callables, metrics = autoencoding.task_factory(
@@ -66,7 +74,7 @@ if __name__ == "__main__":
         loss_weights=loss_weights,
         normalize_latent_space=normalize_latent_space,
         weight_on_foreground=0.15,
-        use_wae=use_wae,
+        ae_type=ae_type,
     )
 
     # run the training loop

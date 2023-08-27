@@ -7,6 +7,7 @@ import jax_metrics as jm
 from jsrm.systems.pendulum import normalize_joint_angles
 from typing import Any, Callable, Dict, Optional, Tuple
 
+from src.losses.kld import kullback_leiber_divergence
 from src.losses.masked_mse import masked_mse_loss
 from src.metrics import NoReduce
 from src.structs import TaskCallables
@@ -33,7 +34,7 @@ def task_factory(
     loss_weights: Dict[str, float] = None,
     normalize_latent_space: bool = True,
     weight_on_foreground: float = None,
-    use_wae: bool = False,
+    ae_type: str = "None",
 ) -> Tuple[TaskCallables, jm.Metrics]:
     """
     Factory function for the autoencoding task.
@@ -50,7 +51,8 @@ def task_factory(
         normalize_latent_space: whether to normalize the latent space by for example projecting angles to [-pi, pi]
         weight_on_foreground: if None, a normal MSE loss will be used. Otherwise, a masked MSE loss will be used
             with the given weight for the masked area (usually the foreground).
-        use_wae: whether to apply the Wasserstein Autoencoder regularization
+        ae_type: Autoencoder type. If None, a normal autoencoder will be used.
+            One of ["wae", "beta_vae", "None"]
     Returns:
         task_callables: struct containing the functions for the learning task
         metrics: struct containing the metrics for the learning task
@@ -67,7 +69,7 @@ def task_factory(
     if loss_weights is None:
         loss_weights = dict(mse_q=1.0, mse_rec=1.0)
 
-    if use_wae:
+    if ae_type == "wae":
         from src.losses import wae
 
         if system_type == "pendulum":
@@ -79,15 +81,28 @@ def task_factory(
         )
 
     @jit
-    def forward_fn(batch: Dict[str, Array], nn_params: FrozenDict) -> Dict[str, Array]:
+    def forward_fn(
+            batch: Dict[str, Array],
+            nn_params: FrozenDict,
+            rng: Optional[random.PRNGKey] = None  # TODO: add everywhere
+    ) -> Dict[str, Array]:
         img_bt = assemble_input(batch)
         batch_size = batch["rendering_ts"].shape[0]
         n_q = batch["x_ts"].shape[-1] // 2  # number of generalized coordinates
 
-        # output will be of shape batch_dim * time_dim x latent_dim
-        z_pred_bt = nn_model.apply(
-            {"params": nn_params}, img_bt, method=encode_fn, **encode_kwargs
-        )
+        if ae_type == "beta_vae":
+            # output will be of shape batch_dim * time_dim x latent_dim
+            mu_bt, logvar_bt = nn_model.apply(
+                {"params": nn_params}, img_bt, method=nn_model.encode_vae, **encode_kwargs
+            )
+
+            # reparameterize
+            z_pred_bt = nn_model.reparameterize(rng, mu_bt, logvar_bt)
+        else:
+            # output will be of shape batch_dim * time_dim x latent_dim
+            z_pred_bt = nn_model.apply(
+                {"params": nn_params}, img_bt, method=encode_fn, **encode_kwargs
+            )
 
         if normalize_latent_space and system_type == "pendulum":
             latent_dim = z_pred_bt.shape[-1] // 2
@@ -98,9 +113,7 @@ def task_factory(
 
             # if the system is a pendulum, the input into the decoder should be sin(theta) and cos(theta) for each joint
             # e.g. for two joints: z = [sin(q_1), sin(q_2), cos(q_1), cos(q_2)]
-            input_decoder = jnp.concatenate(
-                [jnp.sin(z_pred_bt), jnp.cos(z_pred_bt)], axis=-1
-            )
+            input_decoder = jnp.concatenate([jnp.sin(z_pred_bt), jnp.cos(z_pred_bt)], axis=-1)
         else:
             input_decoder = z_pred_bt
 
@@ -112,8 +125,11 @@ def task_factory(
         # reshape to batch_dim x time_dim x ...
         z_pred_bt = z_pred_bt.reshape((batch_size, -1, *z_pred_bt.shape[1:]))
         img_pred_bt = img_pred_bt.reshape((batch_size, -1, *img_pred_bt.shape[1:]))
-
         preds = dict(q_ts=z_pred_bt, rendering_ts=img_pred_bt)
+
+        if ae_type == "beta_vae":
+            preds["mu_ts"] = mu_bt.reshape((batch_size, -1, *mu_bt.shape[1:]))
+            preds["logvar_ts"] = logvar_bt.reshape((batch_size, -1, *logvar_bt.shape[1:]))
 
         return preds
 
@@ -123,7 +139,7 @@ def task_factory(
         nn_params: FrozenDict,
         rng: Optional[random.PRNGKey] = None,
     ) -> Tuple[Array, Dict[str, Array]]:
-        preds = forward_fn(batch, nn_params)
+        preds = forward_fn(batch, nn_params, rng=rng)
 
         q_pred_bt = preds["q_ts"]
         q_target_bt = batch["x_ts"][..., : batch["x_ts"].shape[-1] // 2]
@@ -155,7 +171,7 @@ def task_factory(
         # total loss
         loss = loss_weights["mse_q"] * mse_q + loss_weights["mse_rec"] * mse_rec
 
-        if use_wae:
+        if ae_type == "wae":
             latent_dim = preds["q_ts"].shape[-1]
 
             img_target_bt = assemble_input(batch)
@@ -170,6 +186,14 @@ def task_factory(
             )
 
             loss = loss + loss_weights["mmd"] * mmd_loss
+        elif ae_type == "beta_vae":
+            # KLD loss
+            # https://github.com/clementchadebec/benchmark_VAE/blob/main/src/pythae/models/beta_vae/beta_vae_model.py#L101
+            kld_loss = kullback_leiber_divergence(
+                preds["mu_ts"], preds["logvar_ts"]
+            )
+
+            loss = loss + loss_weights["beta"] * kld_loss
 
         return loss, preds
 
@@ -204,7 +228,9 @@ def task_factory(
             )
         return metrics
 
-    task_callables = TaskCallables(system_type, assemble_input, forward_fn, loss_fn, compute_metrics)
+    task_callables = TaskCallables(
+        system_type, assemble_input, forward_fn, loss_fn, compute_metrics
+    )
 
     accumulated_metrics_dict = {
         "loss": jm.metrics.Mean().from_argument("loss"),
