@@ -4,6 +4,8 @@ import jax.numpy as jnp
 import math
 from typing import Callable, Sequence, Tuple
 
+from .simple_cnn import Decoder
+
 
 class Encoder(nn.Module):
     """A simple CNN encoder."""
@@ -27,37 +29,6 @@ class Encoder(nn.Module):
         logvar = nn.Dense(features=self.latent_dim)(x)
 
         return mu, logvar
-
-
-class Decoder(nn.Module):
-    """A simple CNN decoder."""
-
-    img_shape: Tuple[int, int, int] = (64, 64, 3)
-    downsampled_img_dim: Sequence = (2, 2, 768)
-    strides: Tuple[int, int] = (1, 1)
-    nonlinearity: Callable = nn.leaky_relu
-
-    @nn.compact
-    def __call__(self, x):
-        x = self.nonlinearity(x)
-        x = nn.Dense(features=256)(x)
-        x = self.nonlinearity(x)
-
-        x = nn.Dense(features=math.prod(self.downsampled_img_dim))(x)
-        x = x.reshape(
-            (x.shape[0], *self.downsampled_img_dim)  # batch size
-        )  # unflatten
-
-        x = nn.ConvTranspose(features=16, kernel_size=(3, 3), strides=self.strides)(x)
-        x = self.nonlinearity(x)
-        x = nn.ConvTranspose(
-            features=self.img_shape[-1], kernel_size=(3, 3), strides=self.strides
-        )(x)
-
-        # clip to [-1, 1]
-        x = -1.0 + 2 * nn.sigmoid(x)
-
-        return x
 
 
 class VAE(nn.Module):
