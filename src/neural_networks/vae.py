@@ -83,5 +83,5 @@ class VAE(nn.Module):
 
     def reparameterize(self, rng: Array, mu: Array, logvar: Array) -> Array:
         std = jnp.exp(0.5 * logvar)
-        eps = random.normal(rng, logvar.shape)
+        eps = random.normal(rng, logvar.shape, logvar.dtype)
         return mu + eps * std
