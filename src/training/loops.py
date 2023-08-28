@@ -133,6 +133,8 @@ def run_training(
     base_lr: Optional[float] = None,
     warmup_epochs: int = 0,
     cosine_decay_epochs: int = None,
+    b1: float = 0.9,
+    b2: float = 0.999,
     weight_decay: float = 0.0,
     logdir: Path = None,
     show_pbar: bool = True,
@@ -154,6 +156,8 @@ def run_training(
         learning_rate_fn: A function that takes the current step and returns the current learning rate.
         base_lr: Base learning rate (after warmup and before decay).
         warmup_epochs: Number of epochs for warmup.
+        b1: Exponential decay rate for the first moment estimates of the Adam optimizer.
+        b2: Exponential decay rate for the second moment estimates of the Adam optimizer.
         weight_decay: Weight decay.
         cosine_decay_epochs: Number of epochs for cosine decay. If None, will use num_epochs - warmup_epochs.
         logdir: Path to the directory where the training logs should be saved.
@@ -201,6 +205,8 @@ def run_training(
                 init_kwargs=init_kwargs,
                 tx=tx,
                 learning_rate_fn=learning_rate_fn,
+                b1=b1,
+                b2=b2,
                 weight_decay=weight_decay,
             )
     else:
@@ -208,7 +214,7 @@ def run_training(
 
         if tx is None:
             # initialize the Adam with weight decay optimizer for both neural networks
-            tx = optax.adamw(learning_rate_fn, weight_decay=weight_decay)
+            tx = optax.adamw(learning_rate_fn, b1=b1, b2=b2, weight_decay=weight_decay)
         state = state.replace(tx=tx, opt_state=tx.init(state.params))
 
     callbacks = []
@@ -268,6 +274,7 @@ def run_eval(
         eval_ds: Evaluation dataset as tf.data.Dataset object.
         state: training state of the neural network
         task_callables: struct containing the functions for the learning task
+        show_pbar: Whether to use a progress bar.
     Returns:
         history: History object containing the test metrics.
     """

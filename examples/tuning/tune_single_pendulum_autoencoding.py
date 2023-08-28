@@ -26,6 +26,7 @@ ae_type = "beta_vae"
 latent_dim = 2
 normalize_latent_space = True
 num_epochs = 50
+warmup_epochs = 5
 batch_size = 30
 
 now = datetime.now()
@@ -53,13 +54,13 @@ if __name__ == "__main__":
     else:
         nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape)
 
-    # run the training loop
-    print("Run training...")
+    # define the objective function for hyperparameter tuning
     def objective(trial):
         # Sample hyperparameters
-        warmup_epochs = 5
         base_lr = trial.suggest_float("base_lr", 1e-5, 1e-2, log=True)
         beta = trial.suggest_float("beta", 1e-5, 1e1, log=True)
+        b1 = 0.9
+        b2 = 0.999
         weight_decay = trial.suggest_float("weight_decay", 1e-7, 1e-2, log=True)
 
         train_loss_weights = dict(mse_q=0.0, mse_rec=1.0, beta=beta)
@@ -92,6 +93,8 @@ if __name__ == "__main__":
             nn_model=nn_model,
             base_lr=base_lr,
             warmup_epochs=warmup_epochs,
+            b1=b1,
+            b2=b2,
             weight_decay=weight_decay,
             logdir=None,
             show_pbar=False
@@ -115,4 +118,5 @@ if __name__ == "__main__":
     
 
     study = optuna.create_study()  # Create a new study.
+    print("Run hyperparameter tuning...")
     study.optimize(objective, n_trials=2)  # Invoke optimization of the objective function.

@@ -25,6 +25,8 @@ def initialize_train_state(
     init_kwargs: Dict[str, Any] = None,
     tx: optax.GradientTransformation = None,
     learning_rate_fn: Union[float, Callable] = None,
+    b1: float = 0.9,
+    b2: float = 0.999,
     weight_decay: float = 0.0,
 ) -> TrainState:
     """
@@ -39,6 +41,8 @@ def initialize_train_state(
         tx: optimizer. Either an optimizer needs to be provided or a learning rate function.
         learning_rate_fn: A function that takes the current step and returns the current learning rate.
             It has the signature learning_rate_fn(step: int) -> lr.
+        b1: Exponential decay rate for the first moment estimates of the Adam optimizer.
+        b2: Exponential decay rate for the second moment estimates of the Adam optimizer.
         weight_decay: Weight decay of the Adam optimizer for training the neural networks.
     Returns:
         state: TrainState object for the neural network.
@@ -54,7 +58,7 @@ def initialize_train_state(
 
     if tx is None:
         # initialize the Adam with weight decay optimizer for both neural networks
-        tx = optax.adamw(learning_rate_fn, weight_decay=weight_decay)
+        tx = optax.adamw(learning_rate_fn, b1=b1, b2=b2, weight_decay=weight_decay)
 
     # create the TrainState object for both neural networks
     state = TrainState.create(
@@ -71,6 +75,8 @@ def restore_train_state(
     metrics: jm.Metrics,
     step: int = None,
     learning_rate_fn: Union[float, Callable] = 0.0,
+    b1: float = 0.9,
+    b2: float = 0.999,
     weight_decay: float = 0.0,
 ) -> TrainState:
     ckptr = Checkpointer(PyTreeCheckpointer())
@@ -87,7 +93,7 @@ def restore_train_state(
     nn_params = restored_ckpt["params"]
 
     # initialize the Adam with weight decay optimizer for both neural networks
-    tx = optax.adamw(learning_rate_fn, weight_decay=weight_decay)
+    tx = optax.adamw(learning_rate_fn, b1=b1, b2=b2, weight_decay=weight_decay)
 
     # create the TrainState object for both neural networks
     state = TrainState.create(
