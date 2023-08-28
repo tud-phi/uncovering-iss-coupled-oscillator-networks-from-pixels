@@ -92,13 +92,16 @@ def task_factory(
         batch_size = batch["rendering_ts"].shape[0]
         n_q = batch["x_ts"].shape[-1] // 2  # number of generalized coordinates
 
-        if ae_type == "beta_vae" and eval is False:
+        if ae_type == "beta_vae":
             # output will be of shape batch_dim * time_dim x latent_dim
             mu_bt, logvar_bt = nn_model.apply(
                 {"params": nn_params}, img_bt, method=nn_model.encode_vae, **encode_kwargs
             )
-            # reparameterize
-            z_pred_bt = nn_model.reparameterize(rng, mu_bt, logvar_bt)
+            if eval is False:
+                # reparameterize
+                z_pred_bt = nn_model.reparameterize(rng, mu_bt, logvar_bt)
+            else:
+                z_pred_bt = mu_bt
         else:
             # output will be of shape batch_dim * time_dim x latent_dim
             z_pred_bt = nn_model.apply(
@@ -128,7 +131,7 @@ def task_factory(
         img_pred_bt = img_pred_bt.reshape((batch_size, -1, *img_pred_bt.shape[1:]))
         preds = dict(q_ts=z_pred_bt, rendering_ts=img_pred_bt)
 
-        if ae_type == "beta_vae" and eval is False:
+        if ae_type == "beta_vae":
             preds["mu_ts"] = mu_bt.reshape((batch_size, -1, *mu_bt.shape[1:]))
             preds["logvar_ts"] = logvar_bt.reshape((batch_size, -1, *logvar_bt.shape[1:]))
 
@@ -187,7 +190,7 @@ def task_factory(
             )
 
             loss = loss + loss_weights["mmd"] * mmd_loss
-        elif ae_type == "beta_vae" and eval is False:
+        elif ae_type == "beta_vae":
             # KLD loss
             # https://github.com/clementchadebec/benchmark_VAE/blob/main/src/pythae/models/beta_vae/beta_vae_model.py#L101
             kld_loss = kullback_leiber_divergence(
