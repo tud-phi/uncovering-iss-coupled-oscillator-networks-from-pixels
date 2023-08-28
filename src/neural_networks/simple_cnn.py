@@ -83,7 +83,7 @@ class Autoencoder(nn.Module):
             int(self.img_shape[1] / (self.strides[0] ** 2)),
             32,  # number of channels of the encoded image
         )
-        print("Computed downsampled image dimension:", downsampled_img_dim)
+        # print("Computed downsampled image dimension:", downsampled_img_dim)
 
         self.decoder = Decoder(
             img_shape=self.img_shape,
