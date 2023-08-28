@@ -1,4 +1,5 @@
 from datetime import datetime
+import dill
 from jax import random
 from jax import config as jax_config
 import jax.numpy as jnp
@@ -119,3 +120,5 @@ if __name__ == "__main__":
     study.optimize(
         objective, n_trials=100
     )  # Invoke optimization of the objective function.
+
+    dill.dump(study, logdir / "optuna_study.dill")
