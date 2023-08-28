@@ -26,6 +26,7 @@ latent_dim = 2
 normalize_latent_space = True
 num_epochs = 50
 
+rec_loss_type = "mse"
 weight_decay = 0.0
 if ae_type == "wae":
     batch_size = 15
@@ -76,7 +77,8 @@ if __name__ == "__main__":
         nn_model,
         loss_weights=loss_weights,
         normalize_latent_space=normalize_latent_space,
-        # weight_on_foreground=0.15,
+        rec_loss_type=rec_loss_type,
+        # weight_on_foreground=0.15,
         ae_type=ae_type,
         eval=False,
     )
