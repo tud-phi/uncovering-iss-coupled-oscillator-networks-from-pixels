@@ -14,6 +14,7 @@ natsort
 numpy
 opencv-python
 optax
+optuna
 orbax-checkpoint
 pytest
 tensorboard

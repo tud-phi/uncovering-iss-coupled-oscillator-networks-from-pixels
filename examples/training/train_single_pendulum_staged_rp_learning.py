@@ -52,7 +52,9 @@ hyperparams = [
 ]
 
 now = datetime.now()
-logdir = Path("logs") / "single_pendulum_staged_rp_learning" / f"{now:%Y-%m-%d_%H-%M-%S}"
+logdir = (
+    Path("logs") / "single_pendulum_staged_rp_learning" / f"{now:%Y-%m-%d_%H-%M-%S}"
+)
 logdir.mkdir(parents=True, exist_ok=True)
 
 sym_exp_filepath = Path("symbolic_expressions") / "single_pendulum.dill"
@@ -87,15 +89,12 @@ if __name__ == "__main__":
         loss_weights=hyperparams[0]["loss_weights"],
         normalize_latent_space=False,
         weight_on_foreground=0.15,
-        use_wae=True,
+        ae_type="wae",
     )
 
     # run the WAE training loop
     print("Run WAE training...")
-    (
-        state,
-        train_history,
-    ) = run_training(
+    (state, train_history, elapsed) = run_training(
         rng=rng,
         train_ds=train_ds,
         val_ds=val_ds,
@@ -129,10 +128,14 @@ if __name__ == "__main__":
         warmup_epochs=hyperparams[1]["warmup_epochs"],
     )
     # initialize the Adam with weight decay optimizer for both neural networks
-    partition_optimizers = {'trainable': optax.adamw(lr_fn), 'frozen': optax.set_to_zero()}
+    partition_optimizers = {
+        "trainable": optax.adamw(lr_fn),
+        "frozen": optax.set_to_zero(),
+    }
     param_partitions = freeze(
         traverse_util.path_aware_map(
-            lambda path, v: 'frozen' if 'backbone' in path else 'trainable', state.params
+            lambda path, v: "frozen" if "backbone" in path else "trainable",
+            state.params,
         )
     )
     fp_dynamics_tx = optax.multi_transform(partition_optimizers, param_partitions)
@@ -141,10 +144,7 @@ if __name__ == "__main__":
 
     # run the dynamic learning training loop
     print("Run dynamic learning of configuration space...")
-    (
-        state,
-        train_history,
-    ) = run_training(
+    (state, train_history, elapsed) = run_training(
         rng=rng,
         train_ds=train_ds,
         val_ds=val_ds,
@@ -156,4 +156,7 @@ if __name__ == "__main__":
         learning_rate_fn=lr_fn,
         logdir=logdir / "dynamic_learning",
     )
-    print("Final dynamic learning of configuration space metrics:\n", state.metrics.compute())
+    print(
+        "Final dynamic learning of configuration space metrics:\n",
+        state.metrics.compute(),
+    )

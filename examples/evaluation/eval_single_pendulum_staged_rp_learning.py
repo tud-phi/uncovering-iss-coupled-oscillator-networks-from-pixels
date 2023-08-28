@@ -29,7 +29,12 @@ batch_size = 8
 loss_weights = dict(mse_q=0.0, mse_rec_static=5.0, mse_rec_dynamic=5.0)
 
 sym_exp_filepath = Path("symbolic_expressions") / "single_pendulum.dill"
-ckpt_dir = Path("logs") / "single_pendulum_staged_rp_learning" / "2023-05-06_18-02-19" / "dynamic_learning"
+ckpt_dir = (
+    Path("logs")
+    / "single_pendulum_staged_rp_learning"
+    / "2023-05-06_18-02-19"
+    / "dynamic_learning"
+)
 
 
 if __name__ == "__main__":
@@ -60,7 +65,7 @@ if __name__ == "__main__":
         ode_fn=ode_factory(dynamical_matrices_fn, robot_params, tau=jnp.zeros((n_q,))),
         loss_weights=loss_weights,
         solver=dataset_metadata["solver_class"](),
-        configuration_velocity_source="direct-finite-differences"
+        configuration_velocity_source="direct-finite-differences",
     )
 
     state = restore_train_state(rng, ckpt_dir, nn_model, metrics)

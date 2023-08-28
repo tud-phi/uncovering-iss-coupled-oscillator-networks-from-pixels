@@ -1,5 +1,5 @@
 import ciclo
-from ciclo import History
+from ciclo import Elapsed, History
 from flax import linen as nn  # Linen API
 from functools import partial
 import jax
@@ -133,9 +133,13 @@ def run_training(
     base_lr: Optional[float] = None,
     warmup_epochs: int = 0,
     cosine_decay_epochs: int = None,
+    b1: float = 0.9,
+    b2: float = 0.999,
     weight_decay: float = 0.0,
+    callbacks: Optional[List[Any]] = None,
     logdir: Path = None,
-) -> Tuple[TrainState, History]:
+    show_pbar: bool = True,
+) -> Tuple[TrainState, History, Elapsed]:
     """
     Run the training loop.
     Args:
@@ -153,14 +157,17 @@ def run_training(
         learning_rate_fn: A function that takes the current step and returns the current learning rate.
         base_lr: Base learning rate (after warmup and before decay).
         warmup_epochs: Number of epochs for warmup.
+        b1: Exponential decay rate for the first moment estimates of the Adam optimizer.
+        b2: Exponential decay rate for the second moment estimates of the Adam optimizer.
         weight_decay: Weight decay.
         cosine_decay_epochs: Number of epochs for cosine decay. If None, will use num_epochs - warmup_epochs.
+        callbacks: List of callbacks at each iteration of the loop.
         logdir: Path to the directory where the training logs should be saved.
+        show_pbar: Whether to use a progress bar.
     Returns:
-        val_loss_history: Array of validation losses for each epoch.
-        train_metrics_history: List of dictionaries containing the training metrics for each epoch.
-        val_metrics_history: List of dictionaries containing the validation metrics for each epoch.
-        best_state: TrainState object of the model with the lowest validation loss.
+        state: final TrainState object
+        history: History object containing the training metrics.
+        elapsed: Elapsed number of steps.
     """
     steps_per_epoch = len(train_ds)
     num_total_train_steps = num_epochs * steps_per_epoch
@@ -199,6 +206,8 @@ def run_training(
                 init_kwargs=init_kwargs,
                 tx=tx,
                 learning_rate_fn=learning_rate_fn,
+                b1=b1,
+                b2=b2,
                 weight_decay=weight_decay,
             )
     else:
@@ -206,13 +215,11 @@ def run_training(
 
         if tx is None:
             # initialize the Adam with weight decay optimizer for both neural networks
-            tx = optax.adamw(learning_rate_fn, weight_decay=weight_decay)
-        state = state.replace(
-            tx=tx,
-            opt_state=tx.init(state.params)
-        )
+            tx = optax.adamw(learning_rate_fn, b1=b1, b2=b2, weight_decay=weight_decay)
+        state = state.replace(tx=tx, opt_state=tx.init(state.params))
 
-    callbacks = []
+    if callbacks is None:
+        callbacks = []
     if logdir is not None:
         callbacks.append(
             OrbaxCheckpoint(
@@ -222,9 +229,10 @@ def run_training(
                 mode="min",
             ),
         )
-    callbacks.append(ciclo.keras_bar(total=num_total_train_steps))
+    if show_pbar:
+        callbacks.append(ciclo.keras_bar(total=num_total_train_steps))
 
-    state, history, _ = ciclo.train_loop(
+    state, history, elapsed = ciclo.train_loop(
         state,
         train_ds.repeat(
             num_epochs
@@ -253,13 +261,14 @@ def run_training(
         stop=num_total_train_steps,
     )
 
-    return state, history
+    return state, history, elapsed
 
 
 def run_eval(
     eval_ds: tf.data.Dataset,
     state: TrainState,
     task_callables: TaskCallables,
+    show_pbar: bool = True,
 ) -> ciclo.History:
     """
     Run the test loop.
@@ -267,15 +276,22 @@ def run_eval(
         eval_ds: Evaluation dataset as tf.data.Dataset object.
         state: training state of the neural network
         task_callables: struct containing the functions for the learning task
+        show_pbar: Whether to use a progress bar.
     Returns:
         history: History object containing the test metrics.
     """
-    kbar = ciclo.keras_bar(total=len(eval_ds))
-    setattr(
-        kbar,
-        ciclo.on_test_step,
-        lambda state, batch, elapsed, loop_state: kbar.__loop_callback__(loop_state),
-    )
+    callbacks = []
+    if show_pbar:
+        kbar = ciclo.keras_bar(total=len(eval_ds))
+        setattr(
+            kbar,
+            ciclo.on_test_step,
+            lambda state, batch, elapsed, loop_state: kbar.__loop_callback__(
+                loop_state
+            ),
+        )
+        callbacks.append(kbar)
+
     _, history, _ = ciclo.test_loop(
         state,
         eval_ds.as_numpy_iterator(),
@@ -287,7 +303,7 @@ def run_eval(
                 )
             ],
         },
-        callbacks=[kbar],
+        callbacks=callbacks,
         stop=len(eval_ds),
     )
 

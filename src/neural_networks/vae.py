@@ -1,7 +1,10 @@
 from flax import linen as nn  # Linen API
+from jax import Array, random
 import jax.numpy as jnp
 import math
 from typing import Callable, Sequence, Tuple
+
+from .simple_cnn import Decoder
 
 
 class Encoder(nn.Module):
@@ -12,7 +15,7 @@ class Encoder(nn.Module):
     nonlinearity: Callable = nn.leaky_relu
 
     @nn.compact
-    def __call__(self, x):
+    def __call__(self, x) -> Tuple[Array, Array]:
         x = nn.Conv(features=16, kernel_size=(3, 3), strides=self.strides)(x)
         x = self.nonlinearity(x)
         x = nn.Conv(features=32, kernel_size=(3, 3), strides=self.strides)(x)
@@ -21,48 +24,15 @@ class Encoder(nn.Module):
 
         x = nn.Dense(features=256)(x)
         x = self.nonlinearity(x)
-        x = nn.Dense(features=self.latent_dim)(x)
 
-        # clip to [-1, 1]
-        # doesn't seem to work.
-        # x = -1.0 + 2 * nn.softmax(x)
+        mu = nn.Dense(features=self.latent_dim)(x)
+        logvar = nn.Dense(features=self.latent_dim)(x)
 
-        return x
+        return mu, logvar
 
 
-class Decoder(nn.Module):
-    """A simple CNN decoder."""
-
-    img_shape: Tuple[int, int, int] = (64, 64, 3)
-    downsampled_img_dim: Sequence = (2, 2, 768)
-    strides: Tuple[int, int] = (1, 1)
-    nonlinearity: Callable = nn.leaky_relu
-
-    @nn.compact
-    def __call__(self, x):
-        x = self.nonlinearity(x)
-        x = nn.Dense(features=256)(x)
-        x = self.nonlinearity(x)
-
-        x = nn.Dense(features=math.prod(self.downsampled_img_dim))(x)
-        x = x.reshape(
-            (x.shape[0], *self.downsampled_img_dim)  # batch size
-        )  # unflatten
-
-        x = nn.ConvTranspose(features=16, kernel_size=(3, 3), strides=self.strides)(x)
-        x = self.nonlinearity(x)
-        x = nn.ConvTranspose(
-            features=self.img_shape[-1], kernel_size=(3, 3), strides=self.strides
-        )(x)
-
-        # clip to [-1, 1]
-        x = -1.0 + 2 * nn.sigmoid(x)
-
-        return x
-
-
-class Autoencoder(nn.Module):
-    """A simple CNN autoencoder."""
+class VAE(nn.Module):
+    """A Variational Autoencoder."""
 
     img_shape: Tuple[int, int, int]
     latent_dim: int
@@ -93,13 +63,25 @@ class Autoencoder(nn.Module):
         )
 
     def __call__(self, x):
-        z = self.encoder(x)
-        x_rec = self.decoder(z)
+        mu, logvar = self.encoder(x)
+        x_rec = self.decoder(mu)
 
         return x_rec
 
-    def encode(self, x):
+    def encode(self, x: Array) -> Array:
+        mu, logvar = self.encoder(x)
+        return mu
+
+    def encode_vae(self, x: Array) -> Tuple[Array, Array]:
         return self.encoder(x)
 
-    def decode(self, x):
-        return self.decoder(x)
+    def decode(self, z: Array) -> Array:
+        return self.decoder(z)
+
+    def generate(self, z: Array) -> Array:
+        return nn.sigmoid(self.decoder(z))
+
+    def reparameterize(self, rng: Array, mu: Array, logvar: Array) -> Array:
+        std = jnp.exp(0.5 * logvar)
+        eps = random.normal(rng, logvar.shape, logvar.dtype)
+        return mu + eps * std

@@ -67,10 +67,7 @@ if __name__ == "__main__":
 
     # run the training loop
     print("Run training...")
-    (
-        state,
-        train_history,
-    ) = run_training(
+    (state, train_history, elapsed) = run_training(
         rng=rng,
         train_ds=train_ds,
         val_ds=val_ds,

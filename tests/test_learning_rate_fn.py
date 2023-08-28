@@ -15,7 +15,7 @@ def test_create_learning_rate_fn():
         steps_per_epoch=steps_per_epoch,
         base_lr=base_lr,
         warmup_epochs=warmup_epochs,
-        cosine_decay_epochs=cosine_decay_epochs
+        cosine_decay_epochs=cosine_decay_epochs,
     )
 
     learning_rates = []
