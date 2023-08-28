@@ -26,16 +26,19 @@ latent_dim = 2
 normalize_latent_space = True
 num_epochs = 50
 
+weight_decay = 0.0
 if ae_type == "wae":
     batch_size = 15
     loss_weights = dict(mse_q=0.0, mse_rec=5.0, mmd=1e-1)
     base_lr = 5e-3
     warmup_epochs = 5
 elif ae_type == "beta_vae":
-    batch_size = 15
-    loss_weights = dict(mse_q=0.0, mse_rec=5.0, beta=1e-2)
-    base_lr = 1e-3
+    batch_size = 100
+    loss_weights = dict(mse_q=0.0, mse_rec=5.0, beta=0.0015959075911339338)
+    base_lr = 0.0017816432475353742
+    num_epochs = 100
     warmup_epochs = 5
+    weight_decay = 0.00013340009869730542
 else:
     batch_size = 8
     loss_weights = dict(mse_q=1.0, mse_rec=5.0)
@@ -73,7 +76,7 @@ if __name__ == "__main__":
         nn_model,
         loss_weights=loss_weights,
         normalize_latent_space=normalize_latent_space,
-        weight_on_foreground=0.15,
+        # weight_on_foreground=0.15,
         ae_type=ae_type,
         eval=False,
     )
@@ -90,7 +93,7 @@ if __name__ == "__main__":
         nn_model=nn_model,
         base_lr=base_lr,
         warmup_epochs=warmup_epochs,
-        weight_decay=0.0,
+        weight_decay=weight_decay,
         logdir=logdir,
     )
     print("Final training metrics:\n", state.metrics.compute())
