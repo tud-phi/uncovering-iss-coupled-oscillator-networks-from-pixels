@@ -7,6 +7,7 @@ from jsrm.systems.pendulum import normalize_joint_angles
 import logging
 from pathlib import Path
 import optuna
+from optuna.samplers import TPESampler
 import tensorflow as tf
 
 from src.neural_networks.convnext import ConvNeXtAutoencoder
@@ -118,8 +119,10 @@ if __name__ == "__main__":
     optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
     
     storage_name = f"sqlite:///{logdir}/optuna_study.db"
+    sampler = TPESampler(seed=seed)  # Make the sampler behave in a deterministic way.
     study = optuna.create_study(
         study_name=study_id,
+        sampler=sampler,
         pruner=optuna.pruners.SuccessiveHalvingPruner(),
         storage=storage_name,
     )  # Create a new study.
