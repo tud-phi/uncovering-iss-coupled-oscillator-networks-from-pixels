@@ -26,6 +26,7 @@ tf.config.experimental.set_visible_devices([], "GPU")
 seed = 0
 rng = random.PRNGKey(seed=seed)
 
+rec_loss_type = "bce"
 ae_type = "beta_vae"
 
 latent_dim = 2
@@ -71,8 +72,12 @@ if __name__ == "__main__":
         b2 = 0.999
         weight_decay = trial.suggest_float("weight_decay", 1e-7, 1e-2, log=True)
 
-        train_loss_weights = dict(mse_q=0.0, mse_rec=1.0, beta=beta)
-        val_loss_weights = dict(mse_q=0.0, mse_rec=1.0, beta=1e0)
+        if rec_loss_type == "mse":
+            train_loss_weights = dict(mse_q=0.0, mse_rec=1.0, beta=beta)
+        elif rec_loss_type == "bce":
+            train_loss_weights = dict(mse_q=0.0, bce_rec=1.0, beta=beta)
+        else:
+            raise ValueError(f"Unknown rec_loss_type: {rec_loss_type}")
 
         if ae_type != "beta_vae":
             raise ValueError("Only beta_vae is supported for now")
@@ -83,6 +88,7 @@ if __name__ == "__main__":
             nn_model,
             loss_weights=train_loss_weights,
             normalize_latent_space=normalize_latent_space,
+            rec_loss_type=rec_loss_type,
             # weight_on_foreground=0.15,
             ae_type=ae_type,
             eval=False,
@@ -129,7 +135,8 @@ if __name__ == "__main__":
 
     print(f"Run hyperparameter tuning with storage in {storage_name}...")
     study.optimize(
-        objective, n_trials=100
+        objective, n_trials=1000
     )  # Invoke optimization of the objective function.
 
-    dill.dump(study, logdir / "optuna_study.dill")
+    with open(logdir / "optuna_study.dill", "wb") as f:
+        dill.dump(study, f)
