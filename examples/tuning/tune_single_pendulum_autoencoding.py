@@ -30,7 +30,7 @@ latent_dim = 2
 normalize_latent_space = True
 max_num_epochs = 100
 warmup_epochs = 5
-batch_size = 30
+batch_size = 100
 
 now = datetime.now()
 logdir = Path("logs") / "single_pendulum_autoencoding" / f"{now:%Y-%m-%d_%H-%M-%S}"
