@@ -7,9 +7,9 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import tensorflow as tf
 
-
-from src.neural_networks.simple_cnn import Autoencoder
 from src.neural_networks.convnext import ConvNeXtAutoencoder
+from src.neural_networks.simple_cnn import Autoencoder
+from src.neural_networks.vae import VAE
 from src.tasks import autoencoding
 from src.training.load_dataset import load_dataset
 from src.training.loops import run_eval
@@ -23,7 +23,7 @@ tf.config.experimental.set_visible_devices([], "GPU")
 seed = 0
 rng = random.PRNGKey(seed=seed)
 
-ae_type = "wae"
+ae_type = "beta_vae"
 
 latent_dim = 2
 normalize_latent_space = True
@@ -34,6 +34,9 @@ batch_size = 8
 if ae_type == "wae":
     ckpt_dir = Path("logs") / "single_pendulum_autoencoding" / "2023-05-03_22-20-30"
     loss_weights = dict(mse_q=0.0, mse_rec=5.0, mmd=1.0)
+elif ae_type == "beta_vae":
+    ckpt_dir = Path("logs") / "single_pendulum_autoencoding" / "2023-08-27_15-25-27"
+    loss_weights = dict(mse_q=0.0, mse_rec=5.0, beta=1.0)
 else:
     ckpt_dir = Path("logs") / "single_pendulum_autoencoding" / "2023-04-26_15-57-20"
     loss_weights = dict(mse_q=1.0, mse_rec=5.0)
@@ -56,7 +59,7 @@ if __name__ == "__main__":
     img_shape = train_ds.element_spec["rendering_ts"].shape[-3:]
 
     # initialize the model
-    if ae_type == "vae":
+    if ae_type == "beta_vae":
         nn_model = VAE(latent_dim=latent_dim, img_shape=img_shape)
     else:
         nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape)
@@ -79,10 +82,10 @@ if __name__ == "__main__":
         f"Final test metrics: rmse_q={rmse_q_stps[-1]:.3f}, rmse_rec={rmse_rec_stps[-1]:.3f}"
     )
 
-    visualize_mapping_from_configuration_to_latent_space(test_ds, state, task_callables)
+    visualize_mapping_from_configuration_to_latent_space(test_ds, state, task_callables, rng=rng)
 
     test_batch = next(test_ds.as_numpy_iterator())
-    test_preds = task_callables.forward_fn(test_batch, state.params)
+    test_preds = task_callables.forward_fn(test_batch, state.params, rng=rng)
 
     # try interpolating between two latent vectors
     img_gt1 = test_batch["rendering_ts"][1, 0]

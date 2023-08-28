@@ -17,6 +17,7 @@ def visualize_mapping_from_configuration_to_latent_space(
     eval_ds: tf.data.Dataset,
     state: TrainState,
     task_callables: TaskCallables,
+    rng: Optional[random.PRNGKey] = None,
 ):
     q_ss = None
     z_pred_ss = None
@@ -25,7 +26,7 @@ def visualize_mapping_from_configuration_to_latent_space(
         pbar.set_description(
             f"Plotting latent space: processing batch {batch_idx + 1} / {num_batches}"
         )
-        preds = task_callables.forward_fn(batch, state.params)
+        preds = task_callables.forward_fn(batch, state.params, rng=rng)
         q_bt = batch["x_ts"][..., : batch["x_ts"].shape[-1] // 2]
         z_pred_bt = preds["q_ts"]
 
