@@ -91,6 +91,7 @@ if __name__ == "__main__":
     (
         state,
         train_history,
+        elapsed
     ) = run_training(
         rng=rng,
         train_ds=train_ds,
@@ -124,6 +125,7 @@ if __name__ == "__main__":
     (
         state,
         train_history,
+        elapsed
     ) = run_training(
         rng=rng,
         train_ds=train_ds,

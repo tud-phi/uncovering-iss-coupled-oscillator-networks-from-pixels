@@ -1,5 +1,5 @@
 import ciclo
-from ciclo import History
+from ciclo import Elapsed, History
 from flax import linen as nn  # Linen API
 from functools import partial
 import jax
@@ -139,7 +139,7 @@ def run_training(
     callbacks: Optional[List[Any]]=None,
     logdir: Path = None,
     show_pbar: bool = True,
-) -> Tuple[TrainState, History]:
+) -> Tuple[TrainState, History, Elapsed]:
     """
     Run the training loop.
     Args:
@@ -165,10 +165,9 @@ def run_training(
         logdir: Path to the directory where the training logs should be saved.
         show_pbar: Whether to use a progress bar.
     Returns:
-        val_loss_history: Array of validation losses for each epoch.
-        train_metrics_history: List of dictionaries containing the training metrics for each epoch.
-        val_metrics_history: List of dictionaries containing the validation metrics for each epoch.
-        best_state: TrainState object of the model with the lowest validation loss.
+        state: final TrainState object
+        history: History object containing the training metrics.
+        elapsed: Elapsed number of steps.
     """
     steps_per_epoch = len(train_ds)
     num_total_train_steps = num_epochs * steps_per_epoch
@@ -233,7 +232,7 @@ def run_training(
     if show_pbar:
         callbacks.append(ciclo.keras_bar(total=num_total_train_steps))
 
-    state, history, _ = ciclo.train_loop(
+    state, history, elapsed = ciclo.train_loop(
         state,
         train_ds.repeat(
             num_epochs
@@ -262,7 +261,7 @@ def run_training(
         stop=num_total_train_steps,
     )
 
-    return state, history
+    return state, history, elapsed
 
 
 def run_eval(

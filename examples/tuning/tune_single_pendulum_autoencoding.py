@@ -3,6 +3,7 @@ from jax import random
 from jax import config as jax_config
 import jax.numpy as jnp
 from jsrm.systems.pendulum import normalize_joint_angles
+import logging
 from pathlib import Path
 import optuna
 import tensorflow as tf
@@ -11,8 +12,10 @@ from src.neural_networks.convnext import ConvNeXtAutoencoder
 from src.neural_networks.simple_cnn import Autoencoder
 from src.neural_networks.vae import VAE
 from src.tasks import autoencoding
+from src.training.callbacks import OptunaPruneCallback
 from src.training.load_dataset import load_dataset
 from src.training.loops import run_training, run_eval
+import sys
 
 # prevent tensorflow from loading everything onto the GPU, as we don't have enough memory for that
 tf.config.experimental.set_visible_devices([], "GPU")
@@ -25,7 +28,7 @@ ae_type = "beta_vae"
 
 latent_dim = 2
 normalize_latent_space = True
-num_epochs = 50
+max_num_epochs = 100
 warmup_epochs = 5
 batch_size = 30
 
@@ -58,7 +61,7 @@ if __name__ == "__main__":
     def objective(trial):
         # Sample hyperparameters
         base_lr = trial.suggest_float("base_lr", 1e-5, 1e-2, log=True)
-        beta = trial.suggest_float("beta", 1e-5, 1e1, log=True)
+        beta = trial.suggest_float("beta", 1e-3, 1e1, log=True)
         b1 = 0.9
         b2 = 0.999
         weight_decay = trial.suggest_float("weight_decay", 1e-7, 1e-2, log=True)
@@ -80,43 +83,37 @@ if __name__ == "__main__":
             eval=False
         )
 
+        prune_callback = OptunaPruneCallback(trial, metric_name="rmse_rec_val")
+        print(f"Running trial {trial.number}...")
         (
             state,
-            train_history,
+            history,
+            elapsed
         ) = run_training(
             rng=rng,
             train_ds=train_ds,
             val_ds=val_ds,
             task_callables=train_task_callables,
             metrics=train_metrics,
-            num_epochs=num_epochs,
+            num_epochs=max_num_epochs,
             nn_model=nn_model,
             base_lr=base_lr,
             warmup_epochs=warmup_epochs,
             b1=b1,
             b2=b2,
             weight_decay=weight_decay,
+            callbacks=[prune_callback],
             logdir=None,
             show_pbar=False
         )
 
-        # run validation
-        val_task_callables, val_metrics = autoencoding.task_factory(
-            "pendulum",
-            nn_model,
-            loss_weights=val_loss_weights,
-            normalize_latent_space=normalize_latent_space,
-            ae_type=ae_type,
-            eval=True
-        )
-        val_history = run_eval(val_ds, state, val_task_callables, show_pbar=False)
-        val_loss_stps, val_rmse_rec_stps = val_history.collect("loss", "rmse_rec")
+        val_loss_stps, val_rmse_rec_stps = history.collect("loss_val", "rmse_rec_val")
+        print(f"Trial {trial.number} finished after {elapsed.steps} training steps with validation loss: {val_loss_stps[-1]:.5f}, rmse_rec: {val_rmse_rec_stps[-1]:.5f}")
 
-        print(f"Trial {trial.number} finished with validation loss: {val_loss_stps[-1]}, rmse_rec: {val_rmse_rec_stps[-1]}")
-
-        return val_loss_stps[-1]
+        return val_rmse_rec_stps[-1]
     
-
-    study = optuna.create_study()  # Create a new study.
+    # Add stream handler of stdout to show the messages
+    optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
+    study = optuna.create_study(pruner=optuna.pruners.SuccessiveHalvingPruner())  # Create a new study.
     print("Run hyperparameter tuning...")
-    study.optimize(objective, n_trials=2)  # Invoke optimization of the objective function.
+    study.optimize(objective, n_trials=100)  # Invoke optimization of the objective function.
