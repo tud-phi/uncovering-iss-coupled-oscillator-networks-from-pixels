@@ -71,6 +71,7 @@ if __name__ == "__main__":
         loss_weights=loss_weights,
         normalize_latent_space=normalize_latent_space,
         ae_type=ae_type,
+        eval=True
     )
 
     state = restore_train_state(rng, ckpt_dir, nn_model, metrics)

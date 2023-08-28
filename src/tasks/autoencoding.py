@@ -35,6 +35,7 @@ def task_factory(
     normalize_latent_space: bool = True,
     weight_on_foreground: float = None,
     ae_type: str = "None",
+    eval: bool = True,
 ) -> Tuple[TaskCallables, jm.Metrics]:
     """
     Factory function for the autoencoding task.
@@ -53,6 +54,7 @@ def task_factory(
             with the given weight for the masked area (usually the foreground).
         ae_type: Autoencoder type. If None, a normal autoencoder will be used.
             One of ["wae", "beta_vae", "None"]
+        eval: whether to use the model in eval mode (with for example no stochasticity in the latent space)
     Returns:
         task_callables: struct containing the functions for the learning task
         metrics: struct containing the metrics for the learning task
@@ -90,12 +92,11 @@ def task_factory(
         batch_size = batch["rendering_ts"].shape[0]
         n_q = batch["x_ts"].shape[-1] // 2  # number of generalized coordinates
 
-        if ae_type == "beta_vae":
+        if ae_type == "beta_vae" and eval is False:
             # output will be of shape batch_dim * time_dim x latent_dim
             mu_bt, logvar_bt = nn_model.apply(
                 {"params": nn_params}, img_bt, method=nn_model.encode_vae, **encode_kwargs
             )
-
             # reparameterize
             z_pred_bt = nn_model.reparameterize(rng, mu_bt, logvar_bt)
         else:
@@ -127,7 +128,7 @@ def task_factory(
         img_pred_bt = img_pred_bt.reshape((batch_size, -1, *img_pred_bt.shape[1:]))
         preds = dict(q_ts=z_pred_bt, rendering_ts=img_pred_bt)
 
-        if ae_type == "beta_vae":
+        if ae_type == "beta_vae" and eval is False:
             preds["mu_ts"] = mu_bt.reshape((batch_size, -1, *mu_bt.shape[1:]))
             preds["logvar_ts"] = logvar_bt.reshape((batch_size, -1, *logvar_bt.shape[1:]))
 
@@ -186,7 +187,7 @@ def task_factory(
             )
 
             loss = loss + loss_weights["mmd"] * mmd_loss
-        elif ae_type == "beta_vae":
+        elif ae_type == "beta_vae" and eval is False:
             # KLD loss
             # https://github.com/clementchadebec/benchmark_VAE/blob/main/src/pythae/models/beta_vae/beta_vae_model.py#L101
             kld_loss = kullback_leiber_divergence(

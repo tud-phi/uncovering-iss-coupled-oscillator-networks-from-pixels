@@ -75,6 +75,7 @@ if __name__ == "__main__":
         normalize_latent_space=normalize_latent_space,
         weight_on_foreground=0.15,
         ae_type=ae_type,
+        eval=False
     )
 
     # run the training loop
