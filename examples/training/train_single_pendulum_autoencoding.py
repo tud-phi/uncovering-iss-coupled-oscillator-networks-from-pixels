@@ -26,6 +26,7 @@ latent_dim = 2
 normalize_latent_space = True
 num_epochs = 50
 
+rec_loss_type = "mse"
 if ae_type == "wae":
     batch_size = 15
     loss_weights = dict(mse_q=0.0, mse_rec=5.0, mmd=1e-1)
@@ -33,8 +34,9 @@ if ae_type == "wae":
     warmup_epochs = 5
 elif ae_type == "beta_vae":
     batch_size = 15
-    loss_weights = dict(mse_q=0.0, mse_rec=5.0, beta=1e-2)
-    base_lr = 1e-3
+    rec_loss_type = "bce"
+    loss_weights = dict(mse_q=0.0, bce_rec=1.0, beta=1e-2)
+    base_lr = 1e-2
     warmup_epochs = 5
 else:
     batch_size = 8
@@ -73,7 +75,8 @@ if __name__ == "__main__":
         nn_model,
         loss_weights=loss_weights,
         normalize_latent_space=normalize_latent_space,
-        weight_on_foreground=0.15,
+        rec_loss_type=rec_loss_type,
+        # weight_on_foreground=0.15,
         ae_type=ae_type,
         eval=False,
     )

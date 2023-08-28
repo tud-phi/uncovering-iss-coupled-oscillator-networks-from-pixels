@@ -33,6 +33,7 @@ def task_factory(
     decode_kwargs: Dict[str, Any] = None,
     loss_weights: Dict[str, float] = None,
     normalize_latent_space: bool = True,
+    rec_loss_type: str = "mse",
     weight_on_foreground: float = None,
     ae_type: str = "None",
     eval: bool = True,
@@ -50,6 +51,7 @@ def task_factory(
         decode_kwargs: additional kwargs to pass to the decode_fn
         loss_weights: the weights for the different loss terms
         normalize_latent_space: whether to normalize the latent space by for example projecting angles to [-pi, pi]
+        rec_loss_type: the type of reconstruction loss to use. One of ["mse", "bce"]
         weight_on_foreground: if None, a normal MSE loss will be used. Otherwise, a masked MSE loss will be used
             with the given weight for the masked area (usually the foreground).
         ae_type: Autoencoder type. If None, a normal autoencoder will be used.
@@ -69,7 +71,15 @@ def task_factory(
         decode_kwargs = {}
 
     if loss_weights is None:
-        loss_weights = dict(mse_q=1.0, mse_rec=1.0)
+        if rec_loss_type == "mse":
+            loss_weights = dict(mse_q=0.0, mse_rec=1.0)
+        elif rec_loss_type == "bce":
+            loss_weights = dict(mse_q=0.0, bce_rec=1.0)
+        else:
+            raise ValueError(f"Unknown reconstruction loss type: {rec_loss_type}")
+
+    if weight_on_foreground is not None:
+        assert rec_loss_type == "mse", "Only MSE loss is supported for masked MSE loss"
 
     if ae_type == "wae":
         from src.losses import wae
@@ -167,22 +177,36 @@ def task_factory(
         # compute the mean squared error
         mse_q = jnp.mean(jnp.square(error_q))
 
-        # supervised MSE loss on the reconstructed image
-        if weight_on_foreground is None:
-            mse_rec = jnp.mean(
-                jnp.square(preds["rendering_ts"] - batch["rendering_ts"])
-            )
-        else:
-            # allows to equally weigh the importance of correctly reconstructing the foreground and background
-            mse_rec = masked_mse_loss(
-                preds["rendering_ts"],
-                batch["rendering_ts"],
-                threshold_cond_sign=-1,
-                weight_loss_masked_area=weight_on_foreground,
-            )
+        if rec_loss_type == "bce":
+            from optax import sigmoid_binary_cross_entropy
+            # supervised binary cross entropy loss on the reconstructed image
+            # first, we need to bring predictions and targets from the range [-1.0, 1.0] into the range [0, 1]
+            img_label_bt = jnp.round(batch["rendering_ts"] / 2 + 0.5, decimals=0)
+            img_pred_bt = preds["rendering_ts"] / 2 + 0.5
+            # then, we can compute the binary cross entropy loss
+            rec_loss = jnp.mean(sigmoid_binary_cross_entropy(img_pred_bt, img_label_bt))
+            # debug.print("rec_loss = {rec_loss}", rec_loss=rec_loss)
+            # multiply with loss weight
+            rec_loss = loss_weights["bce_rec"] * rec_loss
+
+        elif rec_loss_type == "mse":
+            # supervised MSE loss on the reconstructed image
+            if weight_on_foreground is None:
+                rec_loss = jnp.mean(
+                    jnp.square(preds["rendering_ts"] - batch["rendering_ts"])
+                )
+            else:
+                # allows to equally weigh the importance of correctly reconstructing the foreground and background
+                rec_loss = masked_mse_loss(
+                    preds["rendering_ts"],
+                    batch["rendering_ts"],
+                    threshold_cond_sign=-1,
+                    weight_loss_masked_area=weight_on_foreground,
+                )
+            rec_loss = loss_weights["mse_rec"] * rec_loss
 
         # total loss
-        loss = loss_weights["mse_q"] * mse_q + loss_weights["mse_rec"] * mse_rec
+        loss = loss_weights["mse_q"] * mse_q + rec_loss
 
         if ae_type == "wae":
             latent_dim = preds["q_ts"].shape[-1]
