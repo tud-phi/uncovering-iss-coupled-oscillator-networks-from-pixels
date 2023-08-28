@@ -15,6 +15,7 @@ numpy
 opencv-python
 optax
 optuna
+optuna-dashboard
 orbax-checkpoint
 pytest
 tensorboard

@@ -34,7 +34,10 @@ warmup_epochs = 5
 batch_size = 100
 
 now = datetime.now()
-logdir = Path("logs") / "single_pendulum_autoencoding" / f"{now:%Y-%m-%d_%H-%M-%S}"
+experiment_name = "single_pendulum_autoencoding"
+datetime_str = f"{now:%Y-%m-%d_%H-%M-%S}"
+study_id = f"study-{experiment_name}-{datetime_str}"  # Unique identifier of the study.
+logdir = Path("logs") / experiment_name / datetime_str
 logdir.mkdir(parents=True, exist_ok=True)
 
 if __name__ == "__main__":
@@ -113,10 +116,15 @@ if __name__ == "__main__":
 
     # Add stream handler of stdout to show the messages
     optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
+    
+    storage_name = f"sqlite:///{logdir}/optuna_study.db"
     study = optuna.create_study(
-        pruner=optuna.pruners.SuccessiveHalvingPruner()
+        study_name=study_id,
+        pruner=optuna.pruners.SuccessiveHalvingPruner(),
+        storage=storage_name,
     )  # Create a new study.
-    print("Run hyperparameter tuning...")
+
+    print(f"Run hyperparameter tuning with storage in {storage_name}...")
     study.optimize(
         objective, n_trials=100
     )  # Invoke optimization of the objective function.
