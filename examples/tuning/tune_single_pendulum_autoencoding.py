@@ -94,6 +94,7 @@ if __name__ == "__main__":
             warmup_epochs=warmup_epochs,
             weight_decay=weight_decay,
             logdir=None,
+            show_pbar=False
         )
 
         # run validation
@@ -105,8 +106,10 @@ if __name__ == "__main__":
             ae_type=ae_type,
             eval=True
         )
-        val_history = run_eval(val_ds, state, val_task_callables)
+        val_history = run_eval(val_ds, state, val_task_callables, show_pbar=False)
         val_loss_stps, val_rmse_rec_stps = val_history.collect("loss", "rmse_rec")
+
+        print(f"Trial {trial.number} finished with validation loss: {val_loss_stps[-1]}, rmse_rec: {val_rmse_rec_stps[-1]}")
 
         return val_loss_stps[-1]
     

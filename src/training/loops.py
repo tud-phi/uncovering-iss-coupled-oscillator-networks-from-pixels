@@ -135,6 +135,7 @@ def run_training(
     cosine_decay_epochs: int = None,
     weight_decay: float = 0.0,
     logdir: Path = None,
+    show_pbar: bool = True,
 ) -> Tuple[TrainState, History]:
     """
     Run the training loop.
@@ -156,6 +157,7 @@ def run_training(
         weight_decay: Weight decay.
         cosine_decay_epochs: Number of epochs for cosine decay. If None, will use num_epochs - warmup_epochs.
         logdir: Path to the directory where the training logs should be saved.
+        show_pbar: Whether to use a progress bar.
     Returns:
         val_loss_history: Array of validation losses for each epoch.
         train_metrics_history: List of dictionaries containing the training metrics for each epoch.
@@ -219,7 +221,8 @@ def run_training(
                 mode="min",
             ),
         )
-    callbacks.append(ciclo.keras_bar(total=num_total_train_steps))
+    if show_pbar:
+        callbacks.append(ciclo.keras_bar(total=num_total_train_steps))
 
     state, history, _ = ciclo.train_loop(
         state,
@@ -257,6 +260,7 @@ def run_eval(
     eval_ds: tf.data.Dataset,
     state: TrainState,
     task_callables: TaskCallables,
+    show_pbar: bool = True,
 ) -> ciclo.History:
     """
     Run the test loop.
@@ -267,12 +271,16 @@ def run_eval(
     Returns:
         history: History object containing the test metrics.
     """
-    kbar = ciclo.keras_bar(total=len(eval_ds))
-    setattr(
-        kbar,
-        ciclo.on_test_step,
-        lambda state, batch, elapsed, loop_state: kbar.__loop_callback__(loop_state),
-    )
+    callbacks = []
+    if show_pbar:
+        kbar = ciclo.keras_bar(total=len(eval_ds))
+        setattr(
+            kbar,
+            ciclo.on_test_step,
+            lambda state, batch, elapsed, loop_state: kbar.__loop_callback__(loop_state),
+        )
+        callbacks.append(kbar)
+
     _, history, _ = ciclo.test_loop(
         state,
         eval_ds.as_numpy_iterator(),
@@ -284,7 +292,7 @@ def run_eval(
                 )
             ],
         },
-        callbacks=[kbar],
+        callbacks=callbacks,
         stop=len(eval_ds),
     )
 
