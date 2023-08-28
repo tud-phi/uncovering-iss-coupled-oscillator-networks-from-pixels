@@ -136,6 +136,7 @@ def run_training(
     b1: float = 0.9,
     b2: float = 0.999,
     weight_decay: float = 0.0,
+    callbacks: Optional[List[Any]]=None,
     logdir: Path = None,
     show_pbar: bool = True,
 ) -> Tuple[TrainState, History]:
@@ -160,6 +161,7 @@ def run_training(
         b2: Exponential decay rate for the second moment estimates of the Adam optimizer.
         weight_decay: Weight decay.
         cosine_decay_epochs: Number of epochs for cosine decay. If None, will use num_epochs - warmup_epochs.
+        callbacks: List of callbacks at each iteration of the loop.
         logdir: Path to the directory where the training logs should be saved.
         show_pbar: Whether to use a progress bar.
     Returns:
@@ -217,7 +219,8 @@ def run_training(
             tx = optax.adamw(learning_rate_fn, b1=b1, b2=b2, weight_decay=weight_decay)
         state = state.replace(tx=tx, opt_state=tx.init(state.params))
 
-    callbacks = []
+    if callbacks is None:
+        callbacks = []
     if logdir is not None:
         callbacks.append(
             OrbaxCheckpoint(
