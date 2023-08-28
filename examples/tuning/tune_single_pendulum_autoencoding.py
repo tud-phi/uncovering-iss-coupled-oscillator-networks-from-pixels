@@ -80,16 +80,12 @@ if __name__ == "__main__":
             normalize_latent_space=normalize_latent_space,
             # weight_on_foreground=0.15,
             ae_type=ae_type,
-            eval=False
+            eval=False,
         )
 
         prune_callback = OptunaPruneCallback(trial, metric_name="rmse_rec_val")
         print(f"Running trial {trial.number}...")
-        (
-            state,
-            history,
-            elapsed
-        ) = run_training(
+        (state, history, elapsed) = run_training(
             rng=rng,
             train_ds=train_ds,
             val_ds=val_ds,
@@ -104,16 +100,22 @@ if __name__ == "__main__":
             weight_decay=weight_decay,
             callbacks=[prune_callback],
             logdir=None,
-            show_pbar=False
+            show_pbar=False,
         )
 
         val_loss_stps, val_rmse_rec_stps = history.collect("loss_val", "rmse_rec_val")
-        print(f"Trial {trial.number} finished after {elapsed.steps} training steps with validation loss: {val_loss_stps[-1]:.5f}, rmse_rec: {val_rmse_rec_stps[-1]:.5f}")
+        print(
+            f"Trial {trial.number} finished after {elapsed.steps} training steps with validation loss: {val_loss_stps[-1]:.5f}, rmse_rec: {val_rmse_rec_stps[-1]:.5f}"
+        )
 
         return val_rmse_rec_stps[-1]
-    
+
     # Add stream handler of stdout to show the messages
     optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
-    study = optuna.create_study(pruner=optuna.pruners.SuccessiveHalvingPruner())  # Create a new study.
+    study = optuna.create_study(
+        pruner=optuna.pruners.SuccessiveHalvingPruner()
+    )  # Create a new study.
     print("Run hyperparameter tuning...")
-    study.optimize(objective, n_trials=100)  # Invoke optimization of the objective function.
+    study.optimize(
+        objective, n_trials=100
+    )  # Invoke optimization of the objective function.

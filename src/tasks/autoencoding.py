@@ -84,9 +84,9 @@ def task_factory(
 
     @jit
     def forward_fn(
-            batch: Dict[str, Array],
-            nn_params: FrozenDict,
-            rng: Optional[random.PRNGKey] = None  # TODO: add everywhere
+        batch: Dict[str, Array],
+        nn_params: FrozenDict,
+        rng: Optional[random.PRNGKey] = None,  # TODO: add everywhere
     ) -> Dict[str, Array]:
         img_bt = assemble_input(batch)
         batch_size = batch["rendering_ts"].shape[0]
@@ -95,7 +95,10 @@ def task_factory(
         if ae_type == "beta_vae":
             # output will be of shape batch_dim * time_dim x latent_dim
             mu_bt, logvar_bt = nn_model.apply(
-                {"params": nn_params}, img_bt, method=nn_model.encode_vae, **encode_kwargs
+                {"params": nn_params},
+                img_bt,
+                method=nn_model.encode_vae,
+                **encode_kwargs
             )
             if eval is False:
                 # reparameterize
@@ -113,11 +116,15 @@ def task_factory(
             # if the system is a pendulum, we interpret the encoder output as sin(theta) and cos(theta) for each joint
             # e.g. for two joints: z = [sin(q_1), sin(q_2), cos(q_1), cos(q_2)]
             # output of arctan2 will be in the range [-pi, pi]
-            z_pred_bt = jnp.arctan2(z_pred_bt[..., :latent_dim], z_pred_bt[..., latent_dim:])
+            z_pred_bt = jnp.arctan2(
+                z_pred_bt[..., :latent_dim], z_pred_bt[..., latent_dim:]
+            )
 
             # if the system is a pendulum, the input into the decoder should be sin(theta) and cos(theta) for each joint
             # e.g. for two joints: z = [sin(q_1), sin(q_2), cos(q_1), cos(q_2)]
-            input_decoder = jnp.concatenate([jnp.sin(z_pred_bt), jnp.cos(z_pred_bt)], axis=-1)
+            input_decoder = jnp.concatenate(
+                [jnp.sin(z_pred_bt), jnp.cos(z_pred_bt)], axis=-1
+            )
         else:
             input_decoder = z_pred_bt
 
@@ -133,7 +140,9 @@ def task_factory(
 
         if ae_type == "beta_vae":
             preds["mu_ts"] = mu_bt.reshape((batch_size, -1, *mu_bt.shape[1:]))
-            preds["logvar_ts"] = logvar_bt.reshape((batch_size, -1, *logvar_bt.shape[1:]))
+            preds["logvar_ts"] = logvar_bt.reshape(
+                (batch_size, -1, *logvar_bt.shape[1:])
+            )
 
         return preds
 
@@ -193,9 +202,7 @@ def task_factory(
         elif ae_type == "beta_vae":
             # KLD loss
             # https://github.com/clementchadebec/benchmark_VAE/blob/main/src/pythae/models/beta_vae/beta_vae_model.py#L101
-            kld_loss = kullback_leiber_divergence(
-                preds["mu_ts"], preds["logvar_ts"]
-            )
+            kld_loss = kullback_leiber_divergence(preds["mu_ts"], preds["logvar_ts"])
 
             loss = loss + loss_weights["beta"] * kld_loss
 

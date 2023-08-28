@@ -136,7 +136,7 @@ def run_training(
     b1: float = 0.9,
     b2: float = 0.999,
     weight_decay: float = 0.0,
-    callbacks: Optional[List[Any]]=None,
+    callbacks: Optional[List[Any]] = None,
     logdir: Path = None,
     show_pbar: bool = True,
 ) -> Tuple[TrainState, History, Elapsed]:
@@ -286,7 +286,9 @@ def run_eval(
         setattr(
             kbar,
             ciclo.on_test_step,
-            lambda state, batch, elapsed, loop_state: kbar.__loop_callback__(loop_state),
+            lambda state, batch, elapsed, loop_state: kbar.__loop_callback__(
+                loop_state
+            ),
         )
         callbacks.append(kbar)
 

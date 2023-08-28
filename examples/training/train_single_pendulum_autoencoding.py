@@ -75,16 +75,12 @@ if __name__ == "__main__":
         normalize_latent_space=normalize_latent_space,
         weight_on_foreground=0.15,
         ae_type=ae_type,
-        eval=False
+        eval=False,
     )
 
     # run the training loop
     print("Run training...")
-    (
-        state,
-        train_history,
-        elapsed
-    ) = run_training(
+    (state, train_history, elapsed) = run_training(
         rng=rng,
         train_ds=train_ds,
         val_ds=val_ds,

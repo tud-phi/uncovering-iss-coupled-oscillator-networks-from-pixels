@@ -19,7 +19,9 @@ class OptunaPruneCallback(LoopCallbackBase[S]):
     def __loop_callback__(self, loop_state: LoopState[S]) -> CallbackOutput[S]:
         if self.metric_name in loop_state.logs["stateful_metrics"]:
             trial_step = int(loop_state.state.step.item())
-            trial_value = float(loop_state.logs["stateful_metrics"][self.metric_name].item())
+            trial_value = float(
+                loop_state.logs["stateful_metrics"][self.metric_name].item()
+            )
 
             # report the current validation loss to optuna
             self.trial.report(trial_value, step=trial_step)
@@ -27,8 +29,8 @@ class OptunaPruneCallback(LoopCallbackBase[S]):
             # prune the trial if the current validation loss is too high
             if self.trial.should_prune():
                 raise optuna.TrialPruned()
-        
+
         return Logs(), loop_state.state
-    
+
     def on_train_batch_end(self, state, batch, elapsed, loop_state: LoopState[S]):
         return self.__loop_callback__(loop_state)

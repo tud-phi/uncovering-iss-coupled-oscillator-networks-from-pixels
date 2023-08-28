@@ -88,11 +88,7 @@ if __name__ == "__main__":
 
     # run the WAE training loop
     print("Run WAE training...")
-    (
-        state,
-        train_history,
-        elapsed
-    ) = run_training(
+    (state, train_history, elapsed) = run_training(
         rng=rng,
         train_ds=train_ds,
         val_ds=val_ds,
@@ -122,11 +118,7 @@ if __name__ == "__main__":
 
     # run the dynamic learning training loop
     print("Run dynamic learning of configuration space...")
-    (
-        state,
-        train_history,
-        elapsed
-    ) = run_training(
+    (state, train_history, elapsed) = run_training(
         rng=rng,
         train_ds=train_ds,
         val_ds=val_ds,
