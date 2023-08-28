@@ -37,8 +37,8 @@ if ae_type == "wae":
     ckpt_dir = Path("logs") / "single_pendulum_autoencoding" / "2023-05-03_22-20-30"
     loss_weights = dict(mse_q=0.0, mse_rec=5.0, mmd=1.0)
 elif ae_type == "beta_vae":
-    ckpt_dir = Path("logs") / "single_pendulum_autoencoding" / "2023-08-27_15-25-27"
-    loss_weights = dict(mse_q=0.0, mse_rec=5.0, beta=1.0)
+    ckpt_dir = Path("logs") / "single_pendulum_autoencoding" / "2023-08-28_22-55-41"
+    loss_weights = dict(mse_q=0.0, mse_rec=1.0, beta=1.0)
 else:
     ckpt_dir = Path("logs") / "single_pendulum_autoencoding" / "2023-04-26_15-57-20"
     loss_weights = dict(mse_q=1.0, mse_rec=5.0)
