@@ -155,7 +155,7 @@ if __name__ == "__main__":
     study = optuna.create_study(
         study_name=study_id,
         sampler=sampler,
-        pruner=optuna.pruners.SuccessiveHalvingPruner(),
+        pruner=optuna.pruners.SuccessiveHalvingPruner(min_resource=500),
         storage=storage_name,
     )  # Create a new study.
 
