@@ -20,27 +20,36 @@ tf.config.experimental.set_visible_devices([], "GPU")
 seed = 0
 rng = random.PRNGKey(seed=seed)
 
+rec_loss_type = "mse"
 ae_type = "beta_vae"
 
 latent_dim = 2
 normalize_latent_space = True
 num_epochs = 50
 
-rec_loss_type = "mse"
 weight_decay = 0.0
 if ae_type == "wae":
+    assert rec_loss_type == "mse"
     batch_size = 15
     loss_weights = dict(mse_q=0.0, mse_rec=5.0, mmd=1e-1)
     base_lr = 5e-3
     warmup_epochs = 5
 elif ae_type == "beta_vae":
     batch_size = 100
-    loss_weights = dict(mse_q=0.0, mse_rec=5.0, beta=0.0015959075911339338)
-    base_lr = 0.0017816432475353742
     num_epochs = 100
     warmup_epochs = 5
-    weight_decay = 0.00013340009869730542
+    if rec_loss_type == "mse":
+        loss_weights = dict(mse_q=0.0, mse_rec=5.0, beta=0.0015959075911339338)
+        base_lr = 0.0017816432475353742
+        weight_decay = 0.00013340009869730542
+    elif rec_loss_type == "bce":
+        loss_weights = dict(mse_q=0.0, bce_rec=1.0, beta=0.0049301602286453815)
+        base_lr = 0.0006332580213282928
+        weight_decay = 0.0001438757143379212
+    else:
+        raise ValueError(f"Unknown rec_loss_type: {rec_loss_type}")
 else:
+    assert rec_loss_type == "mse"
     batch_size = 8
     loss_weights = dict(mse_q=1.0, mse_rec=5.0)
     base_lr = 5e-3
