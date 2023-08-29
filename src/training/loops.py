@@ -44,7 +44,7 @@ def train_step(
     # split the PRNG key
     rng, rng_loss_fn = random.split(state.rng)
 
-    loss_fn = partial(task_callables.loss_fn, batch, rng=rng_loss_fn)
+    loss_fn = partial(task_callables.loss_fn, batch, rng=rng_loss_fn, training=True)
     grad_fn = jax.value_and_grad(loss_fn, argnums=0, has_aux=True)
     (loss, preds), grad_nn_params = grad_fn(state.params)
 
@@ -90,7 +90,9 @@ def eval_step(
     # split the PRNG key
     rng, rng_loss_fn = random.split(state.rng)
 
-    loss, preds = task_callables.loss_fn(batch, state.params, rng=rng_loss_fn)
+    loss, preds = task_callables.loss_fn(
+        batch, state.params, rng=rng_loss_fn, training=False
+    )
 
     # update the PRNG key in the training state
     state = state.replace(rng=rng)

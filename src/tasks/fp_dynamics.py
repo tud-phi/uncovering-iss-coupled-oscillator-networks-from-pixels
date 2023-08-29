@@ -74,8 +74,13 @@ def task_factory(
     # initiate ODE term from `ode_fn`
     ode_term = ODETerm(ode_fn)
 
-    @jit
-    def forward_fn(batch: Dict[str, Array], nn_params: FrozenDict) -> Dict[str, Array]:
+
+    @partial(jit, static_argnames="training")
+    def forward_fn(
+        batch: Dict[str, Array],
+        nn_params: FrozenDict,
+        rng: Optional[random.PRNGKey] = None,
+    ) -> Dict[str, Array]:
         img_bt = batch["rendering_ts"]
         img_flat_bt = assemble_input(batch)
         t_ts = batch["t_ts"][
@@ -260,13 +265,14 @@ def task_factory(
 
         return preds
 
-    @jit
+    @partial(jit, static_argnames="training")
     def loss_fn(
         batch: Dict[str, Array],
         nn_params: FrozenDict,
         rng: Optional[random.PRNGKey] = None,
+        training: bool = False,
     ) -> Tuple[Array, Dict[str, Array]]:
-        preds = forward_fn(batch, nn_params)
+        preds = forward_fn(batch, nn_params, rng=rng, training=training)
 
         q_static_pred_bt = preds["q_static_ts"]
         q_dynamic_pred_bt = preds["q_dynamic_ts"]

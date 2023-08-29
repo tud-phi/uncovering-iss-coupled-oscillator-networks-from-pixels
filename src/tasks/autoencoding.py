@@ -36,7 +36,6 @@ def task_factory(
     rec_loss_type: str = "mse",
     weight_on_foreground: float = None,
     ae_type: str = "None",
-    eval: bool = True,
 ) -> Tuple[TaskCallables, jm.Metrics]:
     """
     Factory function for the autoencoding task.
@@ -56,7 +55,6 @@ def task_factory(
             with the given weight for the masked area (usually the foreground).
         ae_type: Autoencoder type. If None, a normal autoencoder will be used.
             One of ["wae", "beta_vae", "None"]
-        eval: whether to use the model in eval mode (with for example no stochasticity in the latent space)
     Returns:
         task_callables: struct containing the functions for the learning task
         metrics: struct containing the metrics for the learning task
@@ -92,11 +90,12 @@ def task_factory(
             distribution="uniform", uniform_distr_range=uniform_distr_range
         )
 
-    @jit
+    @partial(jit, static_argnames="training")
     def forward_fn(
         batch: Dict[str, Array],
         nn_params: FrozenDict,
-        rng: Optional[random.PRNGKey] = None,  # TODO: add everywhere
+        rng: Optional[random.PRNGKey] = None,
+        training: bool = False,
     ) -> Dict[str, Array]:
         img_bt = assemble_input(batch)
         batch_size = batch["rendering_ts"].shape[0]
@@ -110,7 +109,7 @@ def task_factory(
                 method=nn_model.encode_vae,
                 **encode_kwargs,
             )
-            if eval is False:
+            if training is True:
                 # reparameterize
                 z_pred_bt = nn_model.reparameterize(rng, mu_bt, logvar_bt)
             else:
@@ -156,13 +155,14 @@ def task_factory(
 
         return preds
 
-    @jit
+    @partial(jit, static_argnames="training")
     def loss_fn(
         batch: Dict[str, Array],
         nn_params: FrozenDict,
         rng: Optional[random.PRNGKey] = None,
+        training: bool = False,
     ) -> Tuple[Array, Dict[str, Array]]:
-        preds = forward_fn(batch, nn_params, rng=rng)
+        preds = forward_fn(batch, nn_params, rng=rng, training=training)
 
         q_pred_bt = preds["q_ts"]
         q_target_bt = batch["x_ts"][..., : batch["x_ts"].shape[-1] // 2]

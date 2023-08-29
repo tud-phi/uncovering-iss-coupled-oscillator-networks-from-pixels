@@ -135,9 +135,11 @@ if __name__ == "__main__":
             show_pbar=True,
         )
 
-        val_loss_stps, val_rmse_rec_static_stps, val_rmse_rec_dynamic_stps = history.collect(
-            "loss_val", "rmse_rec_static_val", "rmse_rec_dynamic_val"
-        )
+        (
+            val_loss_stps,
+            val_rmse_rec_static_stps,
+            val_rmse_rec_dynamic_stps,
+        ) = history.collect("loss_val", "rmse_rec_static_val", "rmse_rec_dynamic_val")
         print(
             f"Trial {trial.number} finished after {elapsed.steps} training steps with "
             f"validation loss: {val_loss_stps[-1]:.5f}, rmse_rec_static: {val_rmse_rec_static_stps[-1]:.5f}, and rmse_rec_dynamic: {val_rmse_rec_dynamic_stps[-1]:.5f}"

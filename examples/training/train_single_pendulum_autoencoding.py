@@ -89,7 +89,6 @@ if __name__ == "__main__":
         rec_loss_type=rec_loss_type,
         # weight_on_foreground=0.15,
         ae_type=ae_type,
-        eval=False,
     )
 
     # run the training loop

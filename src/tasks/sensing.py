@@ -25,8 +25,10 @@ def assemble_input(batch) -> Array:
 def task_factory(
     system_type: str, nn_model: nn.Module
 ) -> Tuple[TaskCallables, jm.Metrics]:
-    @jit
-    def forward_fn(batch: Dict[str, Array], nn_params: FrozenDict) -> Dict[str, Array]:
+    @partial(jit, static_argnames="training")
+    def forward_fn(
+        batch: Dict[str, Array], nn_params: FrozenDict, training: bool = False
+    ) -> Dict[str, Array]:
         img_bt = assemble_input(batch)
 
         # output will be of shape batch_dim * time_dim x latent_dim
@@ -45,13 +47,14 @@ def task_factory(
 
         return preds
 
-    @jit
+    @partial(jit, static_argnames="training")
     def loss_fn(
         batch: Dict[str, Array],
         nn_params: FrozenDict,
         rng: Optional[random.PRNGKey] = None,
+        training: bool = False,
     ) -> Tuple[Array, Dict[str, Array]]:
-        preds = forward_fn(batch, nn_params)
+        preds = forward_fn(batch, nn_params, training=training)
 
         q_pred_bt = preds["q_ts"]
         q_target_bt = batch["x_ts"][..., : batch["x_ts"].shape[-1] // 2]
