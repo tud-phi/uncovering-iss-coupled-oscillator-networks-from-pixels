@@ -38,6 +38,7 @@ class VAE(nn.Module):
     latent_dim: int
     strides: Tuple[int, int] = (1, 1)
     nonlinearity: Callable = nn.leaky_relu
+    clip_decoder_output: bool = True
 
     def setup(self):
         self.encoder = Encoder(
@@ -60,6 +61,7 @@ class VAE(nn.Module):
             downsampled_img_dim=downsampled_img_dim,
             strides=self.strides,
             nonlinearity=self.nonlinearity,
+            clip_output=self.clip_decoder_output,
         )
 
     def __call__(self, x):

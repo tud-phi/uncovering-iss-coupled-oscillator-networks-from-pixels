@@ -37,6 +37,7 @@ class Decoder(nn.Module):
     downsampled_img_dim: Sequence = (2, 2, 768)
     strides: Tuple[int, int] = (1, 1)
     nonlinearity: Callable = nn.leaky_relu
+    clip_output: bool = True
 
     @nn.compact
     def __call__(self, x):
@@ -56,7 +57,8 @@ class Decoder(nn.Module):
         )(x)
 
         # clip to [-1, 1]
-        x = -1.0 + 2 * nn.sigmoid(x)
+        if self.clip_output:
+            x = -1.0 + 2 * nn.sigmoid(x)
 
         return x
 
@@ -68,6 +70,7 @@ class Autoencoder(nn.Module):
     latent_dim: int
     strides: Tuple[int, int] = (1, 1)
     nonlinearity: Callable = nn.leaky_relu
+    clip_decoder_output: bool = True
 
     def setup(self):
         self.encoder = Encoder(
@@ -90,6 +93,7 @@ class Autoencoder(nn.Module):
             downsampled_img_dim=downsampled_img_dim,
             strides=self.strides,
             nonlinearity=self.nonlinearity,
+            clip_output=self.clip_decoder_output,
         )
 
     def __call__(self, x):
