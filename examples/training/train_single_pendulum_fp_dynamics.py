@@ -23,11 +23,14 @@ tf.config.experimental.set_visible_devices([], "GPU")
 seed = 0
 rng = random.PRNGKey(seed=seed)
 
-num_epochs = 100
-batch_size = 10
-base_lr = 2e-3
+num_epochs = 50
+batch_size = 100
+base_lr = 0.00396567508177101
 warmup_epochs = 5
-loss_weights = dict(mse_q=0.0, mse_rec_static=5.0, mse_rec_dynamic=35.0)
+loss_weights = dict(mse_q=0.7013219779945796, mse_rec_static=1.0, mse_rec_dynamic=77.11768972549937)
+weight_decay = 1.7240460099242286e-05
+start_time_idx = 7
+configuration_velocity_source = "direct-finite-differences"
 
 now = datetime.now()
 logdir = Path("logs") / "single_pendulum_fp_dynamics" / f"{now:%Y-%m-%d_%H-%M-%S}"
@@ -62,7 +65,8 @@ if __name__ == "__main__":
         ode_fn=ode_factory(dynamical_matrices_fn, robot_params, tau=jnp.zeros((n_q,))),
         loss_weights=loss_weights,
         solver=dataset_metadata["solver_class"](),
-        configuration_velocity_source="image-space-finite-differences",
+        start_time_idx=start_time_idx,
+        configuration_velocity_source=configuration_velocity_source,
     )
 
     # run the training loop
@@ -77,7 +81,7 @@ if __name__ == "__main__":
         nn_model=nn_model,
         base_lr=base_lr,
         warmup_epochs=warmup_epochs,
-        weight_decay=0.0,
+        weight_decay=weight_decay,
         logdir=logdir,
     )
     print("Final training metrics:\n", state.metrics.compute())
