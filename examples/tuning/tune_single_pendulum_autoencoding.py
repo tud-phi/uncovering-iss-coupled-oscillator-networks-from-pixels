@@ -26,7 +26,8 @@ tf.config.experimental.set_visible_devices([], "GPU")
 seed = 0
 rng = random.PRNGKey(seed=seed)
 
-rec_loss_type = "bce"
+multi_objective = False  # whether to use a multi-objective optuna study
+rec_loss_type = "mse"
 ae_type = "beta_vae"
 
 latent_dim = 2
@@ -59,7 +60,12 @@ if __name__ == "__main__":
 
     # initialize the model
     if ae_type == "beta_vae":
-        nn_model = VAE(latent_dim=latent_dim, img_shape=img_shape, nonlinearity=jnp.tanh, clip_decoder_output=False)
+        nn_model = VAE(
+            latent_dim=latent_dim,
+            img_shape=img_shape,
+            nonlinearity=jnp.tanh,
+            clip_decoder_output=False,
+        )
     else:
         nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape)
 
@@ -68,8 +74,8 @@ if __name__ == "__main__":
         # Sample hyperparameters
         base_lr = trial.suggest_float("base_lr", 1e-5, 1e-2, log=True)
         beta = trial.suggest_float("beta", 1e-4, 1e1, log=True)
-        b1 = 0.9
-        b2 = 0.999
+        b1 = trial.suggest_float("b1", 0.9, 0.999, log=False)  # default b1 = 0.9
+        b2 = trial.suggest_float("b2", 0.999, 0.9999, log=False)  # default b2 = 0.999
         weight_decay = trial.suggest_float("weight_decay", 1e-7, 1e-2, log=True)
 
         if rec_loss_type == "mse":
@@ -94,7 +100,11 @@ if __name__ == "__main__":
             eval=False,
         )
 
-        prune_callback = OptunaPruneCallback(trial, metric_name="rmse_rec_val")
+        callbacks = []
+        if not multi_objective:
+            prune_callback = OptunaPruneCallback(trial, metric_name="rmse_rec_val")
+            callbacks = [prune_callback]
+        
         print(f"Running trial {trial.number}...")
         (state, history, elapsed) = run_training(
             rng=rng,
@@ -109,33 +119,44 @@ if __name__ == "__main__":
             b1=b1,
             b2=b2,
             weight_decay=weight_decay,
-            callbacks=[prune_callback],
+            callbacks=callbacks,
             logdir=None,
             show_pbar=False,
         )
 
-        val_loss_stps, val_rmse_rec_stps = history.collect("loss_val", "rmse_rec_val")
+        val_loss_stps, val_rmse_rec_stps, val_kld_stps = history.collect(
+            "loss_val", "rmse_rec_val", "kld_val"
+        )
         print(
-            f"Trial {trial.number} finished after {elapsed.steps} training steps with validation loss: {val_loss_stps[-1]:.5f}, rmse_rec: {val_rmse_rec_stps[-1]:.5f}"
+            f"Trial {trial.number} finished after {elapsed.steps} training steps with "
+            f"validation loss: {val_loss_stps[-1]:.5f}, rmse_rec: {val_rmse_rec_stps[-1]:.5f}, kld: {val_kld_stps[-1]}"
         )
 
-        return val_rmse_rec_stps[-1]
+        return val_rmse_rec_stps[-1], val_kld_stps[-1]
 
     # Add stream handler of stdout to show the messages
     optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
-    
+
     storage_name = f"sqlite:///{logdir}/optuna_study.db"
     sampler = TPESampler(seed=seed)  # Make the sampler behave in a deterministic way.
-    study = optuna.create_study(
-        study_name=study_id,
-        sampler=sampler,
-        pruner=optuna.pruners.SuccessiveHalvingPruner(),
-        storage=storage_name,
-    )  # Create a new study.
+    if multi_objective:
+        study = optuna.create_study(
+            study_name=study_id,
+            directions=["minimize", "minimize"],
+            sampler=sampler,
+            storage=storage_name,
+        )  # Create a new study.
+    else: 
+        study = optuna.create_study(
+            study_name=study_id,
+            sampler=sampler,
+            pruner=optuna.pruners.SuccessiveHalvingPruner(),
+            storage=storage_name,
+        )  # Create a new study.
 
     print(f"Run hyperparameter tuning with storage in {storage_name}...")
     study.optimize(
-        objective, n_trials=200
+        objective, n_trials=250
     )  # Invoke optimization of the objective function.
 
     with open(logdir / "optuna_study.dill", "wb") as f:

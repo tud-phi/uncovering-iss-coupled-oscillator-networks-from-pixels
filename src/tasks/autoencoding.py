@@ -108,7 +108,7 @@ def task_factory(
                 {"params": nn_params},
                 img_bt,
                 method=nn_model.encode_vae,
-                **encode_kwargs
+                **encode_kwargs,
             )
             if eval is False:
                 # reparameterize
@@ -179,6 +179,7 @@ def task_factory(
 
         if rec_loss_type == "bce":
             from optax import sigmoid_binary_cross_entropy
+
             # supervised binary cross entropy loss on the reconstructed image
             # first, we need to bring predictions and targets from the range [-1.0, 1.0] into the range [0, 1]
             img_label_bt = jnp.round(batch["rendering_ts"] / 2 + 0.5, decimals=0)
@@ -261,6 +262,13 @@ def task_factory(
                 threshold_cond_sign=-1,
                 weight_loss_masked_area=weight_on_foreground,
             )
+
+        if ae_type == "beta_vae":
+            # KLD loss
+            metrics["kld"] = kullback_leiber_divergence(
+                preds["mu_ts"], preds["logvar_ts"]
+            )
+
         return metrics
 
     task_callables = TaskCallables(
@@ -278,6 +286,9 @@ def task_factory(
         accumulated_metrics_dict["masked_rmse_rec"] = jm.metrics.Mean().from_argument(
             "masked_rmse_rec"
         )
+
+    if ae_type == "beta_vae":
+        accumulated_metrics_dict["kld"] = jm.metrics.Mean().from_argument("kld")
 
     accumulated_metrics = jm.Metrics(accumulated_metrics_dict)
 
