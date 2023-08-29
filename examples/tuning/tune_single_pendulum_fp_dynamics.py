@@ -113,7 +113,7 @@ if __name__ == "__main__":
         )
 
         # add the optuna prune callback
-        prune_callback = OptunaPruneCallback(trial, metric_name="rmse_rec_val")
+        prune_callback = OptunaPruneCallback(trial, metric_name="rmse_rec_dynamic_val")
         callbacks = [prune_callback]
 
         print(f"Running trial {trial.number}...")
@@ -132,18 +132,18 @@ if __name__ == "__main__":
             weight_decay=weight_decay,
             callbacks=callbacks,
             logdir=None,
-            show_pbar=False,
+            show_pbar=True,
         )
 
-        val_loss_stps, val_rmse_rec_stps, val_kld_stps = history.collect(
-            "loss_val", "rmse_rec_val", "kld_val"
+        val_loss_stps, val_rmse_rec_static_stps, val_rmse_rec_dynamic_stps = history.collect(
+            "loss_val", "rmse_rec_static_val", "rmse_rec_dynamic_val"
         )
         print(
             f"Trial {trial.number} finished after {elapsed.steps} training steps with "
-            f"validation loss: {val_loss_stps[-1]:.5f}, rmse_rec: {val_rmse_rec_stps[-1]:.5f}, kld: {val_kld_stps[-1]}"
+            f"validation loss: {val_loss_stps[-1]:.5f}, rmse_rec_static: {val_rmse_rec_static_stps[-1]:.5f}, and rmse_rec_dynamic: {val_rmse_rec_dynamic_stps[-1]:.5f}"
         )
 
-        return val_rmse_rec_stps[-1], val_kld_stps[-1]
+        return val_rmse_rec_dynamic_stps[-1]
 
     # Add stream handler of stdout to show the messages
     optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))

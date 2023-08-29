@@ -132,7 +132,10 @@ if __name__ == "__main__":
             f"validation loss: {val_loss_stps[-1]:.5f}, rmse_rec: {val_rmse_rec_stps[-1]:.5f}, kld: {val_kld_stps[-1]}"
         )
 
-        return val_rmse_rec_stps[-1], val_kld_stps[-1]
+        if multi_objective:
+            return val_rmse_rec_stps[-1], val_kld_stps[-1]
+        else:
+            return val_rmse_rec_stps[-1]
 
     # Add stream handler of stdout to show the messages
     optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
