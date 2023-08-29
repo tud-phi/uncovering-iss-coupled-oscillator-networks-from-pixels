@@ -31,7 +31,7 @@ ae_type = "beta_vae"
 
 latent_dim = 2
 normalize_latent_space = True
-max_num_epochs = 100
+max_num_epochs = 50
 warmup_epochs = 5
 batch_size = 100
 
@@ -59,7 +59,7 @@ if __name__ == "__main__":
 
     # initialize the model
     if ae_type == "beta_vae":
-        nn_model = VAE(latent_dim=latent_dim, img_shape=img_shape)
+        nn_model = VAE(latent_dim=latent_dim, img_shape=img_shape, nonlinearity=jnp.tanh, clip_decoder_output=False)
     else:
         nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape)
 
@@ -67,7 +67,7 @@ if __name__ == "__main__":
     def objective(trial):
         # Sample hyperparameters
         base_lr = trial.suggest_float("base_lr", 1e-5, 1e-2, log=True)
-        beta = trial.suggest_float("beta", 1e-3, 1e1, log=True)
+        beta = trial.suggest_float("beta", 1e-4, 1e1, log=True)
         b1 = 0.9
         b2 = 0.999
         weight_decay = trial.suggest_float("weight_decay", 1e-7, 1e-2, log=True)
@@ -135,7 +135,7 @@ if __name__ == "__main__":
 
     print(f"Run hyperparameter tuning with storage in {storage_name}...")
     study.optimize(
-        objective, n_trials=1000
+        objective, n_trials=200
     )  # Invoke optimization of the objective function.
 
     with open(logdir / "optuna_study.dill", "wb") as f:
