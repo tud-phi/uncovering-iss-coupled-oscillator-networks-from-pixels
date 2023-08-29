@@ -63,8 +63,6 @@ if __name__ == "__main__":
         nn_model = VAE(
             latent_dim=latent_dim,
             img_shape=img_shape,
-            nonlinearity=jnp.tanh,
-            clip_decoder_output=False,
         )
     else:
         nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape)

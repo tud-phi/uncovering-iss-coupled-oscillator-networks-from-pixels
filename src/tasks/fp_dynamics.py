@@ -7,7 +7,7 @@ import jax.numpy as jnp
 import jax_metrics as jm
 from jsrm.systems.pendulum import normalize_joint_angles
 from typing import Any, Callable, Dict, Optional, Tuple
-
+from src.losses.kld import kullback_leiber_divergence
 from src.metrics import NoReduce
 from src.structs import TaskCallables
 
@@ -35,6 +35,7 @@ def task_factory(
     solver: AbstractSolver = Dopri5(),
     start_time_idx: int = 1,
     configuration_velocity_source: str = "direct-finite-differences",
+    ae_type: str = "None",
 ) -> Tuple[TaskCallables, jm.Metrics]:
     """
     Factory function for the task of learning a representation using first-principle dynamics while using the
@@ -55,6 +56,8 @@ def task_factory(
             of finite differences for the latent-space velocity.
         configuration_velocity_source: the source of the configuration velocity.
             Can be either "direct-finite-differences", or "image-space-finite-differences"
+        ae_type: Autoencoder type. If None, a normal autoencoder will be used.
+            One of ["wae", "beta_vae", "None"]
     Returns:
         task_callables: struct containing the functions for the learning task
         metrics: struct containing the metrics for the learning task
@@ -74,12 +77,23 @@ def task_factory(
     # initiate ODE term from `ode_fn`
     ode_term = ODETerm(ode_fn)
 
+    if ae_type == "wae":
+        from src.losses import wae
+
+        if system_type == "pendulum":
+            uniform_distr_range = (-jnp.pi, jnp.pi)
+        else:
+            uniform_distr_range = (-1.0, 1.0)
+        wae_mmd_loss_fn = wae.make_wae_mdd_loss(
+            distribution="uniform", uniform_distr_range=uniform_distr_range
+        )
 
     @partial(jit, static_argnames="training")
     def forward_fn(
         batch: Dict[str, Array],
         nn_params: FrozenDict,
         rng: Optional[random.PRNGKey] = None,
+        training: bool = False,
     ) -> Dict[str, Array]:
         img_bt = batch["rendering_ts"]
         img_flat_bt = assemble_input(batch)
@@ -94,9 +108,25 @@ def task_factory(
         # static predictions by passing the image through the encoder
         # output will be of shape batch_dim * time_dim x latent_dim
         # if the system is a pendulum, the latent dim should be 2*n_q
-        encoder_output = nn_model.apply(
-            {"params": nn_params}, img_flat_bt, method=encode_fn, **encode_kwargs
-        )
+        if ae_type == "beta_vae":
+            # output will be of shape batch_dim * time_dim x latent_dim
+            mu_static_bt, logvar_static_bt = nn_model.apply(
+                {"params": nn_params},
+                img_flat_bt,
+                method=nn_model.encode_vae,
+                **encode_kwargs,
+            )
+            if training is True:
+                # reparameterize
+                encoder_output = nn_model.reparameterize(
+                    rng, mu_static_bt, logvar_static_bt
+                )
+            else:
+                encoder_output = mu_static_bt
+        else:
+            encoder_output = nn_model.apply(
+                {"params": nn_params}, img_flat_bt, method=encode_fn, **encode_kwargs
+            )
 
         if system_type == "pendulum":
             # if the system is a pendulum, we interpret the encoder output as sin(theta) and cos(theta) for each joint
@@ -305,6 +335,28 @@ def task_factory(
             + loss_weights["mse_rec_static"] * mse_rec_static
             + loss_weights["mse_rec_dynamic"] * mse_rec_dynamic
         )
+
+        if ae_type == "wae":
+            latent_dim = preds["q_ts"].shape[-1]
+
+            img_target_bt = assemble_input(batch)
+            img_pred_bt = preds["rendering_ts"].reshape(
+                (-1, *preds["rendering_ts"].shape[2:])
+            )
+            q_pred_bt = preds["q_ts"].reshape((-1, latent_dim))
+
+            # Wasserstein Autoencoder MMD loss
+            mmd_loss = wae_mmd_loss_fn(
+                x_rec=img_pred_bt, x_target=img_target_bt, z=q_pred_bt, rng=rng
+            )
+
+            loss = loss + loss_weights["mmd"] * mmd_loss
+        elif ae_type == "beta_vae":
+            # KLD loss
+            # https://github.com/clementchadebec/benchmark_VAE/blob/main/src/pythae/models/beta_vae/beta_vae_model.py#L101
+            kld_loss = kullback_leiber_divergence(preds["mu_ts"], preds["logvar_ts"])
+
+            loss = loss + loss_weights["beta"] * kld_loss
 
         return loss, preds
 

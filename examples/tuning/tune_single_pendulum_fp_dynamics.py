@@ -26,7 +26,7 @@ tf.config.experimental.set_visible_devices([], "GPU")
 seed = 0
 rng = random.PRNGKey(seed=seed)
 
-ae_type = "beta_vae"
+ae_type = "None"
 
 normalize_latent_space = True
 max_num_epochs = 50
@@ -67,7 +67,13 @@ if __name__ == "__main__":
     forward_kinematics_fn, dynamical_matrices_fn = factory(sym_exp_filepath)
 
     # initialize the model
-    nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape)
+    if ae_type == "beta_vae":
+        nn_model = VAE(
+            latent_dim=latent_dim,
+            img_shape=img_shape,
+        )
+    else:
+        nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape)
 
     # define the objective function for hyperparameter tuning
     def objective(trial):
@@ -88,16 +94,19 @@ if __name__ == "__main__":
             "configuration_velocity_source",
             ["direct-finite-differences", "image-space-finite-differences"],
         )
-        start_time_idx = trial.suggest_int("start_time_idx", 1, 7)
         # initialize the loss weights
         loss_weights = dict(
             mse_q=mse_q_weight,
             mse_rec_static=mse_rec_static_weight,
             mse_rec_dynamic=mse_rec_dynamic_weight,
         )
-
-        if ae_type != "beta_vae":
-            raise ValueError("Only beta_vae is supported for now")
+        start_time_idx = trial.suggest_int("start_time_idx", 1, 7)
+        if ae_type == "beta_vae":
+            beta = trial.suggest_float("beta", 1e-4, 1e1, log=True)
+            loss_weights["beta"] = beta
+        elif ae_type == "wae":
+            mmd = trial.suggest_float("mmd", 1e-4, 1e1, log=True)
+            loss_weights["mmd"] = mmd
 
         # call the factory function for the task
         task_callables, metrics = fp_dynamics.task_factory(
@@ -110,6 +119,7 @@ if __name__ == "__main__":
             solver=dataset_metadata["solver_class"](),
             configuration_velocity_source=configuration_velocity_source,
             start_time_idx=start_time_idx,
+            ae_type=ae_type,
         )
 
         # add the optuna prune callback
