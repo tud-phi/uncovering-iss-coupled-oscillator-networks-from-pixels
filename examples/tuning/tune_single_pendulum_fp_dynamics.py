@@ -74,7 +74,7 @@ if __name__ == "__main__":
         # Sample hyperparameters
         base_lr = trial.suggest_float("base_lr", 1e-4, 1e-2, log=True)
         # loss weights
-        mse_q = trial.suggest_float("mse_q", 1e-2, 1e2, log=True)
+        mse_q_weight = trial.suggest_float("mse_q_weight", 1e-2, 1e2, log=True)
         mse_rec_static_weight = 1.0
         mse_rec_dynamic_weight = trial.suggest_float(
             "mse_rec_dynamic_weight", 1e-1, 5e2, log=True
@@ -91,7 +91,7 @@ if __name__ == "__main__":
         start_time_idx = trial.suggest_int("start_time_idx", 1, 7)
         # initialize the loss weights
         loss_weights = dict(
-            mse_q=mse_q,
+            mse_q=mse_q_weight,
             mse_rec_static=mse_rec_static_weight,
             mse_rec_dynamic=mse_rec_dynamic_weight,
         )
