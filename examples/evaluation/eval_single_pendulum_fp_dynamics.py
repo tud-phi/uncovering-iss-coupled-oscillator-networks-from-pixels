@@ -14,6 +14,9 @@ from src.training.load_dataset import load_dataset
 from src.training.loops import run_eval
 from src.tasks import fp_dynamics
 from src.training.train_state_utils import restore_train_state
+from src.visualization.latent_space import (
+    visualize_mapping_from_configuration_to_latent_space,
+)
 
 # prevent tensorflow from loading everything onto the GPU, as we don't have enough memory for that
 tf.config.experimental.set_visible_devices([], "GPU")
@@ -25,7 +28,7 @@ batch_size = 8
 loss_weights = dict(mse_q=1.0, mse_rec_static=5.0, mse_rec_dynamic=5.0)
 
 sym_exp_filepath = Path("symbolic_expressions") / "single_pendulum.dill"
-ckpt_dir = Path("logs") / "single_pendulum_fp_dynamics" / "2023-05-05_09-09-21"
+ckpt_dir = Path("logs") / "single_pendulum_fp_dynamics" / "2023-08-29_20-37-55"
 
 
 if __name__ == "__main__":
@@ -76,6 +79,10 @@ if __name__ == "__main__":
         f"rmse_q_dynamic_stps={rmse_q_dynamic_stps[-1]:.3f}, "
         f"rmse_rec_static_stps={rmse_rec_static_stps[-1]:.3f}, "
         f"rmse_rec_dynamic_stps={rmse_rec_dynamic_stps[-1]:.3f}"
+    )
+
+    visualize_mapping_from_configuration_to_latent_space(
+        test_ds, state, task_callables, rng=rng
     )
 
     test_batch = next(test_ds.as_numpy_iterator())
