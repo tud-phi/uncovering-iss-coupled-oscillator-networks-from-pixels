@@ -12,6 +12,7 @@ import tensorflow as tf
 # jax_config.update("jax_platform_name", "cpu")  # set default device to 'cpu'
 
 from src.neural_networks.simple_cnn import Autoencoder
+from src.neural_networks.vae import VAE
 from src.tasks import fp_dynamics
 from src.training.load_dataset import load_dataset
 from src.training.loops import run_training
@@ -24,13 +25,29 @@ seed = 0
 rng = random.PRNGKey(seed=seed)
 
 num_epochs = 50
-batch_size = 100
-base_lr = 0.00396567508177101
 warmup_epochs = 5
-loss_weights = dict(mse_q=0.7013219779945796, mse_rec_static=1.0, mse_rec_dynamic=77.11768972549937)
-weight_decay = 1.7240460099242286e-05
-start_time_idx = 7
+batch_size = 100
+ae_type = "wae"  # "None", "beta_vae", "wae"
 configuration_velocity_source = "direct-finite-differences"
+
+if ae_type == "wae":
+    base_lr = 0.002645501263921337
+    loss_weights = dict(
+        mse_q=0.17923446274288507, 
+        mse_rec_static=1.0, 
+        mse_rec_dynamic=44.77484360640797,
+        mmd=0.11675524982544401
+    )
+    weight_decay = 2.5017288074367157e-05
+    start_time_idx = 2
+elif ae_type == "beta_vae":
+    raise NotImplementedError
+else:
+    # ae_type == "None"
+    base_lr = 0.00396567508177101
+    loss_weights = dict(mse_q=0.7013219779945796, mse_rec_static=1.0, mse_rec_dynamic=77.11768972549937)
+    weight_decay = 1.7240460099242286e-05
+    start_time_idx = 7
 
 now = datetime.now()
 logdir = Path("logs") / "single_pendulum_fp_dynamics" / f"{now:%Y-%m-%d_%H-%M-%S}"
@@ -51,12 +68,24 @@ if __name__ == "__main__":
     # extract the robot parameters from the dataset
     robot_params = dataset_metadata["system_params"]
     print(f"Robot parameters: {robot_params}")
+    # number of generalized coordinates
     n_q = train_ds.element_spec["x_ts"].shape[-1] // 2
+    # latent space shape
+    latent_dim = 2 * n_q
+    # image shape
     img_shape = train_ds.element_spec["rendering_ts"].shape[-3:]  # image shape
+
+    # get the dynamics function
     forward_kinematics_fn, dynamical_matrices_fn = pendulum.factory(sym_exp_filepath)
 
     # initialize the model
-    nn_model = Autoencoder(latent_dim=2 * n_q, img_shape=img_shape)
+    if ae_type == "beta_vae":
+        nn_model = VAE(
+            latent_dim=latent_dim,
+            img_shape=img_shape,
+        )
+    else:
+        nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape)
 
     # call the factory function for the sensing task
     task_callables, metrics = fp_dynamics.task_factory(
@@ -67,6 +96,7 @@ if __name__ == "__main__":
         solver=dataset_metadata["solver_class"](),
         start_time_idx=start_time_idx,
         configuration_velocity_source=configuration_velocity_source,
+        ae_type=ae_type,
     )
 
     # run the training loop
