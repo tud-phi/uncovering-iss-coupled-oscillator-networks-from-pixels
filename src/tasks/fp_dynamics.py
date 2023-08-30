@@ -92,7 +92,7 @@ def task_factory(
     def forward_fn(
         batch: Dict[str, Array],
         nn_params: FrozenDict,
-        rng: Optional[random.PRNGKey] = None,
+        rng: Optional[KeyArray] = None,
         training: bool = False,
     ) -> Dict[str, Array]:
         img_bt = batch["rendering_ts"]
@@ -308,7 +308,7 @@ def task_factory(
     def loss_fn(
         batch: Dict[str, Array],
         nn_params: FrozenDict,
-        rng: Optional[random.PRNGKey] = None,
+        rng: Optional[KeyArray] = None,
         training: bool = False,
     ) -> Tuple[Array, Dict[str, Array]]:
         preds = forward_fn(batch, nn_params, rng=rng, training=training)

@@ -192,7 +192,7 @@ def task_factory(
     def loss_fn(
         batch: Dict[str, Array],
         nn_params: FrozenDict,
-        rng: Optional[random.PRNGKey] = None,
+        rng: Optional[KeyArray] = None,
         training: bool = False,
     ) -> Tuple[Array, Dict[str, Array]]:
         preds = forward_fn(batch, nn_params, training=training)
