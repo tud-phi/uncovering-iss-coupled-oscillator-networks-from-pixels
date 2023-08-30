@@ -28,7 +28,7 @@ batch_size = 8
 loss_weights = dict(mse_q=1.0, mse_rec_static=5.0, mse_rec_dynamic=5.0)
 
 sym_exp_filepath = Path("symbolic_expressions") / "single_pendulum.dill"
-ckpt_dir = Path("logs") / "single_pendulum_fp_dynamics" / "2023-08-29_20-37-55"
+ckpt_dir = Path("logs") / "single_pendulum_fp_dynamics" / "2023-08-30_17-12-50"
 
 
 if __name__ == "__main__":
