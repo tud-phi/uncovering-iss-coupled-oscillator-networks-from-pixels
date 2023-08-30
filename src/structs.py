@@ -15,5 +15,5 @@ class TaskCallables:
 
 
 class TrainState(train_state.TrainState):
-    rngKeyArray
+    rng: random.KeyArray
     metrics: jm.Metrics
