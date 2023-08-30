@@ -2,6 +2,7 @@ from datetime import datetime
 import dill
 from jax import random
 from jax import config as jax_config
+jax_config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 from jsrm.integration import ode_factory
 from jsrm.systems.pendulum import factory, normalize_joint_angles
