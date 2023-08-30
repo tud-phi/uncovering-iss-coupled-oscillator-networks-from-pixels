@@ -29,7 +29,6 @@ rng = random.PRNGKey(seed=seed)
 
 ae_type = "wae"  # "None", "beta_vae", "wae"
 
-normalize_latent_space = True
 max_num_epochs = 50
 warmup_epochs = 5
 batch_size = 100
@@ -57,7 +56,7 @@ if __name__ == "__main__":
     robot_params = dataset_metadata["system_params"]
     print(f"Robot parameters: {robot_params}")
 
-    # dimension of the latent space
+    # number of generalized coordinates
     n_q = train_ds.element_spec["x_ts"].shape[-1] // 2
     # latent space shape
     latent_dim = 2 * n_q
