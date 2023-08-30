@@ -85,7 +85,6 @@ if __name__ == "__main__":
         mse_rec_dynamic_weight = trial.suggest_float(
             "mse_rec_dynamic_weight", 1e-1, 5e2, log=True
         )
-        # beta = trial.suggest_float("beta", 1e-4, 1e1, log=True)
         b1 = 0.9
         b2 = 0.999
         weight_decay = trial.suggest_float("weight_decay", 1e-5, 1e-3, log=True)
@@ -123,7 +122,7 @@ if __name__ == "__main__":
         )
 
         # add the optuna prune callback
-        prune_callback = OptunaPruneCallback(trial, metric_name="rmse_rec_dynamic_val")
+        prune_callback = OptunaPruneCallback(trial, metric_name="rmse_q_static_val")
         callbacks = [prune_callback]
 
         print(f"Running trial {trial.number}...")
@@ -147,15 +146,18 @@ if __name__ == "__main__":
 
         (
             val_loss_stps,
+            val_rmse_q_static_stps,
+            val_rmse_q_dynamic_stps,
             val_rmse_rec_static_stps,
             val_rmse_rec_dynamic_stps,
-        ) = history.collect("loss_val", "rmse_rec_static_val", "rmse_rec_dynamic_val")
+        ) = history.collect("loss_val", "rmse_q_static_val", "rmse_q_dynamic_val", "rmse_rec_static_val", "rmse_rec_dynamic_val")
         print(
             f"Trial {trial.number} finished after {elapsed.steps} training steps with "
-            f"validation loss: {val_loss_stps[-1]:.5f}, rmse_rec_static: {val_rmse_rec_static_stps[-1]:.5f}, and rmse_rec_dynamic: {val_rmse_rec_dynamic_stps[-1]:.5f}"
+            f"validation loss: {val_loss_stps[-1]:.5f}, rmse_q_static: {val_rmse_q_static_stps[-1]:.5f}, rmse_q_dynamic: {val_rmse_q_dynamic_stps[-1]:.5f}, "
+            f"rmse_rec_static: {val_rmse_rec_static_stps[-1]:.5f}, and rmse_rec_dynamic: {val_rmse_rec_dynamic_stps[-1]:.5f}"
         )
 
-        return val_rmse_rec_dynamic_stps[-1]
+        return val_rmse_q_static_stps[-1]
 
     # Add stream handler of stdout to show the messages
     optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
@@ -171,7 +173,7 @@ if __name__ == "__main__":
 
     print(f"Run hyperparameter tuning with storage in {storage_name}...")
     study.optimize(
-        objective, n_trials=1000
+        objective, n_trials=250
     )  # Invoke optimization of the objective function.
 
     with open(logdir / "optuna_study.dill", "wb") as f:
