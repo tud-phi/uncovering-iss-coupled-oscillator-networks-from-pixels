@@ -293,6 +293,15 @@ def task_factory(
             rendering_dynamic_ts=img_dynamic_pred_bt,
         )
 
+        if ae_type == "beta_vae":
+            # reshape to batch_dim x time_dim x n_q
+            preds["mu_static_ts"] = mu_static_bt.reshape(
+                (batch_size, -1, *mu_static_bt.shape[1:])
+            )
+            preds["logvar_static_ts"] = logvar_static_bt.reshape(
+                (batch_size, -1, *logvar_static_bt.shape[1:])
+            )
+
         return preds
 
     @partial(jit, static_argnames="training")
@@ -337,13 +346,13 @@ def task_factory(
         )
 
         if ae_type == "wae":
-            latent_dim = preds["q_ts"].shape[-1]
+            latent_dim = preds["q_static_ts"].shape[-1]
 
             img_target_bt = assemble_input(batch)
-            img_pred_bt = preds["rendering_ts"].reshape(
-                (-1, *preds["rendering_ts"].shape[2:])
+            img_pred_bt = preds["rendering_static_ts"].reshape(
+                (-1, *preds["rendering_static_ts"].shape[2:])
             )
-            q_pred_bt = preds["q_ts"].reshape((-1, latent_dim))
+            q_pred_bt = preds["q_static_ts"].reshape((-1, latent_dim))
 
             # Wasserstein Autoencoder MMD loss
             mmd_loss = wae_mmd_loss_fn(
@@ -354,7 +363,7 @@ def task_factory(
         elif ae_type == "beta_vae":
             # KLD loss
             # https://github.com/clementchadebec/benchmark_VAE/blob/main/src/pythae/models/beta_vae/beta_vae_model.py#L101
-            kld_loss = kullback_leiber_divergence(preds["mu_ts"], preds["logvar_ts"])
+            kld_loss = kullback_leiber_divergence(preds["mu_static_ts"], preds["logvar_static_ts"])
 
             loss = loss + loss_weights["beta"] * kld_loss
 
