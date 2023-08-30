@@ -27,7 +27,7 @@ tf.config.experimental.set_visible_devices([], "GPU")
 seed = 0
 rng = random.PRNGKey(seed=seed)
 
-ae_type = "None"
+ae_type = "wae"  # "None", "beta_vae", "wae"
 
 normalize_latent_space = True
 max_num_epochs = 50
