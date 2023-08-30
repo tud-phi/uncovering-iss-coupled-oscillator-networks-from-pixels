@@ -120,7 +120,7 @@ def reset_step(state: TrainState):
 
 
 def run_training(
-    rngKeyArray,
+    rng: random.KeyArray,
     train_ds: tf.data.Dataset,
     val_ds: tf.data.Dataset,
     task_callables: TaskCallables,

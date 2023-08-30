@@ -94,7 +94,7 @@ def task_factory(
     def forward_fn(
         batch: Dict[str, Array],
         nn_params: FrozenDict,
-        rng: Optional[KeyArray] = None,
+        rng: Optional[random.KeyArray] = None,
         training: bool = False,
     ) -> Dict[str, Array]:
         img_bt = assemble_input(batch)
@@ -159,7 +159,7 @@ def task_factory(
     def loss_fn(
         batch: Dict[str, Array],
         nn_params: FrozenDict,
-        rng: Optional[KeyArray] = None,
+        rng: Optional[random.KeyArray] = None,
         training: bool = False,
     ) -> Tuple[Array, Dict[str, Array]]:
         preds = forward_fn(batch, nn_params, rng=rng, training=training)
