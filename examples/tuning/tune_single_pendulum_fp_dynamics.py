@@ -78,21 +78,22 @@ if __name__ == "__main__":
     # define the objective function for hyperparameter tuning
     def objective(trial):
         # Sample hyperparameters
-        base_lr = trial.suggest_float("base_lr", 1e-4, 1e-2, log=True)
+        base_lr = trial.suggest_float("base_lr", 1e-3, 1e-2, log=True)
         # loss weights
-        mse_q_weight = trial.suggest_float("mse_q_weight", 1e-2, 1e2, log=True)
+        mse_q_weight = trial.suggest_float("mse_q_weight", 5e-3, 5e-1, log=True)
         mse_rec_static_weight = 1.0
         mse_rec_dynamic_weight = trial.suggest_float(
-            "mse_rec_dynamic_weight", 1e-1, 5e2, log=True
+            "mse_rec_dynamic_weight", 1e0, 5e2, log=True
         )
         b1 = 0.9
         b2 = 0.999
-        weight_decay = trial.suggest_float("weight_decay", 1e-5, 1e-3, log=True)
+        weight_decay = trial.suggest_float("weight_decay", 5e-6, 2e-4, log=True)
         # fp dynamics settings
-        configuration_velocity_source = trial.suggest_categorical(
-            "configuration_velocity_source",
-            ["direct-finite-differences", "image-space-finite-differences"],
-        )
+        # configuration_velocity_source = trial.suggest_categorical(
+        #     "configuration_velocity_source",
+        #     ["direct-finite-differences", "image-space-finite-differences"],
+        # )
+        configuration_velocity_source = "direct-finite-differences" # works generally better 
         # initialize the loss weights
         loss_weights = dict(
             mse_q=mse_q_weight,
