@@ -13,3 +13,9 @@ export PYTHONPATH="${PYTHONPATH}://src"
 # set the LD_LIBRARY_PATH to include the CUDA libraries
 # https://www.tensorflow.org/install/pip#linux
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/
+
+# mape sure that JAX runs deterministically
+# https://github.com/google/jax/issues/13672
+export XLA_FLAGS='--xla_gpu_deterministic_ops=true'
+export TF_DETERMINISTIC_OPS=1
+export TF_CUDNN_DETERMINISTIC=1

@@ -52,3 +52,7 @@ INTERNAL: RET_CHECK failure (external/org_tensorflow/tensorflow/compiler/xla/ser
 
 please reduce as documented [here](https://jax.readthedocs.io/en/latest/gpu_memory_allocation.html) the amount of memory 
 pre-allocated to the GPU.
+
+## Determinism
+
+**Attention:** XLA on GPU is not deterministic by default even when setting seeds for random number generation as documented [here](https://github.com/google/jax/issues/13672). Therefore it is essential, to set the environment variable `XLA_FLAGS` to `--xla_gpu_deterministic_ops=true` to ensure determinism. This is done automatically when running `source ./01-configure-env-vars.sh`.
