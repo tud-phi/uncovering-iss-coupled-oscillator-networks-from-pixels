@@ -28,6 +28,7 @@ tf.config.experimental.set_visible_devices([], "GPU")
 # initialize the pseudo-random number generator
 seed = 0
 rng = random.PRNGKey(seed=seed)
+tf.random.set_seed(seed=seed)
 
 batch_size = 10
 

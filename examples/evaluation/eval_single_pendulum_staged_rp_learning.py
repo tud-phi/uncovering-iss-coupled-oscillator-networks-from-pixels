@@ -21,6 +21,7 @@ tf.config.experimental.set_visible_devices([], "GPU")
 
 seed = 0
 rng = random.PRNGKey(seed=seed)
+tf.random.set_seed(seed=seed)
 
 latent_dim = 4
 config_dim = 2

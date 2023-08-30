@@ -20,6 +20,7 @@ tf.config.experimental.set_visible_devices([], "GPU")
 
 seed = 0
 rng = random.PRNGKey(seed=seed)
+tf.random.set_seed(seed=seed)
 
 batch_size = 8
 loss_weights = dict(mse_q=1.0, mse_rec_static=5.0, mse_rec_dynamic=5.0)
