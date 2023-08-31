@@ -28,21 +28,29 @@ tf.random.set_seed(seed=seed)
 num_epochs = 50
 warmup_epochs = 5
 batch_size = 100
-ae_type = "wae"  # "None", "beta_vae", "wae"
+ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 configuration_velocity_source = "direct-finite-differences"
 
 if ae_type == "wae":
     base_lr = 0.002645501263921337
     loss_weights = dict(
-        mse_q=0.17923446274288507, 
-        mse_rec_static=1.0, 
+        mse_q=0.17923446274288507,
+        mse_rec_static=1.0,
         mse_rec_dynamic=44.77484360640797,
         mmd=0.11675524982544401
     )
     weight_decay = 2.5017288074367157e-05
     start_time_idx = 2
 elif ae_type == "beta_vae":
-    raise NotImplementedError
+    base_lr = 0.0015269253186459557
+    loss_weights = dict(
+        mse_q=0.02720941808629067,
+        mse_rec_static=1.0,
+        mse_rec_dynamic=42.61685719433184,
+        beta=0.0007139133302465049
+    )
+    weight_decay = 2.712875723587171e-05
+    start_time_idx = 2
 else:
     # ae_type == "None"
     base_lr = 0.00396567508177101
