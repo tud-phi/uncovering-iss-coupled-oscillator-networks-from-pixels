@@ -10,6 +10,7 @@ from pathlib import Path
 import tensorflow as tf
 
 from src.autoencoders.simple_cnn import Autoencoder
+from src.autoencoders.vae import VAE
 from src.training.load_dataset import load_dataset
 from src.training.loops import run_eval
 from src.tasks import fp_dynamics
