@@ -2,6 +2,7 @@ from datetime import datetime
 import dill
 from jax import random
 from jax import config as jax_config
+
 jax_config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 from jsrm.integration import ode_factory
@@ -94,7 +95,9 @@ if __name__ == "__main__":
         #     "configuration_velocity_source",
         #     ["direct-finite-differences", "image-space-finite-differences"],
         # )
-        configuration_velocity_source = "direct-finite-differences" # works generally better 
+        configuration_velocity_source = (
+            "direct-finite-differences"  # works generally better
+        )
         # initialize the loss weights
         loss_weights = dict(
             mse_q=mse_q_weight,
@@ -152,7 +155,13 @@ if __name__ == "__main__":
             val_rmse_q_dynamic_stps,
             val_rmse_rec_static_stps,
             val_rmse_rec_dynamic_stps,
-        ) = history.collect("loss_val", "rmse_q_static_val", "rmse_q_dynamic_val", "rmse_rec_static_val", "rmse_rec_dynamic_val")
+        ) = history.collect(
+            "loss_val",
+            "rmse_q_static_val",
+            "rmse_q_dynamic_val",
+            "rmse_rec_static_val",
+            "rmse_rec_dynamic_val",
+        )
         print(
             f"Trial {trial.number} finished after {elapsed.steps} training steps with "
             f"validation loss: {val_loss_stps[-1]:.5f}, rmse_q_static: {val_rmse_q_static_stps[-1]:.5f}, rmse_q_dynamic: {val_rmse_q_dynamic_stps[-1]:.5f}, "

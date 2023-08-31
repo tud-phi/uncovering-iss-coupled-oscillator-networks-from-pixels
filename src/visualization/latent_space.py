@@ -28,7 +28,7 @@ def visualize_mapping_from_configuration_to_latent_space(
         )
         preds = task_callables.forward_fn(batch, state.params, rng=rng)
         q_bt = batch["x_ts"][..., : batch["x_ts"].shape[-1] // 2]
-        
+
         if "q_ts" in preds.keys():
             z_pred_bt = preds["q_ts"]
         elif "q_static_ts" in preds.keys():

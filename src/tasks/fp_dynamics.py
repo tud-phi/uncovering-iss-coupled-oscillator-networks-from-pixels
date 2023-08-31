@@ -364,7 +364,9 @@ def task_factory(
         elif ae_type == "beta_vae":
             # KLD loss
             # https://github.com/clementchadebec/benchmark_VAE/blob/main/src/pythae/models/beta_vae/beta_vae_model.py#L101
-            kld_loss = kullback_leiber_divergence(preds["mu_static_ts"], preds["logvar_static_ts"])
+            kld_loss = kullback_leiber_divergence(
+                preds["mu_static_ts"], preds["logvar_static_ts"]
+            )
 
             loss = loss + loss_weights["beta"] * kld_loss
 
