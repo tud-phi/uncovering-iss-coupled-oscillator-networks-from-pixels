@@ -12,8 +12,8 @@ import optuna
 from optuna.samplers import TPESampler
 import tensorflow as tf
 
-from src.neural_networks.simple_cnn import Autoencoder
-from src.neural_networks.vae import VAE
+from src.autoencoders.simple_cnn import Autoencoder
+from src.autoencoders.vae import VAE
 from src.tasks import fp_dynamics
 from src.training.callbacks import OptunaPruneCallback
 from src.training.load_dataset import load_dataset

@@ -7,9 +7,9 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import tensorflow as tf
 
-from src.neural_networks.convnext import ConvNeXtAutoencoder
-from src.neural_networks.simple_cnn import Autoencoder
-from src.neural_networks.vae import VAE
+from src.autoencoders.convnext import ConvNeXtAutoencoder
+from src.autoencoders.simple_cnn import Autoencoder
+from src.autoencoders.vae import VAE
 from src.tasks import autoencoding
 from src.training.load_dataset import load_dataset
 from src.training.loops import run_eval

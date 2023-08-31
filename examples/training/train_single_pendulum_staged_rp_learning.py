@@ -15,8 +15,8 @@ import tensorflow as tf
 
 # jax_config.update("jax_platform_name", "cpu")  # set default device to 'cpu'
 
-from src.neural_networks.simple_cnn import Autoencoder
-from src.neural_networks.staged_autoencoder import StagedAutoencoder
+from src.autoencoders.simple_cnn import Autoencoder
+from src.autoencoders.staged_autoencoder import StagedAutoencoder
 from src.tasks import autoencoding, fp_dynamics
 from src.training.load_dataset import load_dataset
 from src.training.loops import run_training
