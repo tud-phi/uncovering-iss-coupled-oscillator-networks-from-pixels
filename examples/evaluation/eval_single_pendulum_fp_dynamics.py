@@ -9,8 +9,8 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import tensorflow as tf
 
-from src.neural_networks.simple_cnn import Autoencoder
-from src.neural_networks.vae import VAE
+from src.autoencoders.simple_cnn import Autoencoder
+from src.autoencoders.vae import VAE
 from src.training.load_dataset import load_dataset
 from src.training.loops import run_eval
 from src.tasks import fp_dynamics
@@ -26,13 +26,11 @@ seed = 0
 rng = random.PRNGKey(seed=seed)
 tf.random.set_seed(seed=seed)
 
-batch_size = 10
-loss_weights = dict(mse_q=1.0, mse_rec_static=1.0, mse_rec_dynamic=1.0)
-start_time_idx = 3
-ae_type = "beta_vae"  # "None", "beta_vae", "wae"
+batch_size = 8
+loss_weights = dict(mse_q=1.0, mse_rec_static=5.0, mse_rec_dynamic=5.0)
 
 sym_exp_filepath = Path("symbolic_expressions") / "single_pendulum.dill"
-ckpt_dir = Path("logs") / "single_pendulum_fp_dynamics" / "2023-08-31_10-53-16"
+ckpt_dir = Path("logs") / "single_pendulum_fp_dynamics" / "2023-08-30_17-12-50"
 
 
 if __name__ == "__main__":
@@ -48,24 +46,12 @@ if __name__ == "__main__":
     # extract the robot parameters from the dataset
     robot_params = dataset_metadata["system_params"]
     print(f"Robot parameters: {robot_params}")
-    # number of generalized coordinates
     n_q = train_ds.element_spec["x_ts"].shape[-1] // 2
-    # latent space shape
-    latent_dim = 2 * n_q
-    # image shape
     img_shape = train_ds.element_spec["rendering_ts"].shape[-3:]  # image shape
-
-    # get the dynamics function
     forward_kinematics_fn, dynamical_matrices_fn = pendulum.factory(sym_exp_filepath)
 
     # initialize the model
-    if ae_type == "beta_vae":
-        nn_model = VAE(
-            latent_dim=latent_dim,
-            img_shape=img_shape,
-        )
-    else:
-        nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape)
+    nn_model = Autoencoder(latent_dim=2 * n_q, img_shape=img_shape)
 
     # call the factory function for the sensing task
     task_callables, metrics = fp_dynamics.task_factory(
@@ -74,7 +60,6 @@ if __name__ == "__main__":
         ode_fn=ode_factory(dynamical_matrices_fn, robot_params, tau=jnp.zeros((n_q,))),
         loss_weights=loss_weights,
         solver=dataset_metadata["solver_class"](),
-        start_time_idx=start_time_idx,
         configuration_velocity_source="direct-finite-differences",
     )
 
@@ -107,17 +92,12 @@ if __name__ == "__main__":
 
     for i in range(test_batch["x_ts"].shape[0]):
         print("Trajectory:", i)
-
-        print("Shape of test pred", test_preds["q_dynamic_ts"].shape, "shape of test batch", test_batch["x_ts"].shape)
-
-        print(f"Estimated initial velocity: {test_preds['x_dynamic_ts'][i, 0, n_q:]}, rad/s actual initial velocity: {test_batch['x_ts'][i, start_time_idx, n_q:]}")
-
-        for t in range(start_time_idx, test_batch["x_ts"].shape[1]):
+        for t in range(test_batch["x_ts"].shape[1]):
             print("Time step:", t)
             q_gt = test_batch["x_ts"][i, t, :n_q] / jnp.pi * 180
-            q_pred = test_preds["q_dynamic_ts"][i, t-start_time_idx, :n_q] / jnp.pi * 180
+            q_pred = test_preds["q_dynamic_ts"][i, t, :n_q] / jnp.pi * 180
             error_q = pendulum.normalize_joint_angles(
-                test_preds["q_dynamic_ts"][i, t-start_time_idx, :n_q] - test_batch["x_ts"][i, t, :n_q]
+                test_preds["q_dynamic_ts"][i, t, :n_q] - test_batch["x_ts"][i, t, :n_q]
             )
             print(
                 "Ground-truth q:",
@@ -132,7 +112,7 @@ if __name__ == "__main__":
             )
 
             img_gt = (128 * (1.0 + test_batch["rendering_ts"][i, t])).astype(jnp.uint8)
-            img_rec = (128 * (1.0 + test_preds["rendering_dynamic_ts"][i, t-start_time_idx])).astype(
+            img_rec = (128 * (1.0 + test_preds["rendering_dynamic_ts"][i, t])).astype(
                 jnp.uint8
             )
 

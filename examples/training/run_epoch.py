@@ -1,7 +1,7 @@
 from jax import random
 import tensorflow as tf
 
-from src.neural_networks.simple_cnn import Encoder
+from src.autoencoders.simple_cnn import Encoder
 from src.tasks import sensing
 from src.training.train_state_utils import initialize_train_state
 from src.training.load_dataset import load_dataset
