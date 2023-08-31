@@ -42,15 +42,15 @@ if ae_type == "wae":
     weight_decay = 2.5017288074367157e-05
     start_time_idx = 2
 elif ae_type == "beta_vae":
-    base_lr = 0.0015269253186459557
+    base_lr = 0.0016071488813346846
     loss_weights = dict(
-        mse_q=0.02720941808629067,
+        mse_q=0.05458926808374876,
         mse_rec_static=1.0,
-        mse_rec_dynamic=42.61685719433184,
-        beta=0.0007139133302465049
+        mse_rec_dynamic=35.57369398107525,
+        beta=0.001505505029022702
     )
-    weight_decay = 2.712875723587171e-05
-    start_time_idx = 2
+    weight_decay = 2.755442935349405e-05
+    start_time_idx = 1
 else:
     # ae_type == "None"
     base_lr = 0.00396567508177101
