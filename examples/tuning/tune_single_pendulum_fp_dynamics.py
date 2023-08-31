@@ -28,7 +28,7 @@ seed = 0
 rng = random.PRNGKey(seed=seed)
 tf.random.set_seed(seed=seed)
 
-ae_type = "wae"  # "None", "beta_vae", "wae"
+ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 
 max_num_epochs = 50
 warmup_epochs = 5
@@ -81,7 +81,7 @@ if __name__ == "__main__":
         # Sample hyperparameters
         base_lr = trial.suggest_float("base_lr", 1e-3, 1e-2, log=True)
         # loss weights
-        mse_q_weight = trial.suggest_float("mse_q_weight", 5e-3, 5e-1, log=True)
+        mse_q_weight = trial.suggest_float("mse_q_weight", 1e-2, 5e-1, log=True)
         mse_rec_static_weight = 1.0
         mse_rec_dynamic_weight = trial.suggest_float(
             "mse_rec_dynamic_weight", 1e0, 5e2, log=True
@@ -175,7 +175,7 @@ if __name__ == "__main__":
 
     print(f"Run hyperparameter tuning with storage in {storage_name}...")
     study.optimize(
-        objective, n_trials=250
+        objective, n_trials=1000
     )  # Invoke optimization of the objective function.
 
     with open(logdir / "optuna_study.dill", "wb") as f:
