@@ -108,16 +108,19 @@ if __name__ == "__main__":
     for i in range(test_batch["x_ts"].shape[0]):
         print("Trajectory:", i)
 
-        print("Shape of test pred", test_preds["q_dynamic_ts"].shape, "shape of test batch", test_batch["x_ts"].shape)
-
-        print(f"Estimated initial velocity: {test_preds['x_dynamic_ts'][i, 0, n_q:]}, rad/s actual initial velocity: {test_batch['x_ts'][i, start_time_idx, n_q:]}")
+        print(
+            f"Estimated initial velocity: {test_preds['x_dynamic_ts'][i, 0, n_q:]}rad/s, actual initial velocity: {test_batch['x_ts'][i, start_time_idx, n_q:]}rad/s"
+        )
 
         for t in range(start_time_idx, test_batch["x_ts"].shape[1]):
             print("Time step:", t)
             q_gt = test_batch["x_ts"][i, t, :n_q] / jnp.pi * 180
-            q_pred = test_preds["q_dynamic_ts"][i, t-start_time_idx, :n_q] / jnp.pi * 180
+            q_pred = (
+                test_preds["q_dynamic_ts"][i, t - start_time_idx, :n_q] / jnp.pi * 180
+            )
             error_q = pendulum.normalize_joint_angles(
-                test_preds["q_dynamic_ts"][i, t-start_time_idx, :n_q] - test_batch["x_ts"][i, t, :n_q]
+                test_preds["q_dynamic_ts"][i, t - start_time_idx, :n_q]
+                - test_batch["x_ts"][i, t, :n_q]
             )
             print(
                 "Ground-truth q:",
@@ -132,9 +135,9 @@ if __name__ == "__main__":
             )
 
             img_gt = (128 * (1.0 + test_batch["rendering_ts"][i, t])).astype(jnp.uint8)
-            img_rec = (128 * (1.0 + test_preds["rendering_dynamic_ts"][i, t-start_time_idx])).astype(
-                jnp.uint8
-            )
+            img_rec = (
+                128 * (1.0 + test_preds["rendering_dynamic_ts"][i, t - start_time_idx])
+            ).astype(jnp.uint8)
 
             fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, 5))
             img_gt_plot = axes[0].imshow(img_gt, vmin=0, vmax=255)

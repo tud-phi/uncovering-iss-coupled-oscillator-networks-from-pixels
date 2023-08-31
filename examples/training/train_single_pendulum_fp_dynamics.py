@@ -37,7 +37,7 @@ if ae_type == "wae":
         mse_q=0.17923446274288507,
         mse_rec_static=1.0,
         mse_rec_dynamic=44.77484360640797,
-        mmd=0.11675524982544401
+        mmd=0.11675524982544401,
     )
     weight_decay = 2.5017288074367157e-05
     start_time_idx = 2
@@ -47,14 +47,16 @@ elif ae_type == "beta_vae":
         mse_q=0.05458926808374876,
         mse_rec_static=1.0,
         mse_rec_dynamic=35.57369398107525,
-        beta=0.001505505029022702
+        beta=0.001505505029022702,
     )
     weight_decay = 2.755442935349405e-05
     start_time_idx = 1
 else:
     # ae_type == "None"
     base_lr = 0.00396567508177101
-    loss_weights = dict(mse_q=0.7013219779945796, mse_rec_static=1.0, mse_rec_dynamic=77.11768972549937)
+    loss_weights = dict(
+        mse_q=0.7013219779945796, mse_rec_static=1.0, mse_rec_dynamic=77.11768972549937
+    )
     weight_decay = 1.7240460099242286e-05
     start_time_idx = 7
 
