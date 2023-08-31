@@ -290,6 +290,7 @@ def task_factory(
             q_static_ts=q_static_pred_bt,
             rendering_static_ts=img_static_pred_bt,
             q_dynamic_ts=q_dynamic_pred_bt,
+            x_dynamic_ts=sol_bt.ys.astype(jnp.float32),  # the full state
             rendering_dynamic_ts=img_dynamic_pred_bt,
         )
 
