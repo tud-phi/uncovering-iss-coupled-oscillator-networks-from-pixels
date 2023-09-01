@@ -27,7 +27,6 @@ tf.config.experimental.set_visible_devices([], "GPU")
 # initialize the pseudo-random number generator
 seed = 0
 rng = random.PRNGKey(seed=seed)
-tf.random.set_seed(seed=seed)
 
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 
@@ -45,40 +44,14 @@ logdir.mkdir(parents=True, exist_ok=True)
 sym_exp_filepath = Path("symbolic_expressions") / "single_pendulum.dill"
 
 if __name__ == "__main__":
-    datasets, dataset_info, dataset_metadata = load_dataset(
-        "mechanical_system/single_pendulum_64x64px",
-        seed=seed,
-        batch_size=batch_size,
-        normalize=True,
-        grayscale=True,
-    )
-    train_ds, val_ds, test_ds = datasets["train"], datasets["val"], datasets["test"]
-
-    # extract the robot parameters from the dataset
-    robot_params = dataset_metadata["system_params"]
-    print(f"Robot parameters: {robot_params}")
-
-    # number of generalized coordinates
-    n_q = train_ds.element_spec["x_ts"].shape[-1] // 2
-    # latent space shape
-    latent_dim = 2 * n_q
-    # image shape
-    img_shape = train_ds.element_spec["rendering_ts"].shape[-3:]
-
     # get the dynamics function
     forward_kinematics_fn, dynamical_matrices_fn = factory(sym_exp_filepath)
 
-    # initialize the model
-    if ae_type == "beta_vae":
-        nn_model = VAE(
-            latent_dim=latent_dim,
-            img_shape=img_shape,
-        )
-    else:
-        nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape)
-
     # define the objective function for hyperparameter tuning
     def objective(trial):
+        # re-seed tensorflow
+        tf.random.set_seed(seed=seed)
+
         # Sample hyperparameters
         base_lr = trial.suggest_float("base_lr", 1e-3, 1e-2, log=True)
         # loss weights
@@ -111,6 +84,35 @@ if __name__ == "__main__":
         elif ae_type == "wae":
             mmd = trial.suggest_float("mmd", 1e-4, 1e1, log=True)
             loss_weights["mmd"] = mmd
+
+        datasets, dataset_info, dataset_metadata = load_dataset(
+            "mechanical_system/single_pendulum_64x64px",
+            seed=seed,
+            batch_size=batch_size,
+            normalize=True,
+            grayscale=True,
+        )
+        train_ds, val_ds, test_ds = datasets["train"], datasets["val"], datasets["test"]
+
+        # extract the robot parameters from the dataset
+        robot_params = dataset_metadata["system_params"]
+        print(f"Robot parameters: {robot_params}")
+
+        # number of generalized coordinates
+        n_q = train_ds.element_spec["x_ts"].shape[-1] // 2
+        # latent space shape
+        latent_dim = 2 * n_q
+        # image shape
+        img_shape = train_ds.element_spec["rendering_ts"].shape[-3:]
+
+        # initialize the model
+        if ae_type == "beta_vae":
+            nn_model = VAE(
+                latent_dim=latent_dim,
+                img_shape=img_shape,
+            )
+        else:
+            nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape)
 
         # call the factory function for the task
         task_callables, metrics = fp_dynamics.task_factory(

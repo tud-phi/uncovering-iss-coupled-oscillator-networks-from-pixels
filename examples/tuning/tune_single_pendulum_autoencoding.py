@@ -25,7 +25,6 @@ tf.config.experimental.set_visible_devices([], "GPU")
 # initialize the pseudo-random number generator
 seed = 0
 rng = random.PRNGKey(seed=seed)
-tf.random.set_seed(seed=seed)
 
 multi_objective = False  # whether to use a multi-objective optuna study
 rec_loss_type = "mse"
@@ -45,31 +44,11 @@ logdir = Path("logs") / experiment_name / datetime_str
 logdir.mkdir(parents=True, exist_ok=True)
 
 if __name__ == "__main__":
-    datasets, dataset_info, dataset_metadata = load_dataset(
-        "mechanical_system/single_pendulum_64x64px",
-        seed=seed,
-        batch_size=batch_size,
-        normalize=True,
-        grayscale=True,
-    )
-    train_ds, val_ds, test_ds = datasets["train"], datasets["val"], datasets["test"]
-
-    # dimension of the latent space
-    n_q = train_ds.element_spec["x_ts"].shape[-1] // 2
-    # image shape
-    img_shape = train_ds.element_spec["rendering_ts"].shape[-3:]
-
-    # initialize the model
-    if ae_type == "beta_vae":
-        nn_model = VAE(
-            latent_dim=latent_dim,
-            img_shape=img_shape,
-        )
-    else:
-        nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape)
-
     # define the objective function for hyperparameter tuning
     def objective(trial):
+        # re-seed tensorflow
+        tf.random.set_seed(seed=seed)
+
         # Sample hyperparameters
         base_lr = trial.suggest_float("base_lr", 1e-5, 1e-2, log=True)
         beta = trial.suggest_float("beta", 1e-4, 1e1, log=True)
@@ -86,6 +65,29 @@ if __name__ == "__main__":
 
         if ae_type != "beta_vae":
             raise ValueError("Only beta_vae is supported for now")
+        
+        datasets, dataset_info, dataset_metadata = load_dataset(
+            "mechanical_system/single_pendulum_64x64px",
+            seed=seed,
+            batch_size=batch_size,
+            normalize=True,
+            grayscale=True,
+        )
+        train_ds, val_ds, test_ds = datasets["train"], datasets["val"], datasets["test"]
+
+        # dimension of the latent space
+        n_q = train_ds.element_spec["x_ts"].shape[-1] // 2
+        # image shape
+        img_shape = train_ds.element_spec["rendering_ts"].shape[-3:]
+
+        # initialize the model
+        if ae_type == "beta_vae":
+            nn_model = VAE(
+                latent_dim=latent_dim,
+                img_shape=img_shape,
+            )
+        else:
+            nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape)
 
         # call the factory function for the sensing task
         train_task_callables, train_metrics = autoencoding.task_factory(
