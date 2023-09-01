@@ -7,7 +7,7 @@ import jax_metrics as jm
 from jsrm.systems.pendulum import normalize_joint_angles
 from typing import Callable, Dict, Optional, Tuple
 
-from src.metrics import NoReduce
+from src.metrics import NoReduce, RootMean
 from src.structs import TaskCallables
 
 
@@ -86,7 +86,7 @@ def task_factory(
             error_q = normalize_joint_angles(error_q)
 
         metrics = {
-            "rmse_q": jnp.sqrt(jnp.mean(jnp.square(error_q))),
+            "mse_q": jnp.mean(jnp.square(error_q)),
         }
         return metrics
 
@@ -94,7 +94,7 @@ def task_factory(
         {
             "loss": jm.metrics.Mean().from_argument("loss"),
             "lr": NoReduce().from_argument("lr"),
-            "rmse_q": jm.metrics.Mean().from_argument("rmse_q"),
+            "rmse_q": RootMean().from_argument("mse_q"),
         }
     )
 

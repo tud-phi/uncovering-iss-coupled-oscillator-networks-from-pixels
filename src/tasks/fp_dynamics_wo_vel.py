@@ -8,7 +8,7 @@ import jax_metrics as jm
 from jsrm.systems.pendulum import normalize_joint_angles
 from typing import Any, Callable, Dict, Optional, Tuple
 
-from src.metrics import NoReduce
+from src.metrics import NoReduce, RootMean
 from src.structs import TaskCallables
 
 
@@ -246,17 +246,13 @@ def task_factory(
             error_q_dynamic = normalize_joint_angles(error_q_dynamic)
 
         metrics = {
-            "rmse_q_static": jnp.sqrt(jnp.mean(jnp.square(error_q_static))),
-            "rmse_rec_static": jnp.sqrt(
-                jnp.mean(
-                    jnp.square(preds["rendering_static_ts"] - batch["rendering_ts"])
-                )
+            "mse_q_static": jnp.mean(jnp.square(error_q_static)),
+            "mse_rec_static": jnp.mean(
+                jnp.square(preds["rendering_static_ts"] - batch["rendering_ts"])
             ),
-            "rmse_q_dynamic": jnp.sqrt(jnp.mean(jnp.square(error_q_dynamic))),
-            "rmse_rec_dynamic": jnp.sqrt(
-                jnp.mean(
-                    jnp.square(preds["rendering_dynamic_ts"] - batch["rendering_ts"])
-                )
+            "mse_q_dynamic": jnp.mean(jnp.square(error_q_dynamic)),
+            "mse_rec_dynamic": jnp.mean(
+                jnp.square(preds["rendering_dynamic_ts"] - batch["rendering_ts"])
             ),
         }
         return metrics
@@ -269,10 +265,10 @@ def task_factory(
         {
             "loss": jm.metrics.Mean().from_argument("loss"),
             "lr": NoReduce().from_argument("lr"),
-            "rmse_q_static": jm.metrics.Mean().from_argument("rmse_q_static"),
-            "rmse_rec_static": jm.metrics.Mean().from_argument("rmse_rec_static"),
-            "rmse_q_dynamic": jm.metrics.Mean().from_argument("rmse_q_dynamic"),
-            "rmse_rec_dynamic": jm.metrics.Mean().from_argument("rmse_rec_dynamic"),
+            "rmse_q_static": RootMean().from_argument("mse_q_static"),
+            "rmse_rec_static": RootMean().from_argument("mse_rec_static"),
+            "rmse_q_dynamic": RootMean().from_argument("mse_q_dynamic"),
+            "rmse_rec_dynamic": RootMean().from_argument("mse_rec_dynamic"),
         }
     )
 

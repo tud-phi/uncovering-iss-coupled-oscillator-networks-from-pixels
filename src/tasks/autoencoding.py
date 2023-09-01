@@ -9,7 +9,7 @@ from typing import Any, Callable, Dict, Optional, Tuple
 
 from src.losses.kld import kullback_leiber_divergence
 from src.losses.masked_mse import masked_mse_loss
-from src.metrics import NoReduce
+from src.metrics import NoReduce, RootMean
 from src.structs import TaskCallables
 
 
@@ -248,15 +248,15 @@ def task_factory(
             error_q = normalize_joint_angles(error_q)
 
         metrics = {
-            "rmse_q": jnp.sqrt(jnp.mean(jnp.square(error_q))),
-            "rmse_rec": jnp.sqrt(
-                jnp.mean(jnp.square(preds["rendering_ts"] - batch["rendering_ts"]))
+            "mse_q": jnp.mean(jnp.square(error_q)),
+            "mse_rec": jnp.mean(
+                jnp.square(preds["rendering_ts"] - batch["rendering_ts"])
             ),
         }
 
         if weight_on_foreground is not None:
             # allows to equally weigh the importance of correctly reconstructing the foreground and background
-            metrics["masked_rmse_rec"] = masked_mse_loss(
+            metrics["masked_mse_rec"] = masked_mse_loss(
                 preds["rendering_ts"],
                 batch["rendering_ts"],
                 threshold_cond_sign=-1,
@@ -278,13 +278,13 @@ def task_factory(
     accumulated_metrics_dict = {
         "loss": jm.metrics.Mean().from_argument("loss"),
         "lr": NoReduce().from_argument("lr"),
-        "rmse_q": jm.metrics.Mean().from_argument("rmse_q"),
-        "rmse_rec": jm.metrics.Mean().from_argument("rmse_rec"),
+        "rmse_q": RootMean().from_argument("mse_q"),
+        "rmse_rec": RootMean().from_argument("mse_rec"),
     }
 
     if weight_on_foreground is not None:
-        accumulated_metrics_dict["masked_rmse_rec"] = jm.metrics.Mean().from_argument(
-            "masked_rmse_rec"
+        accumulated_metrics_dict["masked_mse_rec"] = RootMean().from_argument(
+            "masked_mse_rec"
         )
 
     if ae_type == "beta_vae":
