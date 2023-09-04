@@ -62,7 +62,11 @@ def initialize_train_state(
 
     # create the TrainState object for both neural networks
     state = TrainState.create(
-        apply_fn=nn_model.apply, params=nn_params, tx=tx, rng=rng, metrics=metrics_collection_cls.empty()
+        apply_fn=nn_model.apply,
+        params=nn_params,
+        tx=tx,
+        rng=rng,
+        metrics=metrics_collection_cls.empty(),
     )
 
     return state
@@ -97,7 +101,11 @@ def restore_train_state(
 
     # create the TrainState object for both neural networks
     state = TrainState.create(
-        apply_fn=nn_model.apply, params=nn_params, rng=rng, tx=tx, metrics=metrics_collection_cls.empty()
+        apply_fn=nn_model.apply,
+        params=nn_params,
+        rng=rng,
+        tx=tx,
+        metrics=metrics_collection_cls.empty(),
     )
 
     return state

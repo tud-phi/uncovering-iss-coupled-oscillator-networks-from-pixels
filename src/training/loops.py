@@ -59,7 +59,9 @@ def train_step(
 
     # compute metrics
     batch_metrics_dict = task_callables.compute_metrics_fn(batch, preds)
-    batch_metrics = state.metrics.single_from_model_output(loss=loss, lr=lr, **batch_metrics_dict)
+    batch_metrics = state.metrics.single_from_model_output(
+        loss=loss, lr=lr, **batch_metrics_dict
+    )
     merged_metrics = state.metrics.merge(batch_metrics)
     # update metrics in the training state
     state = state.replace(metrics=merged_metrics)
@@ -103,7 +105,9 @@ def eval_step(
 
     # compute metrics
     batch_metrics_dict = task_callables.compute_metrics_fn(batch, preds)
-    batch_metrics = state.metrics.single_from_model_output(loss=loss, lr=jnp.zeros(1), **batch_metrics_dict)
+    batch_metrics = state.metrics.single_from_model_output(
+        loss=loss, lr=jnp.zeros(1), **batch_metrics_dict
+    )
     merged_metrics = state.metrics.merge(batch_metrics)
     # update metrics in the training state
     state = state.replace(metrics=merged_metrics)

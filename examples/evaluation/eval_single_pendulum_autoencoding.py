@@ -76,7 +76,9 @@ if __name__ == "__main__":
         ae_type=ae_type,
     )
 
-    state = restore_train_state(rng, ckpt_dir, nn_model, metrics_collection_cls=metrics_collection_cls)
+    state = restore_train_state(
+        rng, ckpt_dir, nn_model, metrics_collection_cls=metrics_collection_cls
+    )
 
     print("Run testing...")
     state, test_history = run_eval(test_ds, state, task_callables)

@@ -65,7 +65,7 @@ if __name__ == "__main__":
 
         if ae_type != "beta_vae":
             raise ValueError("Only beta_vae is supported for now")
-        
+
         datasets, dataset_info, dataset_metadata = load_dataset(
             "mechanical_system/single_pendulum_64x64px",
             seed=seed,

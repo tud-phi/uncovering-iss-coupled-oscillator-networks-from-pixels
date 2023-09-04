@@ -52,7 +52,11 @@ if __name__ == "__main__":
 
     # initialize the train state
     state = initialize_train_state(
-        rng, nn_model, nn_dummy_input=nn_dummy_input, metrics_collection_cls=metrics_collection_cls, learning_rate_fn=lr_fn
+        rng,
+        nn_model,
+        nn_dummy_input=nn_dummy_input,
+        metrics_collection_cls=metrics_collection_cls,
+        learning_rate_fn=lr_fn,
     )
 
     state, train_loss, epoch_metrics = train_epoch(
