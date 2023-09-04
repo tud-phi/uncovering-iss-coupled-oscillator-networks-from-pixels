@@ -1,7 +1,7 @@
+from clu import metrics as clu_metrics
 from flax import struct
 from flax.training import train_state
 from jax import random
-import jax_metrics as jm
 from typing import Callable
 
 
@@ -16,4 +16,4 @@ class TaskCallables:
 
 class TrainState(train_state.TrainState):
     rng: random.KeyArray
-    metrics: jm.Metrics
+    metrics: clu_metrics.Collection

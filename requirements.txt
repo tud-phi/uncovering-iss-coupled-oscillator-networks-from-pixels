@@ -6,7 +6,6 @@ diffrax
 dill
 flax
 jax
-jax-metrics
 jax-models
 jax-soft-robot-modelling
 matplotlib

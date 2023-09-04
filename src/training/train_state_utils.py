@@ -1,8 +1,8 @@
+from clu import metrics as clu_metrics
 from flax import linen as nn  # Linen API
 from flax.training import orbax_utils
 from jax import Array, random
 import jax.numpy as jnp
-import jax_metrics as jm
 from orbax.checkpoint import (
     Checkpointer,
     CheckpointManager,
@@ -20,7 +20,7 @@ def initialize_train_state(
     rng: random.KeyArray,
     nn_model: nn.Module,
     nn_dummy_input: Array,
-    metrics: jm.Metrics,
+    metrics_collection_cls: Type[clu_metrics.Collection],
     init_fn: Optional[Callable] = None,
     init_kwargs: Dict[str, Any] = None,
     tx: optax.GradientTransformation = None,
@@ -35,7 +35,7 @@ def initialize_train_state(
         rng: PRNG key for pseudo-random number generation.
         nn_model: Neural network object.
         nn_dummy_input: Dummy input to initialize the neural network parameters.
-        metrics: Metrics object for respective task.
+        metrics_collection_cls: Metrics collection class for respective task.
         init_fn: Method of the neural network to call for initializing neural network parameters.
         init_kwargs: Keyword arguments for the `init_fn` of the neural network.
         tx: optimizer. Either an optimizer needs to be provided or a learning rate function.
@@ -62,7 +62,11 @@ def initialize_train_state(
 
     # create the TrainState object for both neural networks
     state = TrainState.create(
-        apply_fn=nn_model.apply, params=nn_params, tx=tx, rng=rng, metrics=metrics
+        apply_fn=nn_model.apply,
+        params=nn_params,
+        tx=tx,
+        rng=rng,
+        metrics=metrics_collection_cls.empty(),
     )
 
     return state
@@ -72,7 +76,7 @@ def restore_train_state(
     rng: random.KeyArray,
     ckpt_dir: os.PathLike,
     nn_model: nn.Module,
-    metrics: jm.Metrics,
+    metrics_collection_cls: Type[clu_metrics.Collection],
     step: int = None,
     learning_rate_fn: Union[float, Callable] = 0.0,
     b1: float = 0.9,
@@ -97,7 +101,11 @@ def restore_train_state(
 
     # create the TrainState object for both neural networks
     state = TrainState.create(
-        apply_fn=nn_model.apply, params=nn_params, rng=rng, tx=tx, metrics=metrics
+        apply_fn=nn_model.apply,
+        params=nn_params,
+        rng=rng,
+        tx=tx,
+        metrics=metrics_collection_cls.empty(),
     )
 
     return state

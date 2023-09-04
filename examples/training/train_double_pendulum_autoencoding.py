@@ -47,7 +47,7 @@ if __name__ == "__main__":
     nn_model = Autoencoder(latent_dim=n_q, img_shape=img_shape)
 
     # call the factory function for the sensing task
-    task_callables, metrics = autoencoding.task_factory(
+    task_callables, metrics_collection_cls = autoencoding.task_factory(
         "pendulum", nn_model, loss_weights=loss_weights
     )
 
@@ -58,7 +58,7 @@ if __name__ == "__main__":
         train_ds=train_ds,
         val_ds=val_ds,
         task_callables=task_callables,
-        metrics=metrics,
+        metrics_collection_cls=metrics_collection_cls,
         num_epochs=num_epochs,
         nn_model=nn_model,
         base_lr=base_lr,
@@ -69,7 +69,7 @@ if __name__ == "__main__":
     print("Final training metrics:\n", state.metrics.compute())
 
     print("Run testing...")
-    test_history = run_eval(test_ds, state, task_callables)
+    state, test_history = run_eval(test_ds, state, task_callables)
     rmse_q_stps, rmse_rec_stps = train_history.collect("rmse_q", "rmse_rec")
     print(
         f"Final test metrics: rmse_q={rmse_q_stps[-1]:.3f}, rmse_rec={rmse_rec_stps[-1]:.3f}"

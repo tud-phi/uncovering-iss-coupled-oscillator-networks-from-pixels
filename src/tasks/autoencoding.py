@@ -1,15 +1,17 @@
+from clu import metrics as clu_metrics
+from diffrax import AbstractSolver, diffeqsolve, Dopri5, ODETerm, SaveAt
 from flax.core import FrozenDict
+from flax.struct import dataclass
 from flax import linen as nn  # Linen API
 from functools import partial
 from jax import Array, debug, jit, random
 import jax.numpy as jnp
-import jax_metrics as jm
 from jsrm.systems.pendulum import normalize_joint_angles
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple, Type
 
 from src.losses.kld import kullback_leiber_divergence
 from src.losses.masked_mse import masked_mse_loss
-from src.metrics import NoReduce, RootMean
+from src.metrics import RootAverage
 from src.structs import TaskCallables
 
 
@@ -36,7 +38,7 @@ def task_factory(
     rec_loss_type: str = "mse",
     weight_on_foreground: float = None,
     ae_type: str = "None",
-) -> Tuple[TaskCallables, jm.Metrics]:
+) -> Tuple[TaskCallables, Type[clu_metrics.Collection]]:
     """
     Factory function for the autoencoding task.
     I.e. the task of reconstructing the input image with the latent space supervised by the configuration.
@@ -57,7 +59,7 @@ def task_factory(
             One of ["wae", "beta_vae", "None"]
     Returns:
         task_callables: struct containing the functions for the learning task
-        metrics: struct containing the metrics for the learning task
+        metrics_collection_cls: contains class for collecting metrics
     """
     if encode_fn is None:
         encode_fn = nn_model.encode
@@ -275,21 +277,19 @@ def task_factory(
         system_type, assemble_input, forward_fn, loss_fn, compute_metrics
     )
 
-    accumulated_metrics_dict = {
-        "loss": jm.metrics.Mean().from_argument("loss"),
-        "lr": NoReduce().from_argument("lr"),
-        "rmse_q": RootMean().from_argument("mse_q"),
-        "rmse_rec": RootMean().from_argument("mse_rec"),
-    }
+    @dataclass  # <-- required for JAX transformations
+    class MetricsCollection(clu_metrics.Collection):
+        loss: clu_metrics.Average.from_output("loss")
+        lr: clu_metrics.LastValue.from_output("lr")
+        rmse_q: RootAverage.from_output("mse_q")
+        rmse_rec: RootAverage.from_output("mse_rec")
 
-    if weight_on_foreground is not None:
-        accumulated_metrics_dict["masked_mse_rec"] = RootMean().from_argument(
-            "masked_mse_rec"
-        )
+        if weight_on_foreground is not None:
+            rmse_rec: RootAverage.from_output("masked_mse_rec")
 
-    if ae_type == "beta_vae":
-        accumulated_metrics_dict["kld"] = jm.metrics.Mean().from_argument("kld")
+        if ae_type == "beta_vae":
+            kld: clu_metrics.Average.from_output("kld")
 
-    accumulated_metrics = jm.Metrics(accumulated_metrics_dict)
+    metrics_collection_cls = MetricsCollection
 
-    return task_callables, accumulated_metrics
+    return task_callables, metrics_collection_cls

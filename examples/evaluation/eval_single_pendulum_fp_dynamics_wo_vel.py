@@ -50,7 +50,7 @@ if __name__ == "__main__":
     nn_model = Autoencoder(latent_dim=2 * n_q, img_shape=img_shape)
 
     # call the factory function for the sensing task
-    task_callables, metrics = fp_dynamics_wo_vel.task_factory(
+    task_callables, metrics_collection_cls = fp_dynamics_wo_vel.task_factory(
         "pendulum",
         nn_model,
         ode_fn=ode_factory(dynamical_matrices_fn, robot_params, tau=jnp.zeros((n_q,))),
@@ -58,24 +58,19 @@ if __name__ == "__main__":
         solver=dataset_metadata["solver_class"](),
     )
 
-    state = restore_train_state(rng, ckpt_dir, nn_model, metrics)
+    state = restore_train_state(rng, ckpt_dir, nn_model, metrics_collection_cls)
 
     print("Run testing...")
-    test_history = run_eval(test_ds, state, task_callables)
-    (
-        rmse_q_static_stps,
-        rmse_q_dynamic_stps,
-        rmse_rec_static_stps,
-        rmse_rec_dynamic_stps,
-    ) = test_history.collect(
-        "rmse_q_static", "rmse_q_dynamic", "rmse_rec_static", "rmse_rec_dynamic"
-    )
+    state, test_history = run_eval(test_ds, state, task_callables)
+
+    test_metrics = state.metrics.compute()
     print(
         "\n"
-        f"Final test metrics: rmse_q_static_stps={rmse_q_static_stps[-1]:.3f}, "
-        f"rmse_q_dynamic_stps={rmse_q_dynamic_stps[-1]:.3f}, "
-        f"rmse_rec_static_stps={rmse_rec_static_stps[-1]:.3f}, "
-        f"rmse_rec_dynamic_stps={rmse_rec_dynamic_stps[-1]:.3f}"
+        f"Final test metrics: "
+        f"rmse_q_static={test_metrics['rmse_q_static']:.4f}, "
+        f"rmse_q_dynamic={test_metrics['rmse_q_dynamic']:.4f}, "
+        f"rmse_rec_static={test_metrics['rmse_rec_static']:.4f}, "
+        f"rmse_rec_dynamic={test_metrics['rmse_rec_dynamic']:.4f}"
     )
 
     test_batch = next(test_ds.as_numpy_iterator())

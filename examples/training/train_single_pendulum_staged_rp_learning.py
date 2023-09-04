@@ -82,7 +82,10 @@ if __name__ == "__main__":
     nn_model = StagedAutoencoder(backbone=backbone, config_dim=2 * n_q)
 
     # call the factory function for the sensing task
-    autoencoding_task_callables, autoencoding_metrics = autoencoding.task_factory(
+    (
+        autoencoding_task_callables,
+        autoencoding_metrics_collection_cls,
+    ) = autoencoding.task_factory(
         "pendulum",
         nn_model,
         encode_kwargs=dict(use_head=False),
@@ -100,7 +103,7 @@ if __name__ == "__main__":
         train_ds=train_ds,
         val_ds=val_ds,
         task_callables=autoencoding_task_callables,
-        metrics=autoencoding_metrics,
+        metrics_collection_cls=autoencoding_metrics_collection_cls,
         num_epochs=hyperparams[0]["num_epochs"],
         nn_model=nn_model,
         init_kwargs=dict(use_head=True),
@@ -150,7 +153,7 @@ if __name__ == "__main__":
         train_ds=train_ds,
         val_ds=val_ds,
         task_callables=fp_dynamics_task_callables,
-        metrics=fp_dynamics_metrics,
+        metrics_collection_cls=fp_dynamics_metrics,
         num_epochs=hyperparams[1]["num_epochs"],
         state=state,
         tx=fp_dynamics_tx,
