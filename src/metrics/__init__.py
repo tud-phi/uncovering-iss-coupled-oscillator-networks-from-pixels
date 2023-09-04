@@ -1,2 +1,1 @@
-from .no_reduce import NoReduce
-from .root_mean import RootMean
+from .root_average import RootAverage

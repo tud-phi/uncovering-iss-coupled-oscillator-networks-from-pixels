@@ -45,7 +45,7 @@ if __name__ == "__main__":
     nn_model = ConvNeXtEncoder(latent_dim=n_q)
 
     # call the factory function for the sensing task
-    task_callables, metrics = sensing.task_factory("pendulum", nn_model)
+    task_callables, metrics_collection_cls = sensing.task_factory("pendulum", nn_model)
 
     # run the training loop
     print("Run training...")
@@ -54,7 +54,7 @@ if __name__ == "__main__":
         train_ds=train_ds,
         val_ds=val_ds,
         task_callables=task_callables,
-        metrics=metrics,
+        metrics_collection_cls=metrics_collection_cls,
         num_epochs=num_epochs,
         nn_model=nn_model,
         base_lr=base_lr,

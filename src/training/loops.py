@@ -1,16 +1,16 @@
 import ciclo
 from ciclo import Elapsed, History
+from clu import metrics as clu_metrics
 from flax import linen as nn  # Linen API
 from functools import partial
 import jax
 from jax import Array, debug, jit, random
 from jax.experimental import enable_x64
 import jax.numpy as jnp
-import jax_metrics as jm
 import optax
 from pathlib import Path
 import tensorflow as tf
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type
 
 from src.structs import TaskCallables, TrainState
 from src.training.checkpoint import OrbaxCheckpoint
@@ -38,8 +38,8 @@ def train_step(
         learning_rate_fn: A function that takes the current step and returns the current learning rate.
             It has the signature learning_rate_fn(step: int) -> lr.
     Returns:
+        logs: ciclo logs
         state: updated training state of the neural network
-        metrics: Dictionary of training metrics
     """
     # split the PRNG key
     rng, rng_loss_fn = random.split(state.rng)
@@ -58,14 +58,17 @@ def train_step(
     state = state.replace(rng=rng)
 
     # compute metrics
-    metrics_dict = task_callables.compute_metrics_fn(batch, preds)
-    metrics = state.metrics.update(loss=loss, lr=lr, **metrics_dict)
+    batch_metrics_dict = task_callables.compute_metrics_fn(batch, preds)
+    batch_metrics = state.metrics.single_from_model_output(loss=loss, lr=lr, **batch_metrics_dict)
+    merged_metrics = state.metrics.merge(batch_metrics)
+    # update metrics in the training state
+    state = state.replace(metrics=merged_metrics)
 
     # save metrics to logs
     logs = ciclo.logs()
-    logs.add_stateful_metrics(**metrics.compute())
+    logs.add_stateful_metrics(**merged_metrics.compute())
 
-    return logs, state.replace(metrics=metrics)
+    return logs, state
 
 
 @partial(
@@ -85,7 +88,8 @@ def eval_step(
         batch: dictionary of batch data
         task_callables: struct containing the functions for the learning task
     Returns:
-        metrics: Dictionary of validation metrics
+        logs: ciclo logs
+        state: updated training state of the neural network
     """
     # split the PRNG key
     rng, rng_loss_fn = random.split(state.rng)
@@ -98,12 +102,15 @@ def eval_step(
     state = state.replace(rng=rng)
 
     # compute metrics
-    metrics_dict = task_callables.compute_metrics_fn(batch, preds)
-    metrics = state.metrics.update(loss=loss, lr=jnp.zeros(()), **metrics_dict)
+    batch_metrics_dict = task_callables.compute_metrics_fn(batch, preds)
+    batch_metrics = state.metrics.single_from_model_output(loss=loss, lr=jnp.zeros(1), **batch_metrics_dict)
+    merged_metrics = state.metrics.merge(batch_metrics)
+    # update metrics in the training state
+    state = state.replace(metrics=merged_metrics)
 
     # save metrics to logs
     logs = ciclo.logs()
-    computed_metrics = metrics.compute()
+    computed_metrics = merged_metrics.compute()
     # delete the learning rate from the metrics
     del computed_metrics["lr"]
     logs.add_stateful_metrics(**computed_metrics)
@@ -116,7 +123,7 @@ def reset_step(state: TrainState):
     """
     Reset the metrics of the training state.
     """
-    return state.replace(metrics=state.metrics.reset())
+    return state.replace(metrics=state.metrics.empty())
 
 
 def run_training(
@@ -124,7 +131,7 @@ def run_training(
     train_ds: tf.data.Dataset,
     val_ds: tf.data.Dataset,
     task_callables: TaskCallables,
-    metrics: jm.Metrics,
+    metrics_collection_cls: Type[clu_metrics.Collection],
     num_epochs: int,
     state: Optional[TrainState] = None,
     nn_model: Optional[nn.Module] = None,
@@ -149,7 +156,7 @@ def run_training(
         train_ds: Training dataset as tf.data.Dataset object.
         val_ds: Validation dataset as tf.data.Dataset object.
         task_callables: struct containing the functions for the learning task
-        metrics: Struct containing the metrics to be computed during training.
+        metrics_collection_cls: Metrics collection class for respective task.
         num_epochs: Number of epochs to train for.
         state: TrainState object. If provided, the training will continue from this state.
         nn_model: Neural network model. Only needed if no TrainState is provided.
@@ -203,7 +210,7 @@ def run_training(
                 rng,
                 nn_model,
                 nn_dummy_input=nn_dummy_input,
-                metrics=metrics,
+                metrics_collection_cls=metrics_collection_cls,
                 init_fn=init_fn,
                 init_kwargs=init_kwargs,
                 tx=tx,
@@ -213,7 +220,7 @@ def run_training(
                 weight_decay=weight_decay,
             )
     else:
-        state = state.replace(metrics=metrics)
+        state = state.replace(metrics=metrics_collection_cls.empty())
 
         if tx is None:
             # initialize the Adam with weight decay optimizer for both neural networks
@@ -295,7 +302,7 @@ def run_eval(
         )
         callbacks.append(kbar)
 
-    _, history, _ = ciclo.test_loop(
+    state, history, _ = ciclo.test_loop(
         state,
         eval_ds.as_numpy_iterator(),
         tasks={

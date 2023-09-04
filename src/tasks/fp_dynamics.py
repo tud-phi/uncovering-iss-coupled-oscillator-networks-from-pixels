@@ -1,14 +1,16 @@
+from clu import metrics as clu_metrics
 from diffrax import AbstractSolver, diffeqsolve, Dopri5, ODETerm, SaveAt
 from flax.core import FrozenDict
+from flax.struct import dataclass
 from flax import linen as nn  # Linen API
 from functools import partial
 from jax import Array, debug, jacrev, jit, random, vmap
 import jax.numpy as jnp
-import jax_metrics as jm
 from jsrm.systems.pendulum import normalize_joint_angles
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple, Type
+
+from src.metrics import RootAverage
 from src.losses.kld import kullback_leiber_divergence
-from src.metrics import NoReduce, RootMean
 from src.structs import TaskCallables
 
 
@@ -36,7 +38,7 @@ def task_factory(
     start_time_idx: int = 1,
     configuration_velocity_source: str = "direct-finite-differences",
     ae_type: str = "None",
-) -> Tuple[TaskCallables, jm.Metrics]:
+) -> Tuple[TaskCallables, Type[clu_metrics.Collection]]:
     """
     Factory function for the task of learning a representation using first-principle dynamics while using the
     ground-truth velocity.
@@ -60,7 +62,7 @@ def task_factory(
             One of ["wae", "beta_vae", "None"]
     Returns:
         task_callables: struct containing the functions for the learning task
-        metrics: struct containing the metrics for the learning task
+        metrics_collection_cls: contains class for collecting metrics
     """
     if encode_fn is None:
         encode_fn = nn_model.encode
@@ -389,7 +391,7 @@ def task_factory(
             error_q_static = normalize_joint_angles(error_q_static)
             error_q_dynamic = normalize_joint_angles(error_q_dynamic)
 
-        metrics = {
+        return {
             "mse_q_static": jnp.mean(jnp.square(error_q_static)),
             "mse_rec_static": jnp.mean(
                 jnp.square(preds["rendering_static_ts"] - batch["rendering_ts"])
@@ -402,21 +404,19 @@ def task_factory(
                 )
             ),
         }
-        return metrics
 
     task_callables = TaskCallables(
         system_type, assemble_input, forward_fn, loss_fn, compute_metrics
     )
 
-    metrics = jm.Metrics(
-        {
-            "loss": jm.metrics.Mean().from_argument("loss"),
-            "lr": NoReduce().from_argument("lr"),
-            "rmse_q_static": RootMean().from_argument("mse_q_static"),
-            "rmse_rec_static": RootMean().from_argument("mse_rec_static"),
-            "rmse_q_dynamic": RootMean().from_argument("mse_q_dynamic"),
-            "rmse_rec_dynamic": RootMean().from_argument("mse_rec_dynamic"),
-        }
-    )
+    @dataclass  # <-- required for JAX transformations
+    class MetricsCollection(clu_metrics.Collection):
+        loss: clu_metrics.Average.from_output("loss")
+        lr: clu_metrics.LastValue.from_output("lr")
+        rmse_q_static: RootAverage.from_output("mse_q_static")
+        rmse_rec_static: RootAverage.from_output("mse_rec_static")
+        rmse_q_dynamic: RootAverage.from_output("mse_q_dynamic")
+        rmse_rec_dynamic: RootAverage.from_output("mse_rec_dynamic")
 
-    return task_callables, metrics
+    metrics_collection_cls = MetricsCollection
+    return task_callables, metrics_collection_cls

@@ -119,7 +119,7 @@ if __name__ == "__main__":
         nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape)
 
     # call the factory function for the sensing task
-    task_callables, metrics = fp_dynamics.task_factory(
+    task_callables, metrics_collection_cls = fp_dynamics.task_factory(
         "pendulum",
         nn_model,
         ode_fn=ode_factory(dynamical_matrices_fn, robot_params, tau=jnp.zeros((n_q,))),
@@ -137,7 +137,7 @@ if __name__ == "__main__":
         train_ds=train_ds,
         val_ds=val_ds,
         task_callables=task_callables,
-        metrics=metrics,
+        metrics_collection_cls=metrics_collection_cls,
         num_epochs=num_epochs,
         nn_model=nn_model,
         base_lr=base_lr,

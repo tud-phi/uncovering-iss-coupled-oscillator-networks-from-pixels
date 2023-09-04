@@ -115,7 +115,7 @@ if __name__ == "__main__":
             nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape)
 
         # call the factory function for the task
-        task_callables, metrics = fp_dynamics.task_factory(
+        task_callables, metrics_collection_cls = fp_dynamics.task_factory(
             "pendulum",
             nn_model,
             ode_fn=ode_factory(
@@ -138,7 +138,7 @@ if __name__ == "__main__":
             train_ds=train_ds,
             val_ds=val_ds,
             task_callables=task_callables,
-            metrics=metrics,
+            metrics_collection_cls=metrics_collection_cls,
             num_epochs=max_num_epochs,
             nn_model=nn_model,
             base_lr=base_lr,

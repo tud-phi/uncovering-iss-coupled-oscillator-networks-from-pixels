@@ -43,7 +43,7 @@ if __name__ == "__main__":
     nn_model = Encoder(latent_dim=1, img_shape=(64, 64, 1))
 
     # call the factory function for the sensing task
-    task_callables = sensing.task_factory(nn_model)
+    task_callables, metrics_collection_cls = sensing.task_factory("pendulum", nn_model)
 
     # extract dummy batch from dataset
     nn_dummy_batch = next(train_ds.as_numpy_iterator())
@@ -52,7 +52,7 @@ if __name__ == "__main__":
 
     # initialize the train state
     state = initialize_train_state(
-        rng, nn_model, nn_dummy_input=nn_dummy_input, learning_rate_fn=lr_fn
+        rng, nn_model, nn_dummy_input=nn_dummy_input, metrics_collection_cls=metrics_collection_cls, learning_rate_fn=lr_fn
     )
 
     state, train_loss, epoch_metrics = train_epoch(
