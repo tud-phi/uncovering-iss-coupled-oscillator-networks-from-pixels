@@ -72,7 +72,7 @@ if __name__ == "__main__":
     state = restore_train_state(rng, ckpt_dir, nn_model, metrics)
 
     print("Run testing...")
-    test_history = run_eval(test_ds, state, task_callables)
+    state, test_history = run_eval(test_ds, state, task_callables)
     (
         rmse_q_static_stps,
         rmse_q_dynamic_stps,

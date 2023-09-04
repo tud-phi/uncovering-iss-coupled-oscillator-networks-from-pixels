@@ -271,7 +271,7 @@ def run_eval(
     state: TrainState,
     task_callables: TaskCallables,
     show_pbar: bool = True,
-) -> ciclo.History:
+) -> Tuple[TrainState, ciclo.History]:
     """
     Run the test loop.
     Args:
@@ -280,6 +280,7 @@ def run_eval(
         task_callables: struct containing the functions for the learning task
         show_pbar: Whether to use a progress bar.
     Returns:
+        state: final TrainState object
         history: History object containing the test metrics.
     """
     callbacks = []
@@ -309,4 +310,4 @@ def run_eval(
         stop=len(eval_ds),
     )
 
-    return history
+    return state, history

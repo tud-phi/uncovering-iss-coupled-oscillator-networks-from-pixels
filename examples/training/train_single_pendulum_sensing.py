@@ -65,6 +65,6 @@ if __name__ == "__main__":
     print("Final training metrics:\n", state.metrics.compute())
 
     print("Run testing...")
-    test_history = run_eval(test_ds, state, task_callables)
+    state, test_history = run_eval(test_ds, state, task_callables)
     rmse_q_stps = test_history.collect("rmse_q")
     print(f"Final test metrics: rmse_q={rmse_q_stps[-1]:.3f}")
