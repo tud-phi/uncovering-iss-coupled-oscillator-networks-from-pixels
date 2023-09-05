@@ -28,7 +28,7 @@ tf.config.experimental.set_visible_devices([], "GPU")
 seed = 0
 rng = random.PRNGKey(seed=seed)
 
-ae_type = "beta_vae"  # "None", "beta_vae", "wae"
+ae_type = "wae"  # "None", "beta_vae", "wae"
 
 max_num_epochs = 50
 warmup_epochs = 5
@@ -77,7 +77,8 @@ if __name__ == "__main__":
             mse_rec_static=mse_rec_static_weight,
             mse_rec_dynamic=mse_rec_dynamic_weight,
         )
-        start_time_idx = trial.suggest_int("start_time_idx", 1, 7)
+        # start_time_idx = trial.suggest_int("start_time_idx", 1, 7)
+        start_time_idx = 1
         if ae_type == "beta_vae":
             beta = trial.suggest_float("beta", 1e-4, 1e1, log=True)
             loss_weights["beta"] = beta
@@ -129,7 +130,7 @@ if __name__ == "__main__":
         )
 
         # add the optuna prune callback
-        prune_callback = OptunaPruneCallback(trial, metric_name="rmse_q_static_val")
+        prune_callback = OptunaPruneCallback(trial, metric_name="rmse_rec_dynamic_val")
         callbacks = [prune_callback]
 
         print(f"Running trial {trial.number}...")
@@ -170,7 +171,7 @@ if __name__ == "__main__":
             f"rmse_rec_static: {val_rmse_rec_static_stps[-1]:.5f}, and rmse_rec_dynamic: {val_rmse_rec_dynamic_stps[-1]:.5f}"
         )
 
-        return val_rmse_q_static_stps[-1]
+        return val_rmse_rec_dynamic_stps[-1]
 
     # Add stream handler of stdout to show the messages
     optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
