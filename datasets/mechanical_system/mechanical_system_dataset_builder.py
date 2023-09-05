@@ -9,14 +9,14 @@ from typing import Optional
 
 
 @dataclasses.dataclass
-class DatasetConfig(tfds.core.BuilderConfig):
+class MechanicalSystemDatasetConfig(tfds.core.BuilderConfig):
     path: Optional[Path] = None
     state_dim: Optional[int] = None
     horizon_dim: int = 1
     img_size: tuple = (32, 32)
 
 
-class Builder(tfds.core.GeneratorBasedBuilder):
+class MechanicalSystemDatasetBuilder(tfds.core.GeneratorBasedBuilder):
     """DatasetBuilder for mechanical_system dataset."""
 
     VERSION = tfds.core.Version("1.0.0")
@@ -26,7 +26,7 @@ class Builder(tfds.core.GeneratorBasedBuilder):
     # pytype: disable=wrong-keyword-args
     BUILDER_CONFIGS = [
         # `name` (and optionally `description`) are required for each config
-        DatasetConfig(
+        MechanicalSystemDatasetConfig(
             name="single_pendulum_32x32px",
             description="Single pendulum dataset with images of size 32x32px.",
             path=Path("data") / "raw_datasets" / "single_pendulum_32x32px",
@@ -34,7 +34,7 @@ class Builder(tfds.core.GeneratorBasedBuilder):
             horizon_dim=11,
             img_size=(32, 32),
         ),
-        DatasetConfig(
+        MechanicalSystemDatasetConfig(
             name="single_pendulum_64x64px",
             description="Single pendulum dataset with images of size 64x64px.",
             path=Path("data") / "raw_datasets" / "single_pendulum_64x64px",
@@ -42,7 +42,7 @@ class Builder(tfds.core.GeneratorBasedBuilder):
             horizon_dim=11,
             img_size=(64, 64),
         ),
-        DatasetConfig(
+        MechanicalSystemDatasetConfig(
             name="double_pendulum_32x32px",
             description="Double pendulum dataset with images of size 32x32px.",
             path=Path("data") / "raw_datasets" / "double_pendulum_32x32px",
@@ -50,7 +50,7 @@ class Builder(tfds.core.GeneratorBasedBuilder):
             horizon_dim=11,
             img_size=(32, 32),
         ),
-        DatasetConfig(
+        MechanicalSystemDatasetConfig(
             name="double_pendulum_64x64px",
             description="Double pendulum dataset with images of size 64x64px.",
             path=Path("data") / "raw_datasets" / "double_pendulum_64x64px",
