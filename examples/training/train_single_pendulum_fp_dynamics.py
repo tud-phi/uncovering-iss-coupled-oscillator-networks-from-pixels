@@ -32,6 +32,7 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 configuration_velocity_source = "direct-finite-differences"
 
 if ae_type == "wae":
+    # with rmse_q_static objective
     # base_lr = 0.002645501263921337
     # loss_weights = dict(
     #     mse_q=0.17923446274288507,
@@ -41,36 +42,37 @@ if ae_type == "wae":
     # )
     # weight_decay = 2.5017288074367157e-05
     # start_time_idx = 2
-    base_lr = 0.004483143109063381
+    # with rmse_rec_dynamic objective
+    base_lr = 0.005172703488133171
     loss_weights = dict(
-        mse_q=0.1913280783303941,
+        mse_q=0.2695465212029283,
         mse_rec_static=1.0,
-        mse_rec_dynamic=47.27970103621441,
-        mmd=0.24540759902325135,
+        mse_rec_dynamic=22.30264086175223,
+        mmd=0.4348682813029425,
     )
-    weight_decay = 3.0095389006015424e-05
-    start_time_idx = 2
-elif ae_type == "beta_vae":
-    # with rmse_q_static objective
-    base_lr = 0.0016071488813346846
-    loss_weights = dict(
-        mse_q=0.05458926808374876,
-        mse_rec_static=1.0,
-        mse_rec_dynamic=35.57369398107525,
-        beta=0.001505505029022702,
-    )
-    weight_decay = 2.755442935349405e-05
+    weight_decay = 0.0001660747175371815
     start_time_idx = 1
-    # # with rmse_rec_dynamic objective
-    # base_lr = 0.003996288358765539
+elif ae_type == "beta_vae":
+    # # with rmse_q_static objective
+    # base_lr = 0.0016071488813346846
     # loss_weights = dict(
-    #     mse_q=0.09367371632305622,
+    #     mse_q=0.05458926808374876,
     #     mse_rec_static=1.0,
-    #     mse_rec_dynamic=227.65576981253614,
-    #     beta=0.0007157174734666605,
+    #     mse_rec_dynamic=35.57369398107525,
+    #     beta=0.001505505029022702,
     # )
-    # weight_decay = 5.2489850254299725e-05
+    # weight_decay = 2.755442935349405e-05
     # start_time_idx = 1
+    # with rmse_rec_dynamic objective
+    base_lr = 0.002353419319997345
+    loss_weights = dict(
+        mse_q=0.019601416440053525,
+        mse_rec_static=1.0,
+        mse_rec_dynamic=118.94483974763628,
+        beta=0.028185805822357596,
+    )
+    weight_decay = 4.972203024278259e-05
+    start_time_idx = 1
 else:
     # ae_type == "None"
     base_lr = 0.00396567508177101

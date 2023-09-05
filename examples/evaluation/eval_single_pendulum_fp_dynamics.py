@@ -31,8 +31,15 @@ loss_weights = dict(mse_q=1.0, mse_rec_static=1.0, mse_rec_dynamic=1.0)
 start_time_idx = 1
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 
+if ae_type == "wae":
+    experiment_id = "2023-09-05_17-03-27"
+elif ae_type == "beta_vae":
+    experiment_id = "2023-09-05_17-30-07"
+else:
+    raise NotImplementedError
+
 sym_exp_filepath = Path("symbolic_expressions") / "single_pendulum.dill"
-ckpt_dir = Path("logs") / "single_pendulum_fp_dynamics" / "2023-08-31_14-10-16"
+ckpt_dir = Path("logs") / "single_pendulum_fp_dynamics" / experiment_id
 
 
 if __name__ == "__main__":
