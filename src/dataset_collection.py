@@ -6,7 +6,7 @@ from jax import Array, lax, random
 import jax.numpy as jnp
 from pathlib import Path
 import shutil
-from typing import Callable, Dict, Type, TypeVar
+from typing import Callable, Dict, Optional, Type, TypeVar
 
 
 def collect_dataset(
@@ -20,6 +20,7 @@ def collect_dataset(
     state_init_max: Array,
     dataset_dir: str,
     solver: AbstractSolver = Dopri5(),
+    sim_dt: Optional[Array] = None,
     system_params: Dict[str, Array] = None,
 ):
     """
@@ -32,18 +33,25 @@ def collect_dataset(
         rng: PRNG key for random number generation.
         num_simulations: Number of simulations to run.
         horizon: Duration of each simulation [s].
-        dt: Time step used for simulation [s].
+        dt: Time step used for samples [s].
         state_init_min: Array with minimal values for the initial state of the simulation.
         state_init_max: Array with maximal values for the initial state of the simulation.
         dataset_dir: Directory to save the dataset.
         solver: Diffrax solver to use for the simulation.
+        sim_dt: Time step used for simulation [s].
         system_params: Dictionary with system parameters.
     """
     # initiate ODE term from `ode_fn`
     ode_term = ODETerm(ode_fn)
 
-    # initiate time steps array
+    # initiate time steps array of samples
     ts = jnp.arange(0, horizon + dt, dt)
+
+    # if the simulation time-step is not given, initialize it to the same value as the sample time step
+    if sim_dt is None:
+        sim_dt = dt
+    else:
+        assert sim_dt <= dt, "The simulation time step needs to be smaller than the sampling time step."
 
     # number of total samples
     num_samples = num_simulations * (ts.shape[0] - 1)
@@ -61,7 +69,7 @@ def collect_dataset(
     print("Dataset will be saved in:", dataset_path.resolve())
 
     # save the metadata
-    metadata = dict(solver_class=type(solver))
+    metadata = dict(solver_class=type(solver), sim_dt=sim_dt, dt=dt, ts=ts)
     if system_params is not None:
         metadata["system_params"] = system_params
     # save the metadata in the `dataset_dir`
@@ -89,7 +97,7 @@ def collect_dataset(
                 solver=solver,
                 t0=ts[0],
                 t1=ts[-1],
-                dt0=dt,
+                dt0=sim_dt,
                 y0=x0,
                 max_steps=None,
                 saveat=SaveAt(ts=ts),

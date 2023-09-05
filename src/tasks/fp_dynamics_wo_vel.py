@@ -34,6 +34,7 @@ def task_factory(
     decode_kwargs: Dict[str, Any] = None,
     loss_weights: Optional[Dict[str, float]] = None,
     solver: AbstractSolver = Dopri5(),
+    sim_dt: Optional[Array] = None,
 ) -> Tuple[TaskCallables, Type[clu_metrics.Collection]]:
     """
     Factory function for the task of learning a representation using first-principle dynamics while using the
@@ -50,6 +51,7 @@ def task_factory(
             ode_fn(t, x) -> x_dot
         loss_weights: the weights for the different loss terms
         solver: Diffrax solver to use for the simulation.
+        sim_dt: Time step used for simulation [s].
     Returns:
         task_callables: struct containing the functions for the learning task
         metrics_collection_cls: contains class for collecting metrics
@@ -77,7 +79,11 @@ def task_factory(
         t_ts = batch["t_ts"][
             0
         ]  # we just assume that the time steps are the same for all batch items
-        dt = (t_ts[1:] - t_ts[:-1]).mean()
+        if sim_dt is None:
+            # if sim_dt is not specified, we just use the time-step between samples
+            dt = (t_ts[1:] - t_ts[:-1]).mean()
+        else:
+            dt = sim_dt
 
         batch_size = batch["rendering_ts"].shape[0]
         n_q = batch["x_ts"].shape[-1] // 2  # number of generalized coordinates

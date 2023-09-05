@@ -124,6 +124,7 @@ if __name__ == "__main__":
             ),
             loss_weights=loss_weights,
             solver=dataset_metadata["solver_class"](),
+            sim_dt=dataset_metadata.get("sim_dt"),
             configuration_velocity_source=configuration_velocity_source,
             start_time_idx=start_time_idx,
             ae_type=ae_type,

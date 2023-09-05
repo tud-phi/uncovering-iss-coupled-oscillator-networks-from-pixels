@@ -66,6 +66,7 @@ if __name__ == "__main__":
         ode_fn=ode_factory(dynamical_matrices_fn, robot_params, tau=jnp.zeros((n_q,))),
         loss_weights=loss_weights,
         solver=dataset_metadata["solver_class"](),
+        sim_dt=dataset_metadata.get("sim_dt"),
         configuration_velocity_source="direct-finite-differences",
     )
 

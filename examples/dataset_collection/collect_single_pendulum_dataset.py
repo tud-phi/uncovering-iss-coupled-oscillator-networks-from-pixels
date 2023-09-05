@@ -79,5 +79,6 @@ if __name__ == "__main__":
         state_init_max=state_init_max,
         dataset_dir=str(dataset_dir),
         solver=Dopri5(),
+        sim_dt=jnp.array(dt),
         system_params=robot_params,
     )

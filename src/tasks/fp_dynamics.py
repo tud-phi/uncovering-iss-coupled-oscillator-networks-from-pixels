@@ -35,6 +35,7 @@ def task_factory(
     decode_kwargs: Dict[str, Any] = None,
     loss_weights: Optional[Dict[str, float]] = None,
     solver: AbstractSolver = Dopri5(),
+    sim_dt: Optional[Array] = None,
     start_time_idx: int = 1,
     configuration_velocity_source: str = "direct-finite-differences",
     ae_type: str = "None",
@@ -54,6 +55,7 @@ def task_factory(
             ode_fn(t, x) -> x_dot
         loss_weights: the weights for the different loss terms
         solver: Diffrax solver to use for the simulation.
+        sim_dt: Time step used for simulation [s].
         start_time_idx: the index of the time step to start the simulation at. Needs to be >=1 to enable the application
             of finite differences for the latent-space velocity.
         configuration_velocity_source: the source of the configuration velocity.
@@ -99,10 +101,13 @@ def task_factory(
     ) -> Dict[str, Array]:
         img_bt = batch["rendering_ts"]
         img_flat_bt = assemble_input(batch)
-        t_ts = batch["t_ts"][
-            0
-        ]  # we just assume that the time steps are the same for all batch items
-        dt = (t_ts[1:] - t_ts[:-1]).mean()
+        # we just assume that the time steps are the same for all batch items
+        t_ts = batch["t_ts"][0]
+        if sim_dt is None:
+            # if sim_dt is not specified, we just use the time-step between samples
+            dt = (t_ts[1:] - t_ts[:-1]).mean()
+        else:
+            dt = sim_dt
 
         batch_size = batch["rendering_ts"].shape[0]
         n_q = batch["x_ts"].shape[-1] // 2  # number of generalized coordinates

@@ -16,7 +16,7 @@ class MechanicalSystemDatasetConfig(tfds.core.BuilderConfig):
     img_size: tuple = (32, 32)
 
 
-class MechanicalSystemDatasetBuilder(tfds.core.GeneratorBasedBuilder):
+class MechanicalSystem(tfds.core.GeneratorBasedBuilder):
     """DatasetBuilder for mechanical_system dataset."""
 
     VERSION = tfds.core.Version("1.0.0")
@@ -105,6 +105,7 @@ class MechanicalSystemDatasetBuilder(tfds.core.GeneratorBasedBuilder):
     def _split_generators(self, dl_manager: tfds.download.DownloadManager):
         """Returns SplitGenerators."""
         shutil.copy(src=self.builder_config.path / "metadata.pkl", dst=self.data_path)
+
         return {
             "train": self._generate_examples(self.builder_config.path),
         }
