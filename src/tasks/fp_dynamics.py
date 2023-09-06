@@ -156,12 +156,18 @@ def task_factory(
 
         match configuration_velocity_source:
             case "direct-finite-differences":
+                q_static_pred_4_dfd_bt = q_static_pred_bt
+                if system_type == "pendulum":
+                    # for penduli, we might have a transition issue at the boundary of the [-pi, pi] range
+                    # so we unwrap the angles
+                    q_static_pred_4_dfd_bt = jnp.unwrap(q_static_pred_4_dfd_bt, axis=1)
+
                 # apply finite differences to the static latent representation to get the static latent velocity
                 q_d_static_fd_bt = vmap(
                     lambda _q_ts: jnp.gradient(_q_ts, sample_dt, axis=0),
                     in_axes=(0,),
                     out_axes=0,
-                )(q_static_pred_bt)
+                )(q_static_pred_4_dfd_bt)
 
                 # initial configuration velocity as estimated by finite differences
                 q_d_init_bt = q_d_static_fd_bt[:, start_time_idx, ...]
