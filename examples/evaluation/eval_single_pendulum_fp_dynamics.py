@@ -93,9 +93,10 @@ if __name__ == "__main__":
     test_metrics = state.metrics.compute()
     print(
         "\n"
-        f"Final test metrics: "
+        f"Final test metrics:\n"
         f"rmse_q_static={test_metrics['rmse_q_static']:.4f}, "
         f"rmse_q_dynamic={test_metrics['rmse_q_dynamic']:.4f}, "
+        f"rmse_q_d_dynamic={test_metrics['rmse_q_d_dynamic']:.4f},\n"
         f"rmse_rec_static={test_metrics['rmse_rec_static']:.4f}, "
         f"rmse_rec_dynamic={test_metrics['rmse_rec_dynamic']:.4f}"
     )

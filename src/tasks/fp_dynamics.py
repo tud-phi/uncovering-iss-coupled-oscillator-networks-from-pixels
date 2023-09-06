@@ -383,9 +383,11 @@ def task_factory(
     def compute_metrics(
         batch: Dict[str, Array], preds: Dict[str, Array]
     ) -> Dict[str, Array]:
+        n_q = batch["x_ts"].shape[-1] // 2  # number of generalized coordinates
+
         q_static_pred_bt = preds["q_static_ts"]
         q_dynamic_pred_bt = preds["q_dynamic_ts"]
-        q_target_bt = batch["x_ts"][..., : batch["x_ts"].shape[-1] // 2]
+        q_target_bt = batch["x_ts"][..., : n_q]
 
         # compute the configuration error
         error_q_static = q_static_pred_bt - q_target_bt
@@ -396,12 +398,16 @@ def task_factory(
             error_q_static = normalize_joint_angles(error_q_static)
             error_q_dynamic = normalize_joint_angles(error_q_dynamic)
 
+        # compute the configuration velocity error
+        error_q_d_dynamic = preds["x_dynamic_ts"][..., n_q:] - batch["x_ts"][:, start_time_idx:, n_q:]
+
         return {
             "mse_q_static": jnp.mean(jnp.square(error_q_static)),
             "mse_rec_static": jnp.mean(
                 jnp.square(preds["rendering_static_ts"] - batch["rendering_ts"])
             ),
             "mse_q_dynamic": jnp.mean(jnp.square(error_q_dynamic)),
+            "msq_q_d_dynamic": jnp.mean(jnp.square(error_q_d_dynamic)),
             "mse_rec_dynamic": jnp.mean(
                 jnp.square(
                     preds["rendering_dynamic_ts"]
@@ -421,6 +427,7 @@ def task_factory(
         rmse_q_static: RootAverage.from_output("mse_q_static")
         rmse_rec_static: RootAverage.from_output("mse_rec_static")
         rmse_q_dynamic: RootAverage.from_output("mse_q_dynamic")
+        rmse_q_d_dynamic: RootAverage.from_output("msq_q_d_dynamic")
         rmse_rec_dynamic: RootAverage.from_output("mse_rec_dynamic")
 
     metrics_collection_cls = MetricsCollection
