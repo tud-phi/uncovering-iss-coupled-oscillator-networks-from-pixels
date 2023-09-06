@@ -103,9 +103,10 @@ def task_factory(
         img_flat_bt = assemble_input(batch)
         # we just assume that the time steps are the same for all batch items
         t_ts = batch["t_ts"][0]
+        sample_dt = (t_ts[1:] - t_ts[:-1]).mean()
         if sim_dt is None:
             # if sim_dt is not specified, we just use the time-step between samples
-            dt = (t_ts[1:] - t_ts[:-1]).mean()
+            dt = sample_dt
         else:
             dt = sim_dt
 
@@ -157,7 +158,7 @@ def task_factory(
             case "direct-finite-differences":
                 # apply finite differences to the static latent representation to get the static latent velocity
                 q_d_static_fd_bt = vmap(
-                    lambda _q_ts: jnp.gradient(_q_ts, dt, axis=0),
+                    lambda _q_ts: jnp.gradient(_q_ts, sample_dt, axis=0),
                     in_axes=(0,),
                     out_axes=0,
                 )(q_static_pred_bt)
@@ -167,7 +168,7 @@ def task_factory(
             case "image-space-finite-differences":
                 # apply finite differences to the image space to get the image velocity
                 img_d_fd_bt = vmap(
-                    lambda _img_ts: jnp.gradient(_img_ts, dt, axis=0),
+                    lambda _img_ts: jnp.gradient(_img_ts, sample_dt, axis=0),
                     in_axes=(0,),
                     out_axes=0,
                 )(img_bt)
