@@ -46,7 +46,7 @@ tfds build datasets/mechanical_system --data_dir data/tensorflow_datasets --conf
 ### Planar PCS robot
 
 ```bash
-tfds build datasets/planar_pcs --data_dir data/tensorflow_datasets --config cc_64x64px --overwrite
+tfds build datasets/planar_pcs --data_dir data/tensorflow_datasets --config cc_128x128px --overwrite
 ```
 
 ## Tips & Tricks
