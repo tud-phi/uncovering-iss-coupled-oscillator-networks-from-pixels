@@ -10,7 +10,6 @@ from typing import List, Optional, Tuple
 
 @dataclasses.dataclass
 class PlanarPcsDatasetConfig(tfds.core.BuilderConfig):
-    path: Optional[Path] = None
     state_dim: Optional[int] = None
     horizon_dim: int = 11
     img_size: tuple = (128, 128)
@@ -100,10 +99,10 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
     def _split_generators(self, dl_manager: tfds.download.DownloadManager):
         """Returns SplitGenerators."""
         return {
-            "train": self._generate_examples(self.builder_config.path),
+            "train": self._generate_examples(),
         }
 
-    def _generate_examples(self, path: Path):
+    def _generate_examples(self):
         """Yields examples."""
         # lazy imports
         cv2 = tfds.core.lazy_imports.cv2
@@ -211,7 +210,7 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             dt=jnp.array(self.builder_config.dt),
             state_init_min=state_init_min,
             state_init_max=state_init_max,
-            dataset_dir=str(path),
+            dataset_dir=str(self.data_path),
             solver=diffrax.Dopri5(),
             sim_dt=jnp.array(self.builder_config.sim_dt),
             system_params=robot_params,
