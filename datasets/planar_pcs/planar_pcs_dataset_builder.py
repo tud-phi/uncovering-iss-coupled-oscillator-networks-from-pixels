@@ -37,7 +37,6 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
         PlanarPcsDatasetConfig(
             name="cc_128x128px",
             description="Planar constant curvature continuum robot with images of size 128x128px.",
-            path=Path("data") / "raw_datasets" / "cc_64x64px",
             state_dim=2,
             horizon_dim=11,
             img_size=(128, 128),
@@ -47,9 +46,8 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             q_d_max=(30 * jnp.pi,),
         ),
         PlanarPcsDatasetConfig(
-            name="cs_64x64px",
+            name="cs_128x128px",
             description="Planar constant strain continuum robot with images of size 128x128px.",
-            path=Path("data") / "raw_datasets" / "cc_128x128px",
             state_dim=6,
             horizon_dim=11,
             img_size=(128, 128),
