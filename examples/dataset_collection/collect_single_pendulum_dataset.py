@@ -29,7 +29,7 @@ num_links = robot_params["l"].shape[0]
 
 num_simulations = 20000  # number of simulations to run
 dt = 5e-2  # time step used for simulation [s]
-horizon = 5e-1  # duration of each simulation [s]
+horizon_dim = 11  # number of samples in each trajectory
 # maximum magnitude of the initial joint velocity [rad/s]
 max_q_d_0 = jnp.pi * jnp.ones((num_links,))
 
@@ -73,7 +73,7 @@ if __name__ == "__main__":
         rendering_fn=rendering_fn,
         rng=rng,
         num_simulations=num_simulations,
-        horizon=jnp.array(horizon),
+        horizon_dim=horizon_dim,
         dt=jnp.array(dt),
         state_init_min=state_init_min,
         state_init_max=state_init_max,
@@ -81,4 +81,6 @@ if __name__ == "__main__":
         solver=Dopri5(),
         sim_dt=jnp.array(dt),
         system_params=robot_params,
+        do_yield=False,
+        save_raw_data=True,
     )

@@ -5,6 +5,7 @@ from jax import config as jax_config
 
 jax_config.update("jax_enable_x64", True)
 import jax.numpy as jnp
+import jsrm
 from jsrm.integration import ode_factory
 from jsrm.systems.pendulum import factory, normalize_joint_angles
 import logging
@@ -41,7 +42,11 @@ study_id = f"study-{experiment_name}-{datetime_str}"  # Unique identifier of the
 logdir = Path("logs") / experiment_name / datetime_str
 logdir.mkdir(parents=True, exist_ok=True)
 
-sym_exp_filepath = Path("symbolic_expressions") / "single_pendulum.dill"
+sym_exp_filepath = (
+    Path(jsrm.__file__).parent
+    / "symbolic_expressions"
+    / f"pendulum_nl-1.dill"
+)
 
 if __name__ == "__main__":
     # get the dynamics function

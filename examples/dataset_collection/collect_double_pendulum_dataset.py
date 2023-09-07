@@ -7,6 +7,7 @@ jax_config.update("jax_platform_name", "cpu")  # set default device to 'cpu'
 jax_config.update("jax_enable_x64", True)  # double precision
 from jax import random
 import jax.numpy as jnp
+import jsrm
 from jsrm.integration import ode_factory
 from jsrm.systems import euler_lagrangian, pendulum
 import matplotlib.pyplot as plt
@@ -16,7 +17,11 @@ from src.dataset_collection import collect_dataset
 from src.rendering import render_pendulum
 
 
-sym_exp_filepath = Path("symbolic_expressions") / "double_pendulum.dill"
+sym_exp_filepath = (
+    Path(jsrm.__file__).parent
+    / "symbolic_expressions"
+    / f"pendulum_nl-2.dill"
+)
 
 robot_params = {
     "m": jnp.array([10.0, 6.0]),
@@ -30,7 +35,7 @@ num_links = robot_params["l"].shape[0]
 
 num_simulations = 20000  # number of simulations to run
 dt = 1e-2  # time step used for simulation [s]
-horizon = 1e-1  # duration of each simulation [s]
+horizon_dim = 11  # number of samples in each trajectory
 # maximum magnitude of the initial joint velocity [rad/s]
 max_q_d_0 = 2 * jnp.pi * jnp.ones((num_links,))
 
@@ -74,11 +79,13 @@ if __name__ == "__main__":
         rendering_fn=rendering_fn,
         rng=rng,
         num_simulations=num_simulations,
-        horizon=jnp.array(horizon),
+        horizon_dim=horizon_dim,
         dt=jnp.array(dt),
         state_init_min=state_init_min,
         state_init_max=state_init_max,
         dataset_dir=str(dataset_dir),
         solver=Dopri5(),
         system_params=robot_params,
+        do_yield=False,
+        save_raw_data=True,
     )

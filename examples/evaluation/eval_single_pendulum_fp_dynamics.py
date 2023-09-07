@@ -3,6 +3,7 @@ from jax import config as jax_config
 jax_config.update("jax_enable_x64", True)
 from jax import Array, jacfwd, jacrev, random
 import jax.numpy as jnp
+import jsrm
 from jsrm.integration import ode_factory
 from jsrm.systems import pendulum
 import matplotlib.pyplot as plt
@@ -38,7 +39,11 @@ elif ae_type == "beta_vae":
 else:
     raise NotImplementedError
 
-sym_exp_filepath = Path("symbolic_expressions") / "single_pendulum.dill"
+sym_exp_filepath = (
+    Path(jsrm.__file__).parent
+    / "symbolic_expressions"
+    / f"pendulum_nl-1.dill"
+)
 ckpt_dir = Path("logs") / "single_pendulum_fp_dynamics" / experiment_id
 
 

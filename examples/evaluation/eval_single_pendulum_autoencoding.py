@@ -2,6 +2,7 @@ from datetime import datetime
 from jax import random
 from jax import config as jax_config
 import jax.numpy as jnp
+import jsrm
 from jsrm.systems.pendulum import normalize_joint_angles
 import matplotlib.pyplot as plt
 from pathlib import Path
@@ -44,7 +45,11 @@ else:
     ckpt_dir = Path("logs") / "single_pendulum_autoencoding" / "2023-04-26_15-57-20"
     loss_weights = dict(mse_q=1.0, mse_rec=5.0)
 
-sym_exp_filepath = Path("symbolic_expressions") / "single_pendulum.dill"
+sym_exp_filepath = (
+    Path(jsrm.__file__).parent
+    / "symbolic_expressions"
+    / f"pendulum_nl-1.dill"
+)
 
 if __name__ == "__main__":
     datasets, dataset_info, dataset_metadata = load_dataset(
