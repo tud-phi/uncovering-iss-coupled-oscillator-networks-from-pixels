@@ -15,7 +15,7 @@ class PlanarPcsDatasetConfig(tfds.core.BuilderConfig):
     horizon_dim: int = 11
     img_size: tuple = (128, 128)
     num_segments: int = 1
-    strain_selector: Optional[Tuple] = None,
+    strain_selector: Optional[Tuple] = (None,)
     q_max: Tuple = (3 * jnp.pi, 0.02, 0.1)
     q_d_max: Tuple = (3 * jnp.pi, 0.02, 0.1)
     num_simulations: int = 20000
@@ -43,8 +43,8 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             img_size=(128, 128),
             num_segments=1,
             strain_selector=(True, False, False),
-            q_max=(3 * jnp.pi, ),
-            q_d_max=(3 * jnp.pi, ),
+            q_max=(3 * jnp.pi,),
+            q_d_max=(3 * jnp.pi,),
         ),
         PlanarPcsDatasetConfig(
             name="cs_64x64px",
@@ -136,13 +136,13 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
 
         # set robot parameters
         strain_selector = jnp.array(self.builder_config.strain_selector)
-        rho = 1070 * jnp.ones((self.builder_config.num_segments,))  # Volumetric density of Dragon Skin 20 [kg/m^3]
+        rho = 1070 * jnp.ones(
+            (self.builder_config.num_segments,)
+        )  # Volumetric density of Dragon Skin 20 [kg/m^3]
         # damping matrix
         D = 1e-5 * jnp.diag(
             jnp.repeat(
-                jnp.array([1e0, 1e3, 1e3]),
-                self.builder_config.num_segments,
-                axis=0
+                jnp.array([1e0, 1e3, 1e3]), self.builder_config.num_segments, axis=0
             ),
         )
         robot_params = {
@@ -151,8 +151,10 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             "r": 2e-2 * jnp.ones((self.builder_config.num_segments,)),
             "rho": rho,
             "g": jnp.array([0.0, -9.81]),
-            "E": 1e4 * jnp.ones((self.builder_config.num_segments,)),  # Elastic modulus [Pa]
-            "G": 1e3 * jnp.ones((self.builder_config.num_segments,)),  # Shear modulus [Pa]
+            "E": 1e4
+            * jnp.ones((self.builder_config.num_segments,)),  # Elastic modulus [Pa]
+            "G": 1e3
+            * jnp.ones((self.builder_config.num_segments,)),  # Shear modulus [Pa]
             "D": D,
         }
 
@@ -163,15 +165,15 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
 
         n_q = self.builder_config.state_dim // 2  # number of configuration variables
         # check that the state dimension is correct
-        assert n_q == strain_basis.shape[1], (
-            "Provided state dimension does not match the strain selector / num of segments!"
-        )
-        assert n_q == len(self.builder_config.q_max), (
-            "Provided state dimension does not match the number of provided q_max values!"
-        )
-        assert n_q == len(self.builder_config.q_d_max), (
-            "Provided state dimension does not match the number of provided q_d_max values!"
-        )
+        assert (
+            n_q == strain_basis.shape[1]
+        ), "Provided state dimension does not match the strain selector / num of segments!"
+        assert n_q == len(
+            self.builder_config.q_max
+        ), "Provided state dimension does not match the number of provided q_max values!"
+        assert n_q == len(
+            self.builder_config.q_d_max
+        ), "Provided state dimension does not match the number of provided q_d_max values!"
 
         # initialize the rendering function
         rendering_fn = partial(
@@ -197,11 +199,13 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
         state_init_max = jnp.concatenate([q_max, q_d_max], axis=0)
 
         # set initial / torque conditions
-        tau = jnp.zeros((n_q, ))
+        tau = jnp.zeros((n_q,))
 
         # collect the dataset
         yield from collect_dataset(
-            ode_fn=jsrm.integration.ode_factory(dynamical_matrices_fn, robot_params, tau),
+            ode_fn=jsrm.integration.ode_factory(
+                dynamical_matrices_fn, robot_params, tau
+            ),
             rendering_fn=rendering_fn,
             rng=rng,
             num_simulations=self.builder_config.num_simulations,

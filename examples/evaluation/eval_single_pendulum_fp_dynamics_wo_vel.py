@@ -27,9 +27,7 @@ batch_size = 8
 loss_weights = dict(mse_q=1.0, mse_rec_static=5.0, mse_rec_dynamic=5.0)
 
 sym_exp_filepath = (
-    Path(jsrm.__file__).parent
-    / "symbolic_expressions"
-    / f"pendulum_nl-1.dill"
+    Path(jsrm.__file__).parent / "symbolic_expressions" / f"pendulum_nl-1.dill"
 )
 ckpt_dir = Path("logs") / "single_pendulum_fp_dynamics_wo_vel" / "2023-05-02_10-20-40"
 

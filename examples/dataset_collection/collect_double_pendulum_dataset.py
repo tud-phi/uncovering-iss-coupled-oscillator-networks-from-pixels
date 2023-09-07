@@ -18,9 +18,7 @@ from src.rendering import render_pendulum
 
 
 sym_exp_filepath = (
-    Path(jsrm.__file__).parent
-    / "symbolic_expressions"
-    / f"pendulum_nl-2.dill"
+    Path(jsrm.__file__).parent / "symbolic_expressions" / f"pendulum_nl-2.dill"
 )
 
 robot_params = {

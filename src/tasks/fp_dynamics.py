@@ -394,7 +394,7 @@ def task_factory(
 
         q_static_pred_bt = preds["q_static_ts"]
         q_dynamic_pred_bt = preds["q_dynamic_ts"]
-        q_target_bt = batch["x_ts"][..., : n_q]
+        q_target_bt = batch["x_ts"][..., :n_q]
 
         # compute the configuration error
         error_q_static = q_static_pred_bt - q_target_bt
@@ -406,7 +406,9 @@ def task_factory(
             error_q_dynamic = normalize_joint_angles(error_q_dynamic)
 
         # compute the configuration velocity error
-        error_q_d_dynamic = preds["x_dynamic_ts"][..., n_q:] - batch["x_ts"][:, start_time_idx:, n_q:]
+        error_q_d_dynamic = (
+            preds["x_dynamic_ts"][..., n_q:] - batch["x_ts"][:, start_time_idx:, n_q:]
+        )
 
         return {
             "mse_q_static": jnp.mean(jnp.square(error_q_static)),

@@ -55,7 +55,9 @@ def collect_dataset(
     if sim_dt is None:
         sim_dt = dt
     else:
-        assert sim_dt <= dt, "The simulation time step needs to be smaller than the sampling time step."
+        assert (
+            sim_dt <= dt
+        ), "The simulation time step needs to be smaller than the sampling time step."
 
     # number of total samples
     num_samples = num_simulations * (ts.shape[0] - 1)
@@ -137,7 +139,9 @@ def collect_dataset(
 
                 if save_raw_data:
                     # save the image
-                    cv2.imwrite(str(sim_dir / f"rendering_time_idx-{time_idx}.jpeg"), img)
+                    cv2.imwrite(
+                        str(sim_dir / f"rendering_time_idx-{time_idx}.jpeg"), img
+                    )
 
                 # update sample index
                 sample_idx += 1

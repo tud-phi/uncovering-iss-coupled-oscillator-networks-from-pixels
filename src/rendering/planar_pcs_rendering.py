@@ -37,20 +37,24 @@ def render_planar_pcs(
     batched_forward_kinematics_fn = vmap(
         forward_kinematics_fn, in_axes=(None, None, 0), out_axes=-1
     )
-    
+
     # we use for plotting N points along the length of the robot
     s_ps = jnp.linspace(0, jnp.sum(params["l"]), num_points)
-    
+
     # poses along the robot of shape (3, N)
     chi_ps = batched_forward_kinematics_fn(params, q, s_ps)
-    
+
     img = 255 * onp.ones((w, h, 3), dtype=jnp.uint8)  # initialize background to white
-    curve_origin = onp.array([w // 2, 0.6 * h], dtype=onp.int32)  # in uv pixel coordinates
+    curve_origin = onp.array(
+        [w // 2, 0.6 * h], dtype=onp.int32
+    )  # in uv pixel coordinates
     # transform robot poses to pixel coordinates
     # should be of shape (N, 2)
     curve = onp.array((curve_origin + chi_ps[:2, :].T * ppm), dtype=onp.int32)
     # invert the v pixel coordinate
     curve[:, 1] = h - curve[:, 1]
-    cv2.polylines(img, [curve], isClosed=False, color=robot_color, thickness=line_thickness)
+    cv2.polylines(
+        img, [curve], isClosed=False, color=robot_color, thickness=line_thickness
+    )
 
     return img

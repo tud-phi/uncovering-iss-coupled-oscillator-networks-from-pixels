@@ -88,9 +88,7 @@ logdir = Path("logs") / "single_pendulum_fp_dynamics" / f"{now:%Y-%m-%d_%H-%M-%S
 logdir.mkdir(parents=True, exist_ok=True)
 
 sym_exp_filepath = (
-    Path(jsrm.__file__).parent
-    / "symbolic_expressions"
-    / f"pendulum_nl-1.dill"
+    Path(jsrm.__file__).parent / "symbolic_expressions" / f"pendulum_nl-1.dill"
 )
 
 if __name__ == "__main__":
