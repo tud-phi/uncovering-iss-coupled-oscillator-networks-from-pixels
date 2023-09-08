@@ -27,6 +27,7 @@ batch_size = 50
 num_epochs = 50
 warmup_epochs = 5
 weight_decay = 0.0
+conv_strides = (2, 2)
 
 if ae_type == "wae":
     loss_weights = dict(mse_q=0.0, mse_rec=1.0, mmd=1e-1)
@@ -61,9 +62,9 @@ if __name__ == "__main__":
 
     # initialize the model
     if ae_type == "beta_vae":
-        nn_model = VAE(latent_dim=latent_dim, img_shape=img_shape)
+        nn_model = VAE(latent_dim=latent_dim, img_shape=img_shape, strides=conv_strides)
     else:
-        nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape)
+        nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape, strides=conv_strides)
 
     # call the factory function for the sensing task
     task_callables, metrics_collection_cls = autoencoding.task_factory(
