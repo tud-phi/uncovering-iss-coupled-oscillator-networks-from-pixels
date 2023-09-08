@@ -48,9 +48,25 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             name="cs_128x128px",
             description="Planar constant strain continuum robot with images of size 128x128px.",
             state_dim=6,
-            horizon_dim=11,
-            img_size=(128, 128),
             num_segments=1,
+        ),
+        PlanarPcsDatasetConfig(
+            name="pcc_ns-2_128x128px",
+            description="Planar two segment piecewise constant curvature continuum robot with images of size 128x128px.",
+            state_dim=4,
+            num_segments=2,
+            strain_selector=(True, False, False, True, False, False),
+            q_max=(10 * jnp.pi, 10 * jnp.pi),
+            q_d_max=(30 * jnp.pi, 30 * jnp.pi),
+        ),
+        PlanarPcsDatasetConfig(
+            name="pcc_ns-3_128x128px",
+            description="Planar three segment piecewise constant curvature continuum robot with images of size 128x128px.",
+            state_dim=6,
+            num_segments=3,
+            strain_selector=(True, False, False, True, False, False, True, False, False),
+            q_max=(10 * jnp.pi, 10 * jnp.pi, 10 * jnp.pi),
+            q_d_max=(30 * jnp.pi, 30 * jnp.pi, 30 * jnp.pi),
         ),
     ]
     # pytype: enable=wrong-keyword-args
