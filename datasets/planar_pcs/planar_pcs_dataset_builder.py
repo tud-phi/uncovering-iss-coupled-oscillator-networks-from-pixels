@@ -12,8 +12,8 @@ from typing import List, Optional, Tuple
 class PlanarPcsDatasetConfig(tfds.core.BuilderConfig):
     state_dim: Optional[int] = None
     horizon_dim: int = 11
-    img_size: tuple = (128, 128)
-    origin_uv: tuple = (64, 16)
+    img_size: Tuple[int, int] = (128, 128)
+    origin_uv: Tuple[int, int] = (64, 16)
     num_segments: int = 1
     strain_selector: Optional[Tuple] = (None,)
     q_max: Tuple = (10 * jnp.pi, 0.05, 0.1)

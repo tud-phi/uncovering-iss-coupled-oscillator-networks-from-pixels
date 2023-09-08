@@ -66,6 +66,8 @@ def load_dataset(
         metadata = dill.load(f)
 
     options = tf.data.Options()
+    # activate deterministic behaviour for the dataset
+    options.deterministic = True
     if num_threads is not None:
         options.threading.private_threadpool_size = num_threads
     else:
