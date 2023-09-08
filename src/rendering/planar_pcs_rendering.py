@@ -2,7 +2,7 @@ import cv2
 from jax import Array, vmap
 from jax import numpy as jnp
 import numpy as onp
-from typing import Callable, Dict
+from typing import Callable, Dict, Optional, Tuple
 
 
 def render_planar_pcs(
@@ -11,8 +11,9 @@ def render_planar_pcs(
     q: Array,
     width: int,
     height: int,
+    origin_uv: Optional[Tuple] = None,
     line_thickness: int = 2,
-    num_points: int = 20,
+    num_points: int = 25,
 ) -> onp.ndarray:
     """
     Renders a planar pcs soft robot in OpenCV.
@@ -30,8 +31,13 @@ def render_planar_pcs(
     """
     # plotting in OpenCV
     h, w = height, width  # img height and width
-    ppm = h / (2.5 * jnp.sum(params["l"]))  # pixel per meter
+    ppm = h / (1.4 * jnp.sum(params["l"]))  # pixel per meter
     robot_color = (0, 0, 0)  # black robot_color in BGR
+
+    # in uv pixel coordinates
+    if origin_uv is None:
+        origin_uv = (w // 2, h // 2)  # center of the image
+    origin_uv = onp.array(origin_uv, dtype=onp.int32)
 
     # vmap the forward kinematics function
     batched_forward_kinematics_fn = vmap(
@@ -44,17 +50,15 @@ def render_planar_pcs(
     # poses along the robot of shape (3, N)
     chi_ps = batched_forward_kinematics_fn(params, q, s_ps)
 
-    img = 255 * onp.ones((w, h, 3), dtype=jnp.uint8)  # initialize background to white
-    curve_origin = onp.array(
-        [w // 2, 0.6 * h], dtype=onp.int32
-    )  # in uv pixel coordinates
+    img = 255 * onp.ones((h, w, 3), dtype=jnp.uint8)  # initialize background to white
     # transform robot poses to pixel coordinates
     # should be of shape (N, 2)
-    curve = onp.array((curve_origin + chi_ps[:2, :].T * ppm), dtype=onp.int32)
+    curve = onp.array((chi_ps[:2, :].T * ppm), dtype=onp.int32)
     # invert the v pixel coordinate
-    curve[:, 1] = h - curve[:, 1]
+    curve[:, 1] = - curve[:, 1]
+
     cv2.polylines(
-        img, [curve], isClosed=False, color=robot_color, thickness=line_thickness
+        img, [origin_uv + curve], isClosed=False, color=robot_color, thickness=line_thickness
     )
 
     return img

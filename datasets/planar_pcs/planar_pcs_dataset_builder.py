@@ -13,6 +13,7 @@ class PlanarPcsDatasetConfig(tfds.core.BuilderConfig):
     state_dim: Optional[int] = None
     horizon_dim: int = 11
     img_size: tuple = (128, 128)
+    origin_uv: tuple = (64, 16)
     num_segments: int = 1
     strain_selector: Optional[Tuple] = (None,)
     q_max: Tuple = (10 * jnp.pi, 0.05, 0.1)
@@ -38,7 +39,6 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             description="Planar constant curvature continuum robot with images of size 128x128px.",
             state_dim=2,
             horizon_dim=11,
-            img_size=(128, 128),
             num_segments=1,
             strain_selector=(True, False, False),
             q_max=(10 * jnp.pi,),
@@ -77,8 +77,8 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
                     "rendering_ts": tfds.features.Sequence(
                         tfds.features.Image(
                             shape=(
-                                self.builder_config.img_size[0],
                                 self.builder_config.img_size[1],
+                                self.builder_config.img_size[0],
                                 3,
                             )
                         ),
@@ -179,10 +179,12 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             robot_params,
             width=self.builder_config.img_size[0],
             height=self.builder_config.img_size[1],
+            origin_uv=self.builder_config.origin_uv,
             line_thickness=2,
         )
 
         sample_q = jnp.array(self.builder_config.q_max)
+        # sample_q = jnp.array([0.0])
         sample_img = rendering_fn(sample_q)
         plt.figure(num="Sample rendering")
         plt.imshow(cv2.cvtColor(sample_img, cv2.COLOR_BGR2RGB))
