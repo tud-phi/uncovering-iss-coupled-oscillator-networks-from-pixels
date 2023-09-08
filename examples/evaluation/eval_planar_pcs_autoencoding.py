@@ -27,29 +27,23 @@ seed = 0
 rng = random.PRNGKey(seed=seed)
 tf.random.set_seed(seed=seed)
 
+system_type = "cc"
 ae_type = "beta_vae"
-
-latent_dim = 2
-normalize_latent_space = True
-batch_size = 10
+latent_dim = 1
 
 if ae_type == "wae":
-    ckpt_dir = Path("logs") / "single_pendulum_autoencoding" / "2023-05-03_22-20-30"
-    loss_weights = dict(mse_q=0.0, mse_rec=5.0, mmd=1.0)
+    raise NotImplementedError
 elif ae_type == "beta_vae":
-    ckpt_dir = Path("logs") / "single_pendulum_autoencoding" / "2023-08-28_22-55-41"
+    ckpt_dir = Path("logs") / f"{system_type}_autoencoding" / "2023-09-08_00-00-50"
     loss_weights = dict(mse_q=0.0, mse_rec=1.0, beta=1.0)
 else:
-    ckpt_dir = Path("logs") / "single_pendulum_autoencoding" / "2023-04-26_15-57-20"
-    loss_weights = dict(mse_q=1.0, mse_rec=5.0)
+    raise NotImplementedError
 
-sym_exp_filepath = (
-    Path(jsrm.__file__).parent / "symbolic_expressions" / f"pendulum_nl-1.dill"
-)
+batch_size = 10
 
 if __name__ == "__main__":
     datasets, dataset_info, dataset_metadata = load_dataset(
-        "mechanical_system/single_pendulum_64x64px",
+        f"planar_pcs/{system_type}_128x128px",
         seed=seed,
         batch_size=batch_size,
         normalize=True,
@@ -70,10 +64,9 @@ if __name__ == "__main__":
 
     # call the factory function for the sensing task
     task_callables, metrics_collection_cls = autoencoding.task_factory(
-        "pendulum",
+        system_type,
         nn_model,
         loss_weights=loss_weights,
-        normalize_latent_space=normalize_latent_space,
         ae_type=ae_type,
     )
 
@@ -105,21 +98,9 @@ if __name__ == "__main__":
     img_bt = jnp.stack([img_gt1, img_gt2])
     # two latent vectors
     z_pred_bt = nn_model.apply({"params": state.params}, img_bt, method=nn_model.encode)
-    if normalize_latent_space:
-        # if the system is a pendulum, we interpret the encoder output as sin(theta) and cos(theta) for each joint
-        # e.g. for two joints: z = [sin(q_1), sin(q_2), cos(q_1), cos(q_2)]
-        # output of arctan2 will be in the range [-pi, pi]
-        z_pred_bt = jnp.arctan2(z_pred_bt[..., :n_q], z_pred_bt[..., n_q:])
     # interpolate 10 points between the two latent vectors
     z_interp_bt = jnp.linspace(z_pred_bt[0], z_pred_bt[1], 10)
-    if normalize_latent_space:
-        # if the system is a pendulum, the input into the decoder should be sin(theta) and cos(theta) for each joint
-        # e.g. for two joints: z = [sin(q_1), sin(q_2), cos(q_1), cos(q_2)]
-        input_decoder = jnp.concatenate(
-            [jnp.sin(z_interp_bt), jnp.cos(z_interp_bt)], axis=-1
-        )
-    else:
-        input_decoder = z_interp_bt
+    input_decoder = z_interp_bt
     img_rec_bt = nn_model.apply(
         {"params": state.params}, input_decoder, method=nn_model.decode
     )
