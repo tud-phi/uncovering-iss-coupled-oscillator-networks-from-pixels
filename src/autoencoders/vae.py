@@ -2,7 +2,7 @@ from flax import linen as nn  # Linen API
 from jax import Array, random
 import jax.numpy as jnp
 import math
-from typing import Callable, Sequence, Tuple
+from typing import Callable, Optional, Sequence, Tuple, Type
 
 from .simple_cnn import Decoder
 
@@ -13,16 +13,23 @@ class Encoder(nn.Module):
     latent_dim: int
     strides: Tuple[int, int] = (1, 1)
     nonlinearity: Callable = nn.leaky_relu
+    norm_layer: Optional[Type] = None
 
     @nn.compact
     def __call__(self, x) -> Tuple[Array, Array]:
         x = nn.Conv(features=16, kernel_size=(3, 3), strides=self.strides)(x)
+        if self.norm_layer is not None:
+            x = self.norm_layer()(x)
         x = self.nonlinearity(x)
         x = nn.Conv(features=32, kernel_size=(3, 3), strides=self.strides)(x)
+        if self.norm_layer is not None:
+            x = self.norm_layer()(x)
         x = self.nonlinearity(x)
         x = x.reshape((x.shape[0], -1))  # flatten
 
         x = nn.Dense(features=256)(x)
+        if self.norm_layer is not None:
+            x = self.norm_layer()(x)
         x = self.nonlinearity(x)
 
         mu = nn.Dense(features=self.latent_dim)(x)
@@ -38,6 +45,7 @@ class VAE(nn.Module):
     latent_dim: int
     strides: Tuple[int, int] = (1, 1)
     nonlinearity: Callable = nn.leaky_relu
+    norm_layer: Optional[Type] = None
     clip_decoder_output: bool = True
 
     def setup(self):
@@ -45,6 +53,7 @@ class VAE(nn.Module):
             latent_dim=self.latent_dim,
             strides=self.strides,
             nonlinearity=self.nonlinearity,
+            norm_layer=self.norm_layer,
         )
 
         # the size of the image after the convolutional encoder, but before the dense layers
@@ -61,6 +70,7 @@ class VAE(nn.Module):
             downsampled_img_dim=downsampled_img_dim,
             strides=self.strides,
             nonlinearity=self.nonlinearity,
+            norm_layer=self.norm_layer,
             clip_output=self.clip_decoder_output,
         )
 

@@ -1,7 +1,7 @@
 from flax import linen as nn  # Linen API
 import jax.numpy as jnp
 import math
-from typing import Callable, Sequence, Tuple
+from typing import Callable, Optional, Sequence, Tuple, Type
 
 
 class Encoder(nn.Module):
@@ -10,16 +10,24 @@ class Encoder(nn.Module):
     latent_dim: int
     strides: Tuple[int, int] = (1, 1)
     nonlinearity: Callable = nn.leaky_relu
+    norm_layer: Optional[Type] = None
 
     @nn.compact
     def __call__(self, x):
         x = nn.Conv(features=16, kernel_size=(3, 3), strides=self.strides)(x)
+        x = nn.LayerNorm()(x)
         x = self.nonlinearity(x)
+        if self.norm_layer is not None:
+            x = self.norm_layer()(x)
         x = nn.Conv(features=32, kernel_size=(3, 3), strides=self.strides)(x)
+        if self.norm_layer is not None:
+            x = self.norm_layer()(x)
         x = self.nonlinearity(x)
         x = x.reshape((x.shape[0], -1))  # flatten
 
         x = nn.Dense(features=256)(x)
+        if self.norm_layer is not None:
+            x = self.norm_layer()(x)
         x = self.nonlinearity(x)
         x = nn.Dense(features=self.latent_dim)(x)
 
@@ -37,12 +45,17 @@ class Decoder(nn.Module):
     downsampled_img_dim: Sequence = (2, 2, 768)
     strides: Tuple[int, int] = (1, 1)
     nonlinearity: Callable = nn.leaky_relu
+    norm_layer: Optional[Type] = None
     clip_output: bool = True
 
     @nn.compact
     def __call__(self, x):
+        if self.norm_layer is not None:
+            x = self.norm_layer()(x)
         x = self.nonlinearity(x)
         x = nn.Dense(features=256)(x)
+        if self.norm_layer is not None:
+            x = self.norm_layer()(x)
         x = self.nonlinearity(x)
 
         x = nn.Dense(features=math.prod(self.downsampled_img_dim))(x)
@@ -51,6 +64,8 @@ class Decoder(nn.Module):
         )  # unflatten
 
         x = nn.ConvTranspose(features=16, kernel_size=(3, 3), strides=self.strides)(x)
+        if self.norm_layer is not None:
+            x = self.norm_layer()(x)
         x = self.nonlinearity(x)
         x = nn.ConvTranspose(
             features=self.img_shape[-1], kernel_size=(3, 3), strides=self.strides
@@ -70,6 +85,7 @@ class Autoencoder(nn.Module):
     latent_dim: int
     strides: Tuple[int, int] = (1, 1)
     nonlinearity: Callable = nn.leaky_relu
+    norm_layer: Optional[Type] = None
     clip_decoder_output: bool = True
 
     def setup(self):
@@ -77,6 +93,7 @@ class Autoencoder(nn.Module):
             latent_dim=self.latent_dim,
             strides=self.strides,
             nonlinearity=self.nonlinearity,
+            norm_layer=self.norm_layer,
         )
 
         # the size of the image after the convolutional encoder, but before the dense layers
@@ -93,6 +110,7 @@ class Autoencoder(nn.Module):
             downsampled_img_dim=downsampled_img_dim,
             strides=self.strides,
             nonlinearity=self.nonlinearity,
+            norm_layer=self.norm_layer,
             clip_output=self.clip_decoder_output,
         )
 
