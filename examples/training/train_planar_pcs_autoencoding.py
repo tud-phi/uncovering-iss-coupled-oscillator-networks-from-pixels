@@ -20,7 +20,7 @@ rng = random.PRNGKey(seed=seed)
 tf.random.set_seed(seed=seed)
 
 system_type = "cc"
-ae_type = "beta_vae"
+ae_type = "None"
 latent_dim = 1
 
 batch_size = 50
@@ -39,7 +39,7 @@ elif ae_type == "beta_vae":
     weight_decay = 1e-4
 else:
     loss_weights = dict(mse_q=1.0, mse_rec=1.0)
-    base_lr = 5e-3
+    base_lr = 1e-3
 
 now = datetime.now()
 logdir = Path("logs") / f"{system_type}_autoencoding" / f"{now:%Y-%m-%d_%H-%M-%S}"
