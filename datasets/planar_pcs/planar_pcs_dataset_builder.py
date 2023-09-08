@@ -196,7 +196,7 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             width=self.builder_config.img_size[0],
             height=self.builder_config.img_size[1],
             origin_uv=self.builder_config.origin_uv,
-            line_thickness=2,
+            line_thickness=6,
         )
 
         sample_q = jnp.array(self.builder_config.q_max)
