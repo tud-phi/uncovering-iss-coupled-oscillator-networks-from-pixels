@@ -1,4 +1,5 @@
 from datetime import datetime
+import flax.linen as nn
 from jax import random
 import jax.numpy as jnp
 from jsrm.systems.pendulum import normalize_joint_angles
@@ -44,7 +45,7 @@ if __name__ == "__main__":
     img_shape = train_ds.element_spec["rendering_ts"].shape[-3:]
 
     # initialize the model
-    nn_model = Autoencoder(latent_dim=n_q, img_shape=img_shape)
+    nn_model = Autoencoder(latent_dim=n_q, img_shape=img_shape, norm_layer=nn.LayerNorm)
 
     # call the factory function for the sensing task
     task_callables, metrics_collection_cls = autoencoding.task_factory(

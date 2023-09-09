@@ -56,6 +56,7 @@ if __name__ == "__main__":
         b1 = trial.suggest_float("b1", 0.9, 0.999, log=False)  # default b1 = 0.9
         b2 = trial.suggest_float("b2", 0.999, 0.9999, log=False)  # default b2 = 0.999
         weight_decay = trial.suggest_float("weight_decay", 1e-7, 1e-2, log=True)
+        norm_layer_type = trial.suggest_categorical("norm_layer_type", ["None", "layer_norm"])
 
         if rec_loss_type == "mse":
             train_loss_weights = dict(mse_q=0.0, mse_rec=1.0, beta=beta)
