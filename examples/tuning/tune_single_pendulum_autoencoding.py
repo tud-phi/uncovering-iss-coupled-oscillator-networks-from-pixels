@@ -1,5 +1,6 @@
 from datetime import datetime
 import dill
+import flax.linen as nn
 from jax import random
 from jax import config as jax_config
 import jax.numpy as jnp
@@ -65,6 +66,13 @@ if __name__ == "__main__":
 
         if ae_type != "beta_vae":
             raise ValueError("Only beta_vae is supported for now")
+        
+        if norm_layer_type == "None":
+            norm_layer = None
+        elif norm_layer_type == "layer_norm":
+            norm_layer = nn.LayerNorm
+        else:
+            raise ValueError(f"Unknown norm_layer_type: {norm_layer_type}")
 
         datasets, dataset_info, dataset_metadata = load_dataset(
             "mechanical_system/single_pendulum_64x64px",
@@ -85,9 +93,10 @@ if __name__ == "__main__":
             nn_model = VAE(
                 latent_dim=latent_dim,
                 img_shape=img_shape,
+                norm_layer=norm_layer
             )
         else:
-            nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape)
+            nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape, norm_layer=norm_layer)
 
         # call the factory function for the sensing task
         task_callables, metrics_collection_cls = autoencoding.task_factory(

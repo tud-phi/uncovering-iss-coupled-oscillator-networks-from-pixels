@@ -1,4 +1,5 @@
 from datetime import datetime
+import flax.linen as nn
 from jax import random
 from jax import config as jax_config
 import jax.numpy as jnp
@@ -77,9 +78,9 @@ if __name__ == "__main__":
 
     # initialize the model
     if ae_type == "beta_vae":
-        nn_model = VAE(latent_dim=latent_dim, img_shape=img_shape)
+        nn_model = VAE(latent_dim=latent_dim, img_shape=img_shape, norm_layer=nn.LayerNorm)
     else:
-        nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape)
+        nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape, norm_layer=nn.LayerNorm)
 
     # call the factory function for the sensing task
     task_callables, metrics_collection_cls = autoencoding.task_factory(
