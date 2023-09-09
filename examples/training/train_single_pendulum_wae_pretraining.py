@@ -1,6 +1,5 @@
 from datetime import datetime
-from flax import traverse_util
-from flax.core.frozen_dict import freeze
+import flax.linen as nn
 from functools import partial
 from jax import config as jax_config
 
@@ -78,7 +77,7 @@ if __name__ == "__main__":
     forward_kinematics_fn, dynamical_matrices_fn = pendulum.factory(sym_exp_filepath)
 
     # initialize the model
-    nn_model = Autoencoder(latent_dim=2 * n_q, img_shape=img_shape)
+    nn_model = Autoencoder(latent_dim=2 * n_q, img_shape=img_shape, norm_layer=nn.LayerNorm)
 
     # call the factory function for the sensing task
     autoencoding_task_callables, autoencoding_metrics = autoencoding.task_factory(

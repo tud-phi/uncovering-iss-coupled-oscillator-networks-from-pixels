@@ -1,3 +1,4 @@
+import flax.linen as nn
 from jax import config as jax_config
 
 jax_config.update("jax_enable_x64", True)
@@ -30,12 +31,14 @@ tf.random.set_seed(seed=seed)
 batch_size = 10
 loss_weights = dict(mse_q=1.0, mse_rec_static=1.0, mse_rec_dynamic=1.0)
 start_time_idx = 1
-ae_type = "wae"  # "None", "beta_vae", "wae"
+ae_type = "beta_vae"  # "None", "beta_vae", "wae"
+norm_layer = None
 
 if ae_type == "wae":
     experiment_id = "2023-09-06_23-53-44"
 elif ae_type == "beta_vae":
-    experiment_id = "2023-09-05_17-30-07"
+    experiment_id = "2023-09-09_22-27-44"
+    norm_layer = nn.LayerNorm
 else:
     raise NotImplementedError
 
@@ -73,9 +76,10 @@ if __name__ == "__main__":
         nn_model = VAE(
             latent_dim=latent_dim,
             img_shape=img_shape,
+            norm_layer=norm_layer
         )
     else:
-        nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape)
+        nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape, norm_layer=norm_layer)
 
     # call the factory function for the sensing task
     task_callables, metrics_collection_cls = fp_dynamics.task_factory(

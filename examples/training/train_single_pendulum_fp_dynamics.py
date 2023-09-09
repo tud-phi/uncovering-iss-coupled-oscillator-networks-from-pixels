@@ -1,4 +1,5 @@
 from datetime import datetime
+import flax.linen as nn
 from jax import config as jax_config
 
 jax_config.update("jax_enable_x64", True)
@@ -119,9 +120,10 @@ if __name__ == "__main__":
         nn_model = VAE(
             latent_dim=latent_dim,
             img_shape=img_shape,
+            norm_layer=nn.LayerNorm
         )
     else:
-        nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape)
+        nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape, norm_layer=nn.LayerNorm)
 
     # call the factory function for the sensing task
     task_callables, metrics_collection_cls = fp_dynamics.task_factory(
