@@ -30,20 +30,35 @@ tf.random.set_seed(seed=seed)
 
 system_type = "cc"
 ae_type = "beta_vae"
-latent_dim = 1
+
+if system_type == "cc":
+    latent_dim = 1
+elif system_type == "pcc_ns-2":
+    latent_dim = 2
+elif system_type == "pcc_ns-3":
+    latent_dim = 3
+else:
+    raise ValueError(f"Unknown system type: {system_type}!")
+
 conv_strides = (1, 1)
 norm_layer = nn.LayerNorm
 
 if ae_type == "wae":
-    ckpt_dir = Path("logs") / f"{system_type}_autoencoding" / "2023-09-12_13-52-21"
+    ckpt_timestamp = "2023-09-12_13-52-21"
     loss_weights = dict(mse_q=0.0, mse_rec=1.0, mmd=1.0)
 elif ae_type == "beta_vae":
-    ckpt_dir = Path("logs") / f"{system_type}_autoencoding" / "2023-09-12_14-44-41"
+    if system_type == "cc":
+        ckpt_timestamp = "2023-09-12_14-44-41"
+    elif system_type == "pcc_ns-2":
+        ckpt_timestamp = "2023-09-12_19-10-56"
+    else:
+        raise NotImplementedError
     loss_weights = dict(mse_q=0.0, mse_rec=1.0, beta=1.0)
 else:
-    ckpt_dir = Path("logs") / f"{system_type}_autoencoding" / "2023-09-12_13-34-25"
+    ckpt_timestamp = "2023-09-12_13-34-25"
     loss_weights = dict(mse_q=1.0, mse_rec=1.0)
 
+ckpt_dir = ckpt_dir = Path("logs") / f"{system_type}_autoencoding" / ckpt_timestamp
 batch_size = 10
 
 if __name__ == "__main__":

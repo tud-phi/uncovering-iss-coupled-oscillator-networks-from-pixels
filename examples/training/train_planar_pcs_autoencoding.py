@@ -22,7 +22,15 @@ tf.random.set_seed(seed=seed)
 
 system_type = "cc"
 ae_type = "beta_vae"
-latent_dim = 1
+
+if system_type == "cc":
+    latent_dim = 1
+elif system_type == "pcc_ns-2":
+    latent_dim = 2
+elif system_type == "pcc_ns-3":
+    latent_dim = 3
+else:
+    raise ValueError(f"Unknown system type: {system_type}!")
 
 batch_size = 50
 num_epochs = 50
