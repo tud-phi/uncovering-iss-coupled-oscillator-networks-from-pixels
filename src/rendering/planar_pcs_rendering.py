@@ -31,7 +31,7 @@ def render_planar_pcs(
     """
     # plotting in OpenCV
     h, w = height, width  # img height and width
-    ppm = h / (1.4 * jnp.sum(params["l"]))  # pixel per meter
+    ppm = h / (1.6 * jnp.sum(params["l"]))  # pixel per meter
     robot_color = (0, 0, 0)  # black robot_color in BGR
 
     # in uv pixel coordinates

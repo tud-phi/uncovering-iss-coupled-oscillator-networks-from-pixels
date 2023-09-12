@@ -28,7 +28,7 @@ batch_size = 50
 num_epochs = 50
 warmup_epochs = 5
 weight_decay = 0.0
-conv_strides = (2, 2)
+conv_strides = (1, 1)
 
 if ae_type == "wae":
     loss_weights = dict(mse_q=0.0, mse_rec=1.0, mmd=1e-1)
@@ -39,8 +39,8 @@ elif ae_type == "beta_vae":
     base_lr = 1e-3
     weight_decay = 1e-4
 else:
-    loss_weights = dict(mse_q=1.0, mse_rec=1.0)
-    base_lr = 1e-3
+    loss_weights = dict(mse_q=0.2, mse_rec=1.0)
+    base_lr = 2e-3
 
 now = datetime.now()
 logdir = Path("logs") / f"{system_type}_autoencoding" / f"{now:%Y-%m-%d_%H-%M-%S}"
@@ -48,7 +48,7 @@ logdir.mkdir(parents=True, exist_ok=True)
 
 if __name__ == "__main__":
     datasets, dataset_info, dataset_metadata = load_dataset(
-        f"planar_pcs/{system_type}_128x128px",
+        f"planar_pcs/{system_type}_64x64px",
         seed=seed,
         batch_size=batch_size,
         normalize=True,

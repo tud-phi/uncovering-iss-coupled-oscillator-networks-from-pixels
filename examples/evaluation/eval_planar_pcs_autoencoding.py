@@ -1,4 +1,5 @@
 from datetime import datetime
+import flax.linen as nn
 from jax import random
 from jax import config as jax_config
 import jax.numpy as jnp
@@ -31,6 +32,7 @@ system_type = "cc"
 ae_type = "None"
 latent_dim = 1
 conv_strides = (1, 1)
+norm_layer = nn.LayerNorm
 
 if ae_type == "wae":
     raise NotImplementedError
@@ -38,15 +40,14 @@ elif ae_type == "beta_vae":
     ckpt_dir = Path("logs") / f"{system_type}_autoencoding" / "2023-09-08_00-00-50"
     loss_weights = dict(mse_q=0.0, mse_rec=1.0, beta=1.0)
 else:
-    ckpt_dir = Path("logs") / f"{system_type}_autoencoding" / "2023-09-08_14-54-43"
+    ckpt_dir = Path("logs") / f"{system_type}_autoencoding" / "2023-09-12_13-34-25"
     loss_weights = dict(mse_q=1.0, mse_rec=1.0)
-    conv_strides = (2, 2)
 
 batch_size = 10
 
 if __name__ == "__main__":
     datasets, dataset_info, dataset_metadata = load_dataset(
-        f"planar_pcs/{system_type}_128x128px",
+        f"planar_pcs/{system_type}_64x64px",
         seed=seed,
         batch_size=batch_size,
         normalize=True,
@@ -61,9 +62,9 @@ if __name__ == "__main__":
 
     # initialize the model
     if ae_type == "beta_vae":
-        nn_model = VAE(latent_dim=latent_dim, img_shape=img_shape, strides=conv_strides)
+        nn_model = VAE(latent_dim=latent_dim, img_shape=img_shape, strides=conv_strides, norm_layer=norm_layer)
     else:
-        nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape, strides=conv_strides)
+        nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape, strides=conv_strides, norm_layer=norm_layer)
 
     # call the factory function for the sensing task
     task_callables, metrics_collection_cls = autoencoding.task_factory(

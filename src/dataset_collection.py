@@ -22,6 +22,7 @@ def collect_dataset(
     solver: AbstractSolver = Dopri5(),
     sim_dt: Optional[Array] = None,
     system_params: Dict[str, Array] = None,
+    sampling_dist: str = "uniform",
     do_yield: bool = True,
     save_raw_data: bool = False,
 ):
@@ -42,6 +43,7 @@ def collect_dataset(
         solver: Diffrax solver to use for the simulation.
         sim_dt: Time step used for simulation [s].
         system_params: Dictionary with system parameters.
+        sampling_dist: Distribution to sample the initial state of the simulation from.
         do_yield: Whether to yield the simulation data as a tuple (sim_idx, sample).
         save_raw_data: Whether to save the raw data (as images and labels) to the dataset_dir.
     """
@@ -90,12 +92,18 @@ def collect_dataset(
             rng, rng_x0_sampling = random.split(rng)
 
             # generate initial state of the simulation
-            x0 = random.uniform(
-                rng_x0_sampling,
-                state_init_min.shape,
-                minval=state_init_min,
-                maxval=state_init_max,
-            )
+            if sampling_dist == "uniform":
+                x0 = random.uniform(
+                    rng_x0_sampling,
+                    state_init_min.shape,
+                    minval=state_init_min,
+                    maxval=state_init_max,
+                )
+            elif sampling_dist == "arcsine":
+                u = random.uniform(rng_x0_sampling, state_init_min.shape)
+                x0 = state_init_min + (state_init_max - state_init_min) * jnp.sin(jnp.pi * u / 2)**2
+            else:
+                raise ValueError(f"Unknown sampling distribution: {sampling_dist}")
 
             # simulate
             sol = diffeqsolve(
