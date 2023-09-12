@@ -29,15 +29,16 @@ rng = random.PRNGKey(seed=seed)
 tf.random.set_seed(seed=seed)
 
 system_type = "cc"
-ae_type = "None"
+ae_type = "wae"
 latent_dim = 1
 conv_strides = (1, 1)
 norm_layer = nn.LayerNorm
 
 if ae_type == "wae":
-    raise NotImplementedError
+    ckpt_dir = Path("logs") / f"{system_type}_autoencoding" / "2023-09-12_13-52-21"
+    loss_weights = dict(mse_q=0.0, mse_rec=1.0, mmd=1.0)
 elif ae_type == "beta_vae":
-    ckpt_dir = Path("logs") / f"{system_type}_autoencoding" / "2023-09-08_00-00-50"
+    ckpt_dir = Path("logs") / f"{system_type}_autoencoding" / "2023-09-12_14-23-24"
     loss_weights = dict(mse_q=0.0, mse_rec=1.0, beta=1.0)
 else:
     ckpt_dir = Path("logs") / f"{system_type}_autoencoding" / "2023-09-12_13-34-25"
