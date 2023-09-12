@@ -172,6 +172,7 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
         }
         metadata = {
             "num_segments": self.builder_config.num_segments,
+            "strain_selector": strain_selector,
         }
 
         # initialize the system
