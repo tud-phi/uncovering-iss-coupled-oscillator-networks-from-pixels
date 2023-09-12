@@ -6,7 +6,7 @@ from jax import Array, lax, random
 import jax.numpy as jnp
 from pathlib import Path
 import shutil
-from typing import Callable, Dict, Optional, Type, TypeVar
+from typing import Any, Callable, Dict, Optional, Type, TypeVar
 
 
 def collect_dataset(
@@ -21,7 +21,8 @@ def collect_dataset(
     dataset_dir: str,
     solver: AbstractSolver = Dopri5(),
     sim_dt: Optional[Array] = None,
-    system_params: Dict[str, Array] = None,
+    system_params: Optional[Dict[str, Array]] = None,
+    metadata: Optional[Dict[str, Any]] = None,
     sampling_dist: str = "uniform",
     do_yield: bool = True,
     save_raw_data: bool = False,
@@ -43,7 +44,8 @@ def collect_dataset(
         solver: Diffrax solver to use for the simulation.
         sim_dt: Time step used for simulation [s].
         system_params: Dictionary with system parameters.
-        sampling_dist: Distribution to sample the initial state of the simulation from.
+        metadata: Dictionary with metadata to save in the dataset directory.
+        sampling_dist: Distribution to sample the initial state of the simulation from. Can be either "uniform" or "arcsine".
         do_yield: Whether to yield the simulation data as a tuple (sim_idx, sample).
         save_raw_data: Whether to save the raw data (as images and labels) to the dataset_dir.
     """
@@ -77,7 +79,11 @@ def collect_dataset(
     print("Dataset will be saved in:", dataset_path.resolve())
 
     # save the metadata
-    metadata = dict(solver_class=type(solver), sim_dt=sim_dt, dt=dt, ts=ts)
+    if metadata is None:
+        metadata = {}
+    metadata.update(
+        dict(solver_class=type(solver), sim_dt=sim_dt, dt=dt, ts=ts)
+    )
     if system_params is not None:
         metadata["system_params"] = system_params
     # save the metadata in the `dataset_dir`

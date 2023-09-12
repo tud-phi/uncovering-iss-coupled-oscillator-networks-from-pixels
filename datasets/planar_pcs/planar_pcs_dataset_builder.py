@@ -72,7 +72,7 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
     # pytype: enable=wrong-keyword-args
 
     def _info(self) -> tfds.core.DatasetInfo:
-        """Returns the dataset metadata."""
+        """Returns the dataset info."""
 
         return self.dataset_info_from_configs(
             features=tfds.features.FeaturesDict(
@@ -170,6 +170,9 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             "G": 1e3 * jnp.ones((self.builder_config.num_segments,)),
             "D": D,
         }
+        metadata = {
+            "num_segments": self.builder_config.num_segments,
+        }
 
         # initialize the system
         strain_basis, forward_kinematics_fn, dynamical_matrices_fn = planar_pcs.factory(
@@ -232,5 +235,6 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             solver=diffrax.Dopri5(),
             sim_dt=jnp.array(self.builder_config.sim_dt),
             system_params=robot_params,
+            metadata=metadata,
             sampling_dist="arcsine",
         )
