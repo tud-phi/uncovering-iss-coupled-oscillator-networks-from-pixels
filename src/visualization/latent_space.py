@@ -61,7 +61,13 @@ def visualize_mapping_from_configuration_to_latent_space(
     q_ss_sorted = q_ss[sort_indices]
     q_pred_ss_sorted = z_pred_ss[sort_indices]
 
-    plt.figure()
+    plt.figure(num="Histogram of configuration space")
+    for q_idx in range(q_ss_sorted.shape[-1]):
+        counts, bins = jnp.histogram(q_ss_sorted[:, q_idx], bins=50)
+        plt.stairs(counts, bins)
+    plt.show()
+
+    plt.figure(num="Mapping from configuration to latent space")
     for latent_idx in range(q_pred_ss_sorted.shape[-1]):
         plt.plot(
             q_ss_sorted[:, 0],
