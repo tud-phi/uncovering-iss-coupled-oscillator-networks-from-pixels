@@ -56,7 +56,7 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             state_dim=4,
             num_segments=2,
             strain_selector=(True, False, False, True, False, False),
-            q_max=(10 * jnp.pi, 10 * jnp.pi),
+            q_max=(5 * jnp.pi, 5 * jnp.pi),
             q_d_max=(jnp.pi, jnp.pi),
         ),
         PlanarPcsDatasetConfig(
@@ -65,7 +65,7 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             state_dim=6,
             num_segments=3,
             strain_selector=(True, False, False, True, False, False, True, False, False),
-            q_max=(10 * jnp.pi, 10 * jnp.pi, 10 * jnp.pi),
+            q_max=(3.33 * jnp.pi, 3.33 * jnp.pi, 3.33 * jnp.pi),
             q_d_max=(jnp.pi, jnp.pi, jnp.pi),
         ),
     ]
