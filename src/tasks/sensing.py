@@ -4,7 +4,7 @@ from flax.core import FrozenDict
 from flax.struct import dataclass
 from flax import linen as nn  # Linen API
 from functools import partial
-from jax import Array, jit, random
+from jax import Array, random
 import jax.numpy as jnp
 from jsrm.systems.pendulum import normalize_joint_angles
 from typing import Callable, Dict, Optional, Tuple, Type
@@ -13,7 +13,6 @@ from src.metrics import RootAverage
 from src.structs import TaskCallables
 
 
-@jit
 def assemble_input(batch) -> Array:
     # batch of images
     img_bt = batch["rendering_ts"]
@@ -27,7 +26,6 @@ def assemble_input(batch) -> Array:
 def task_factory(
     system_type: str, nn_model: nn.Module
 ) -> Tuple[TaskCallables, Type[clu_metrics.Collection]]:
-    @partial(jit, static_argnames="training")
     def forward_fn(
         batch: Dict[str, Array], nn_params: FrozenDict, training: bool = False
     ) -> Dict[str, Array]:
@@ -49,7 +47,6 @@ def task_factory(
 
         return preds
 
-    @partial(jit, static_argnames="training")
     def loss_fn(
         batch: Dict[str, Array],
         nn_params: FrozenDict,
@@ -73,7 +70,6 @@ def task_factory(
 
         return mse, preds
 
-    @jit
     def compute_metrics(
         batch: Dict[str, Array], preds: Dict[str, Array]
     ) -> Dict[str, Array]:

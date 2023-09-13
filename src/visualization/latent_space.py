@@ -22,11 +22,19 @@ def visualize_mapping_from_configuration_to_latent_space(
     q_ss = None
     z_pred_ss = None
     num_batches = len(eval_ds)  # number of dataset samples
+
+    # jit the forward function
+    forward_fn = jit(partial(
+        task_callables.forward_fn,
+        nn_params=state.params,
+        rng=rng,
+    ))
+
     for batch_idx, batch in (pbar := tqdm(enumerate(eval_ds.as_numpy_iterator()))):
         pbar.set_description(
             f"Plotting latent space: processing batch {batch_idx + 1} / {num_batches}"
         )
-        preds = task_callables.forward_fn(batch, state.params, rng=rng)
+        preds = forward_fn(batch)
         q_bt = batch["x_ts"][..., : batch["x_ts"].shape[-1] // 2]
 
         if "q_ts" in preds.keys():

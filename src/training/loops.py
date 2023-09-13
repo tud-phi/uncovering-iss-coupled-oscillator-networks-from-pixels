@@ -4,7 +4,7 @@ from clu import metrics as clu_metrics
 from flax import linen as nn  # Linen API
 from functools import partial
 import jax
-from jax import Array, debug, jit, random
+from jax import Array, debug, random
 from jax.experimental import enable_x64
 import jax.numpy as jnp
 import optax
@@ -18,11 +18,6 @@ from src.training.train_state_utils import initialize_train_state
 from src.training.optim import create_learning_rate_fn
 
 
-@partial(
-    jit,
-    static_argnums=(2, 3),
-    static_argnames=("learning_rate_fn", "task_callables"),
-)
 def train_step(
     state: TrainState,
     batch: Dict[str, Array],
@@ -73,11 +68,6 @@ def train_step(
     return logs, state
 
 
-@partial(
-    jit,
-    static_argnums=(2,),
-    static_argnames=("task_callables",),
-)
 def eval_step(
     state: TrainState,
     batch: Dict[str, Array],
@@ -122,7 +112,6 @@ def eval_step(
     return logs, state
 
 
-@jit
 def reset_step(state: TrainState):
     """
     Reset the metrics of the training state.
@@ -137,6 +126,7 @@ def run_training(
     task_callables: TaskCallables,
     metrics_collection_cls: Type[clu_metrics.Collection],
     num_epochs: int,
+    jit: bool = True,
     state: Optional[TrainState] = None,
     nn_model: Optional[nn.Module] = None,
     init_fn: Optional[Callable] = None,
@@ -162,6 +152,7 @@ def run_training(
         task_callables: struct containing the functions for the learning task
         metrics_collection_cls: Metrics collection class for respective task.
         num_epochs: Number of epochs to train for.
+        jit: Whether to jit-compile the training and evaluation step.
         state: TrainState object. If provided, the training will continue from this state.
         nn_model: Neural network model. Only needed if no TrainState is provided.
         init_fn: Method of the neural network to call for initializing neural network parameters.
@@ -245,26 +236,30 @@ def run_training(
     if show_pbar:
         callbacks.append(ciclo.keras_bar(total=num_total_train_steps))
 
+    train_step_fn = partial(
+        train_step,
+        task_callables=task_callables,
+        learning_rate_fn=learning_rate_fn,
+    )
+    eval_step_fn = partial(
+        eval_step,
+        task_callables=task_callables,
+    )
+    reset_step_fn = reset_step
+    if jit is True:
+        train_step_fn = jax.jit(train_step_fn)
+        eval_step_fn = jax.jit(eval_step_fn)
+        reset_step_fn = jax.jit(reset_step_fn)
+
     state, history, elapsed = ciclo.train_loop(
         state,
         train_ds.repeat(
             num_epochs
         ).as_numpy_iterator(),  # repeat the training dataset for num_epochs
         {
-            ciclo.on_train_step: [
-                partial(
-                    train_step,
-                    task_callables=task_callables,
-                    learning_rate_fn=learning_rate_fn,
-                )
-            ],
-            ciclo.on_test_step: [
-                partial(
-                    eval_step,
-                    task_callables=task_callables,
-                )
-            ],
-            ciclo.on_reset_step: [reset_step],
+            ciclo.on_train_step: [train_step_fn],
+            ciclo.on_test_step: [eval_step_fn],
+            ciclo.on_reset_step: [reset_step_fn],
         },
         callbacks=callbacks,
         test_dataset=lambda: val_ds.as_numpy_iterator(),
@@ -281,6 +276,7 @@ def run_eval(
     eval_ds: tf.data.Dataset,
     state: TrainState,
     task_callables: TaskCallables,
+    jit: bool = True,
     show_pbar: bool = True,
 ) -> Tuple[TrainState, ciclo.History]:
     """
@@ -289,6 +285,7 @@ def run_eval(
         eval_ds: Evaluation dataset as tf.data.Dataset object.
         state: training state of the neural network
         task_callables: struct containing the functions for the learning task
+        jit: Whether to jit-compile the training and evaluation step.
         show_pbar: Whether to use a progress bar.
     Returns:
         state: final TrainState object
@@ -306,16 +303,18 @@ def run_eval(
         )
         callbacks.append(kbar)
 
+    test_step_fn = partial(
+        eval_step,
+        task_callables=task_callables,
+    )
+    if jit:
+        test_step_fn = jax.jit(test_step_fn)
+
     state, history, _ = ciclo.test_loop(
         state,
         eval_ds.as_numpy_iterator(),
         tasks={
-            ciclo.on_test_step: [
-                partial(
-                    eval_step,
-                    task_callables=task_callables,
-                )
-            ],
+            ciclo.on_test_step: [test_step_fn],
         },
         callbacks=callbacks,
         stop=len(eval_ds),

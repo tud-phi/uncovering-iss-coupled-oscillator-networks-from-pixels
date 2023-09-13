@@ -4,7 +4,7 @@ from flax.core import FrozenDict
 from flax.struct import dataclass
 from flax import linen as nn  # Linen API
 from functools import partial
-from jax import Array, debug, jacrev, jit, random, vmap
+from jax import Array, debug, jacrev, random, vmap
 import jax.numpy as jnp
 from jsrm.systems.pendulum import normalize_joint_angles
 from typing import Any, Callable, Dict, Optional, Tuple, Type
@@ -14,7 +14,6 @@ from src.losses.kld import kullback_leiber_divergence
 from src.structs import TaskCallables
 
 
-@jit
 def assemble_input(batch) -> Array:
     # batch of images
     img_bt = batch["rendering_ts"]
@@ -92,7 +91,6 @@ def task_factory(
             distribution="uniform", uniform_distr_range=uniform_distr_range
         )
 
-    @partial(jit, static_argnames="training")
     def forward_fn(
         batch: Dict[str, Array],
         nn_params: FrozenDict,
@@ -319,7 +317,6 @@ def task_factory(
 
         return preds
 
-    @partial(jit, static_argnames="training")
     def loss_fn(
         batch: Dict[str, Array],
         nn_params: FrozenDict,
@@ -386,7 +383,6 @@ def task_factory(
 
         return loss, preds
 
-    @jit
     def compute_metrics(
         batch: Dict[str, Array], preds: Dict[str, Array]
     ) -> Dict[str, Array]:
