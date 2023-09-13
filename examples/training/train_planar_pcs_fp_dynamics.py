@@ -63,7 +63,7 @@ else:
     start_time_idx = 1
 
 now = datetime.now()
-logdir = Path("logs") / "{system_type}_autoencoding" / f"{now:%Y-%m-%d_%H-%M-%S}"
+logdir = Path("logs") / "{system_type}_fp_dynamics" / f"{now:%Y-%m-%d_%H-%M-%S}"
 logdir.mkdir(parents=True, exist_ok=True)
 
 if __name__ == "__main__":
