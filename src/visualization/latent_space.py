@@ -4,6 +4,7 @@ from jax import Array, debug, jit, random
 import jax.numpy as jnp
 from jsrm.systems.pendulum import normalize_joint_angles
 import matplotlib.pyplot as plt
+import numpy as onp
 from pathlib import Path
 import tensorflow as tf
 from tqdm import tqdm
@@ -79,6 +80,8 @@ def visualize_mapping_from_configuration_to_latent_space(
     fig, axes = plt.subplots(
         nrows=n_q, ncols=1, num="Mapping from configuration to latent space"
     )
+    if type(axes) != onp.ndarray:
+        axes = onp.array([axes])
     for q_idx in range(n_q):
         ax = axes[q_idx]
         for z_idx in range(n_z):
