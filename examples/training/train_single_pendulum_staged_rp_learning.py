@@ -124,10 +124,11 @@ if __name__ == "__main__":
     fp_dynamics_task_callables, fp_dynamics_metrics = fp_dynamics.task_factory(
         "pendulum",
         nn_model,
+        ts=dataset_metadata["ts"],
+        sim_dt=dataset_metadata["sim_dt"],
         ode_fn=ode_factory(dynamical_matrices_fn, robot_params, tau=jnp.zeros((n_q,))),
         loss_weights=hyperparams[1]["loss_weights"],
         solver=dataset_metadata["solver_class"](),
-        sim_dt=dataset_metadata.get("sim_dt"),
         configuration_velocity_source="image-space-finite-differences",
     )
 

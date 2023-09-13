@@ -28,13 +28,14 @@ def task_factory(
     system_type: str,
     nn_model: nn.Module,
     ode_fn: Callable,
+    ts: Array,
+    sim_dt: float,
     encode_fn: Callable = None,
     decode_fn: Callable = None,
     encode_kwargs: Dict[str, Any] = None,
     decode_kwargs: Dict[str, Any] = None,
     loss_weights: Optional[Dict[str, float]] = None,
     solver: AbstractSolver = Dopri5(),
-    sim_dt: Optional[Array] = None,
     start_time_idx: int = 1,
     configuration_velocity_source: str = "direct-finite-differences",
     ae_type: str = "None",
@@ -46,15 +47,16 @@ def task_factory(
     Args:
         system_type: the system type to create the task for. For example "pendulum".
         nn_model: the neural network model to use
+        ode_fn: ODE function. It should have the following signature:
+            ode_fn(t, x) -> x_dot
+        ts: time steps of the samples
+        sim_dt: Time step used for simulation [s].
         encode_fn: the function to use for encoding the input image to the latent space
         decode_fn: the function to use for decoding the latent space to the output image
         encode_kwargs: additional kwargs to pass to the encode_fn
         decode_kwargs: additional kwargs to pass to the decode_fn
-        ode_fn: ODE function. It should have the following signature:
-            ode_fn(t, x) -> x_dot
         loss_weights: the weights for the different loss terms
         solver: Diffrax solver to use for the simulation.
-        sim_dt: Time step used for simulation [s].
         start_time_idx: the index of the time step to start the simulation at. Needs to be >=1 to enable the application
             of finite differences for the latent-space velocity.
         configuration_velocity_source: the source of the configuration velocity.
@@ -65,6 +67,14 @@ def task_factory(
         task_callables: struct containing the functions for the learning task
         metrics_collection_cls: contains class for collecting metrics
     """
+    # time step between samples
+    sample_dt = (ts[1:] - ts[:-1]).mean()
+    # compute the dynamic rollout of the latent representation
+    t0 = ts[start_time_idx]  # start time
+    tf = ts[-1]  # end time
+    # maximum of integrator steps
+    max_int_steps = int((tf - t0) / sim_dt) + 1
+
     if encode_fn is None:
         encode_fn = nn_model.encode
     if decode_fn is None:
@@ -99,14 +109,6 @@ def task_factory(
     ) -> Dict[str, Array]:
         img_bt = batch["rendering_ts"]
         img_flat_bt = assemble_input(batch)
-        # we just assume that the time steps are the same for all batch items
-        t_ts = batch["t_ts"][0]
-        sample_dt = (t_ts[1:] - t_ts[:-1]).mean()
-        if sim_dt is None:
-            # if sim_dt is not specified, we just use the time-step between samples
-            dt = sample_dt
-        else:
-            dt = sim_dt
 
         batch_size = batch["rendering_ts"].shape[0]
         n_q = batch["x_ts"].shape[-1] // 2  # number of generalized coordinates
@@ -233,19 +235,18 @@ def task_factory(
         # specify initial state for the dynamic rollout
         x_init_bt = jnp.concatenate((q_init_bt, q_d_init_bt), axis=-1)
 
-        # compute the dynamic rollout of the latent representation
         ode_solve_fn = partial(
             diffeqsolve,
             ode_term,
             solver,
-            saveat=SaveAt(ts=t_ts[start_time_idx:]),
-            max_steps=t_ts[start_time_idx:].shape[-1],
+            saveat=SaveAt(ts=ts[start_time_idx:]),
+            max_steps=max_int_steps,
         )
         # simulate
         sol_bt = vmap(ode_solve_fn, in_axes=(None, None, None, 0))(
-            t_ts[start_time_idx],  # initial time
-            t_ts[-1],  # final time
-            dt,  # time step
+            t0,  # initial time
+            tf,  # final time
+            sim_dt,  # time step of integration
             x_init_bt.astype(jnp.float64),  # initial state
         )
 

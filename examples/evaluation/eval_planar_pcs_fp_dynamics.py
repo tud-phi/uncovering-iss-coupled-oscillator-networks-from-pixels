@@ -2,11 +2,11 @@ import flax.linen as nn
 from jax import config as jax_config
 
 jax_config.update("jax_enable_x64", True)
-from jax import Array, jacfwd, jacrev, random
+from jax import Array, random
 import jax.numpy as jnp
 import jsrm
 from jsrm.integration import ode_factory
-from jsrm.systems import pendulum
+from jsrm.systems import planar_pcs
 import matplotlib.pyplot as plt
 from pathlib import Path
 import tensorflow as tf
@@ -28,29 +28,23 @@ seed = 0
 rng = random.PRNGKey(seed=seed)
 tf.random.set_seed(seed=seed)
 
+system_type = "cc"
+ae_type = "None"  # "None", "beta_vae", "wae"
+
+# TODO: change this to the correct experiment id
+experiment_id = "2023-09-12_13-34-25"
+ckpt_dir = Path("logs") / f"{system_type}_fp_dynamics" / experiment_id
+ckpt_dir = Path("logs") / f"{system_type}_autoencoding" / experiment_id
+
 batch_size = 10
 loss_weights = dict(mse_q=1.0, mse_rec_static=1.0, mse_rec_dynamic=1.0)
 start_time_idx = 1
-ae_type = "beta_vae"  # "None", "beta_vae", "wae"
-norm_layer = None
-
-if ae_type == "wae":
-    experiment_id = "2023-09-06_23-53-44"
-elif ae_type == "beta_vae":
-    experiment_id = "2023-09-09_22-27-44"
-    norm_layer = nn.LayerNorm
-else:
-    raise NotImplementedError
-
-sym_exp_filepath = (
-    Path(jsrm.__file__).parent / "symbolic_expressions" / f"pendulum_nl-1.dill"
-)
-ckpt_dir = Path("logs") / "single_pendulum_fp_dynamics" / experiment_id
+norm_layer = nn.LayerNorm
 
 
 if __name__ == "__main__":
     datasets, dataset_info, dataset_metadata = load_dataset(
-        "mechanical_system/single_pendulum_64x64px",
+        f"planar_pcs/{system_type}_64x64px",
         seed=seed,
         batch_size=batch_size,
         normalize=True,
@@ -61,15 +55,26 @@ if __name__ == "__main__":
     # extract the robot parameters from the dataset
     robot_params = dataset_metadata["system_params"]
     print(f"Robot parameters: {robot_params}")
+    num_segments = dataset_metadata.get("num_segments", 1)
     # number of generalized coordinates
     n_q = train_ds.element_spec["x_ts"].shape[-1] // 2
     # latent space shape
-    latent_dim = 2 * n_q
+    latent_dim = n_q
     # image shape
     img_shape = train_ds.element_spec["rendering_ts"].shape[-3:]  # image shape
+    print("image shape:", train_ds.element_spec["rendering_ts"].shape)
 
-    # get the dynamics function
-    forward_kinematics_fn, dynamical_matrices_fn = pendulum.factory(sym_exp_filepath)
+    sym_exp_filepath = (
+        Path(jsrm.__file__).parent
+        / "symbolic_expressions"
+        / f"planar_pcs_ns-{num_segments}.dill"
+    )
+
+    # initialize the system
+    strain_basis, forward_kinematics_fn, dynamical_matrices_fn = planar_pcs.factory(
+        sym_exp_filepath, dataset_metadata["strain_selector"]
+    )
+    print(f"Strain basis: {strain_basis}")
 
     # initialize the model
     if ae_type == "beta_vae":
@@ -83,7 +88,7 @@ if __name__ == "__main__":
 
     # call the factory function for the sensing task
     task_callables, metrics_collection_cls = fp_dynamics.task_factory(
-        "pendulum",
+        system_type,
         nn_model,
         ts=dataset_metadata["ts"],
         sim_dt=dataset_metadata["sim_dt"],
@@ -129,7 +134,7 @@ if __name__ == "__main__":
             q_pred = (
                 test_preds["q_dynamic_ts"][i, t - start_time_idx, :n_q] / jnp.pi * 180
             )
-            error_q = pendulum.normalize_joint_angles(
+            error_q = (
                 test_preds["q_dynamic_ts"][i, t - start_time_idx, :n_q]
                 - test_batch["x_ts"][i, t, :n_q]
             )

@@ -55,7 +55,12 @@ elif ae_type == "beta_vae":
         raise NotImplementedError
     loss_weights = dict(mse_q=0.0, mse_rec=1.0, beta=1.0)
 else:
-    ckpt_timestamp = "2023-09-12_13-34-25"
+    if system_type == "cc":
+        ckpt_timestamp = "2023-09-12_13-34-25"
+    elif system_type == "pcc_ns-2":
+        ckpt_timestamp = "2023-09-12_19-35-14"
+    else:
+        raise NotImplementedError
     loss_weights = dict(mse_q=1.0, mse_rec=1.0)
 
 ckpt_dir = ckpt_dir = Path("logs") / f"{system_type}_autoencoding" / ckpt_timestamp
@@ -92,7 +97,7 @@ if __name__ == "__main__":
             norm_layer=norm_layer,
         )
 
-    # call the factory function for the sensing task
+    # call the factory function for the autoencoding task
     task_callables, metrics_collection_cls = autoencoding.task_factory(
         system_type,
         nn_model,
