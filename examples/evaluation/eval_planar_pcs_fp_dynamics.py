@@ -29,12 +29,10 @@ rng = random.PRNGKey(seed=seed)
 tf.random.set_seed(seed=seed)
 
 system_type = "cc"
-ae_type = "None"  # "None", "beta_vae", "wae"
+ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 
-# TODO: change this to the correct experiment id
-experiment_id = "2023-09-12_13-34-25"
+experiment_id = "2023-09-13_17-21-08"
 ckpt_dir = Path("logs") / f"{system_type}_fp_dynamics" / experiment_id
-ckpt_dir = Path("logs") / f"{system_type}_autoencoding" / experiment_id
 
 batch_size = 10
 loss_weights = dict(mse_q=1.0, mse_rec_static=1.0, mse_rec_dynamic=1.0)
