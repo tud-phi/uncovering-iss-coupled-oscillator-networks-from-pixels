@@ -8,7 +8,7 @@ dill
 flax
 jax
 jax-models
-jax-soft-robot-modelling
+jax-soft-robot-modelling>=0.3
 matplotlib
 natsort
 numpy
@@ -16,7 +16,7 @@ opencv-python
 optax
 optuna
 optuna-dashboard
-orbax-checkpoint
+orbax-checkpoint>=0.3.5
 pytest
 tensorboard
 tensorflow  # required for tensorflow-datasets
