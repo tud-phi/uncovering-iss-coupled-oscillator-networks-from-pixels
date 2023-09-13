@@ -56,7 +56,9 @@ if __name__ == "__main__":
         b1 = trial.suggest_float("b1", 0.9, 0.999, log=False)  # default b1 = 0.9
         b2 = trial.suggest_float("b2", 0.999, 0.9999, log=False)  # default b2 = 0.999
         weight_decay = trial.suggest_float("weight_decay", 1e-7, 1e-2, log=True)
-        norm_layer_type = trial.suggest_categorical("norm_layer_type", ["None", "layer_norm"])
+        norm_layer_type = trial.suggest_categorical(
+            "norm_layer_type", ["None", "layer_norm"]
+        )
 
         if rec_loss_type == "mse":
             train_loss_weights = dict(mse_q=0.0, mse_rec=1.0, beta=beta)
@@ -67,7 +69,7 @@ if __name__ == "__main__":
 
         if ae_type != "beta_vae":
             raise ValueError("Only beta_vae is supported for now")
-        
+
         if norm_layer_type == "None":
             norm_layer = None
         elif norm_layer_type == "layer_norm":
@@ -92,12 +94,12 @@ if __name__ == "__main__":
         # initialize the model
         if ae_type == "beta_vae":
             nn_model = VAE(
-                latent_dim=latent_dim,
-                img_shape=img_shape,
-                norm_layer=norm_layer
+                latent_dim=latent_dim, img_shape=img_shape, norm_layer=norm_layer
             )
         else:
-            nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape, norm_layer=norm_layer)
+            nn_model = Autoencoder(
+                latent_dim=latent_dim, img_shape=img_shape, norm_layer=norm_layer
+            )
 
         # call the factory function for the sensing task
         task_callables, metrics_collection_cls = autoencoding.task_factory(

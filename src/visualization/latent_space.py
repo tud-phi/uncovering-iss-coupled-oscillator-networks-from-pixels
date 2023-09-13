@@ -24,11 +24,13 @@ def visualize_mapping_from_configuration_to_latent_space(
     num_batches = len(eval_ds)  # number of dataset samples
 
     # jit the forward function
-    forward_fn = jit(partial(
-        task_callables.forward_fn,
-        nn_params=state.params,
-        rng=rng,
-    ))
+    forward_fn = jit(
+        partial(
+            task_callables.forward_fn,
+            nn_params=state.params,
+            rng=rng,
+        )
+    )
 
     for batch_idx, batch in (pbar := tqdm(enumerate(eval_ds.as_numpy_iterator()))):
         pbar.set_description(
@@ -67,14 +69,16 @@ def visualize_mapping_from_configuration_to_latent_space(
     plt.figure(num="Histogram of configuration space")
     for q_idx in range(q_ss.shape[-1]):
         counts, bins = jnp.histogram(q_ss[:, q_idx], bins=50)
-        plt.stairs(counts, bins, label=fr"$q_{q_idx}$")
+        plt.stairs(counts, bins, label=rf"$q_{q_idx}$")
     plt.xlabel("$q$")
     plt.ylabel("count")
     plt.legend()
     plt.tight_layout()
     plt.show()
 
-    fig, axes = plt.subplots(nrows=n_q, ncols=1, num="Mapping from configuration to latent space")
+    fig, axes = plt.subplots(
+        nrows=n_q, ncols=1, num="Mapping from configuration to latent space"
+    )
     for q_idx in range(n_q):
         ax = axes[q_idx]
         for z_idx in range(n_z):
@@ -83,7 +87,7 @@ def visualize_mapping_from_configuration_to_latent_space(
                 z_pred_ss[:, z_idx],
                 linestyle="None",
                 marker=".",
-                label=fr"$z_{z_idx}$",
+                label=rf"$z_{z_idx}$",
             )
         ax.set_xlabel(f"$q_{q_idx}$")
         ax.set_ylabel("$z$")

@@ -60,7 +60,9 @@ if __name__ == "__main__":
     forward_kinematics_fn, dynamical_matrices_fn = pendulum.factory(sym_exp_filepath)
 
     # initialize the model
-    nn_model = Autoencoder(latent_dim=2 * n_q, img_shape=img_shape, norm_layer=nn.LayerNorm)
+    nn_model = Autoencoder(
+        latent_dim=2 * n_q, img_shape=img_shape, norm_layer=nn.LayerNorm
+    )
 
     # call the factory function for the sensing task
     task_callables, metrics_collection_cls = fp_dynamics_wo_vel.task_factory(

@@ -81,9 +81,7 @@ def collect_dataset(
     # save the metadata
     if metadata is None:
         metadata = {}
-    metadata.update(
-        dict(solver_class=type(solver), sim_dt=sim_dt, dt=dt, ts=ts)
-    )
+    metadata.update(dict(solver_class=type(solver), sim_dt=sim_dt, dt=dt, ts=ts))
     if system_params is not None:
         metadata["system_params"] = system_params
     # save the metadata in the `dataset_dir`
@@ -107,7 +105,10 @@ def collect_dataset(
                 )
             elif sampling_dist == "arcsine":
                 u = random.uniform(rng_x0_sampling, state_init_min.shape)
-                x0 = state_init_min + (state_init_max - state_init_min) * jnp.sin(jnp.pi * u / 2)**2
+                x0 = (
+                    state_init_min
+                    + (state_init_max - state_init_min) * jnp.sin(jnp.pi * u / 2) ** 2
+                )
             else:
                 raise ValueError(f"Unknown sampling distribution: {sampling_dist}")
 

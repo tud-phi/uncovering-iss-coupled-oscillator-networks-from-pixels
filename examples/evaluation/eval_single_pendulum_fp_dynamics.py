@@ -74,12 +74,12 @@ if __name__ == "__main__":
     # initialize the model
     if ae_type == "beta_vae":
         nn_model = VAE(
-            latent_dim=latent_dim,
-            img_shape=img_shape,
-            norm_layer=norm_layer
+            latent_dim=latent_dim, img_shape=img_shape, norm_layer=norm_layer
         )
     else:
-        nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape, norm_layer=norm_layer)
+        nn_model = Autoencoder(
+            latent_dim=latent_dim, img_shape=img_shape, norm_layer=norm_layer
+        )
 
     # call the factory function for the sensing task
     task_callables, metrics_collection_cls = fp_dynamics.task_factory(

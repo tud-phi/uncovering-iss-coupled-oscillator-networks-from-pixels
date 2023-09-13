@@ -55,10 +55,14 @@ def render_planar_pcs(
     # should be of shape (N, 2)
     curve = onp.array((chi_ps[:2, :].T * ppm), dtype=onp.int32)
     # invert the v pixel coordinate
-    curve[:, 1] = - curve[:, 1]
+    curve[:, 1] = -curve[:, 1]
 
     cv2.polylines(
-        img, [origin_uv + curve], isClosed=False, color=robot_color, thickness=line_thickness
+        img,
+        [origin_uv + curve],
+        isClosed=False,
+        color=robot_color,
+        thickness=line_thickness,
     )
 
     return img

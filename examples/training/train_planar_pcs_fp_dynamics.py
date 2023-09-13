@@ -58,9 +58,7 @@ elif ae_type == "beta_vae":
 else:
     # ae_type == "None"
     base_lr = 0.004
-    loss_weights = dict(
-        mse_q=0.70, mse_rec_static=1.0, mse_rec_dynamic=77.0
-    )
+    loss_weights = dict(mse_q=0.70, mse_rec_static=1.0, mse_rec_dynamic=77.0)
     weight_decay = 1.7e-05
     start_time_idx = 1
 
@@ -90,24 +88,25 @@ if __name__ == "__main__":
     img_shape = train_ds.element_spec["rendering_ts"].shape[-3:]  # image shape
 
     sym_exp_filepath = (
-        Path(jsrm.__file__).parent / "symbolic_expressions" / f"planar_pcs_ns-{num_segments}.dill"
+        Path(jsrm.__file__).parent
+        / "symbolic_expressions"
+        / f"planar_pcs_ns-{num_segments}.dill"
     )
 
     # get the dynamics function
     strain_basis, forward_kinematics_fn, dynamical_matrices_fn = planar_pcs.factory(
-        sym_exp_filepath, 
-        strain_selector=dataset_metadata["strain_selector"]
+        sym_exp_filepath, strain_selector=dataset_metadata["strain_selector"]
     )
 
     # initialize the model
     if ae_type == "beta_vae":
         nn_model = VAE(
-            latent_dim=latent_dim,
-            img_shape=img_shape,
-            norm_layer=nn.LayerNorm
+            latent_dim=latent_dim, img_shape=img_shape, norm_layer=nn.LayerNorm
         )
     else:
-        nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape, norm_layer=nn.LayerNorm)
+        nn_model = Autoencoder(
+            latent_dim=latent_dim, img_shape=img_shape, norm_layer=nn.LayerNorm
+        )
 
     # call the factory function for the sensing task
     task_callables, metrics_collection_cls = fp_dynamics.task_factory(
