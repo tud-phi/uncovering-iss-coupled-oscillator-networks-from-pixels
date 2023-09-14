@@ -30,9 +30,10 @@ tf.random.set_seed(seed=seed)
 system_type = "cc"
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 
-num_epochs = 50
+num_epochs = 75
 warmup_epochs = 5
 batch_size = 100
+start_time_idx = 1
 configuration_velocity_source = "direct-finite-differences"
 
 if ae_type == "wae":
@@ -44,23 +45,20 @@ if ae_type == "wae":
         mmd=0.40,
     )
     weight_decay = 0.0001660747175371815
-    start_time_idx = 1
 elif ae_type == "beta_vae":
-    base_lr = 0.002
+    base_lr = 0.0034025235838459704
     loss_weights = dict(
-        mse_q=0.02,
+        mse_q=0.2425386811791378,
         mse_rec_static=1.0,
-        mse_rec_dynamic=120,
-        beta=0.03,
+        mse_rec_dynamic=37.740461886268136,
+        beta=0.025130527547712868,
     )
-    weight_decay = 5e-5
-    start_time_idx = 1
+    weight_decay = 0.00010327082269198063
 else:
     # ae_type == "None"
     base_lr = 0.004
     loss_weights = dict(mse_q=0.70, mse_rec_static=1.0, mse_rec_dynamic=77.0)
     weight_decay = 1.7e-05
-    start_time_idx = 1
 
 now = datetime.now()
 logdir = Path("logs") / f"{system_type}_fp_dynamics" / f"{now:%Y-%m-%d_%H-%M-%S}"
