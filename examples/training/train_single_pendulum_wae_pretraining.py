@@ -85,8 +85,8 @@ if __name__ == "__main__":
     autoencoding_task_callables, autoencoding_metrics = autoencoding.task_factory(
         "pendulum",
         nn_model,
-        loss_weights=hyperparams[0]["loss_weights"],
         normalize_latent_space=True,
+        loss_weights=hyperparams[0]["loss_weights"],
         # weight_on_foreground=0.15,
         ae_type="wae",
     )

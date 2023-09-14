@@ -90,8 +90,10 @@ if __name__ == "__main__":
     task_callables, metrics_collection_cls = autoencoding.task_factory(
         "pendulum",
         nn_model,
-        loss_weights=loss_weights,
         normalize_latent_space=normalize_latent_space,
+        x0_min=dataset_metadata["x0_min"],
+        x0_max=dataset_metadata["x0_max"],
+        loss_weights=loss_weights,
         rec_loss_type=rec_loss_type,
         # weight_on_foreground=0.15,
         ae_type=ae_type,
