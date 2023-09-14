@@ -90,7 +90,7 @@ if __name__ == "__main__":
             loss_weights["mmd"] = mmd
 
         datasets, dataset_info, dataset_metadata = load_dataset(
-            "mechanical_system/single_pendulum_64x64px",
+            "pendulum/single_pendulum_64x64px",
             seed=seed,
             batch_size=batch_size,
             normalize=True,

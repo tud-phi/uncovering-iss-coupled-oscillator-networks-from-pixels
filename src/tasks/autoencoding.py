@@ -28,15 +28,18 @@ def assemble_input(batch) -> Array:
 def task_factory(
     system_type: str,
     nn_model: nn.Module,
-    encode_fn: Callable = None,
-    decode_fn: Callable = None,
-    encode_kwargs: Dict[str, Any] = None,
-    decode_kwargs: Dict[str, Any] = None,
-    loss_weights: Dict[str, float] = None,
+    encode_fn: Optional[Callable] = None,
+    decode_fn: Optional[Callable] = None,
+    encode_kwargs: Optional[Dict[str, Any]] = None,
+    decode_kwargs: Optional[Dict[str, Any]] = None,
     normalize_latent_space: bool = True,
+    x0_min: Optional[Array] = None,
+    x0_max: Optional[Array] = None,
+    loss_weights: Optional[Dict[str, float]] = None,
     rec_loss_type: str = "mse",
-    weight_on_foreground: float = None,
+    weight_on_foreground: Optional[float] = None,
     ae_type: str = "None",
+    normalize_configuration_loss = False,
 ) -> Tuple[TaskCallables, Type[clu_metrics.Collection]]:
     """
     Factory function for the autoencoding task.
@@ -49,13 +52,16 @@ def task_factory(
         decode_fn: the function to use for decoding the latent space to the output image
         encode_kwargs: additional kwargs to pass to the encode_fn
         decode_kwargs: additional kwargs to pass to the decode_fn
-        loss_weights: the weights for the different loss terms
         normalize_latent_space: whether to normalize the latent space by for example projecting angles to [-pi, pi]
+        x0_min: the minimal value for the initial state of the simulation
+        x0_max: the maximal value for the initial state of the simulation
+        loss_weights: the weights for the different loss terms
         rec_loss_type: the type of reconstruction loss to use. One of ["mse", "bce"]
         weight_on_foreground: if None, a normal MSE loss will be used. Otherwise, a masked MSE loss will be used
             with the given weight for the masked area (usually the foreground).
         ae_type: Autoencoder type. If None, a normal autoencoder will be used.
             One of ["wae", "beta_vae", "None"]
+        normalize_configuration_loss: whether to normalize the configuration loss dividing by (q0_max - q0_min)
     Returns:
         task_callables: struct containing the functions for the learning task
         metrics_collection_cls: contains class for collecting metrics
@@ -90,6 +96,9 @@ def task_factory(
         wae_mmd_loss_fn = wae.make_wae_mdd_loss(
             distribution="uniform", uniform_distr_range=uniform_distr_range
         )
+
+    if normalize_configuration_loss is True:
+        assert x0_min is not None and x0_max is not None, "x0_min and x0_max must be provided for normalizing the configuration loss"
 
     def forward_fn(
         batch: Dict[str, Array],
@@ -161,6 +170,7 @@ def task_factory(
         rng: Optional[random.KeyArray] = None,
         training: bool = False,
     ) -> Tuple[Array, Dict[str, Array]]:
+        n_q = batch["x_ts"].shape[-1] // 2  # number of generalized coordinates
         preds = forward_fn(batch, nn_params, rng=rng, training=training)
 
         q_pred_bt = preds["q_ts"]
@@ -168,10 +178,12 @@ def task_factory(
 
         # compute the configuration error
         error_q = q_pred_bt - q_target_bt
-
         # if necessary, normalize the joint angle error
         if system_type == "pendulum":
             error_q = normalize_joint_angles(error_q)
+        # if requested, normalize the configuration loss by dividing by (q0_max - q0_min)
+        if normalize_configuration_loss is True:
+            error_q = error_q / (x0_max[:n_q] - x0_min[:n_q])
 
         # compute the mean squared error
         mse_q = jnp.mean(jnp.square(error_q))
@@ -235,12 +247,12 @@ def task_factory(
     def compute_metrics(
         batch: Dict[str, Array], preds: Dict[str, Array]
     ) -> Dict[str, Array]:
+        n_q = batch["x_ts"].shape[-1] // 2  # number of generalized coordinates
         q_pred_bt = preds["q_ts"]
         q_target_bt = batch["x_ts"][..., : batch["x_ts"].shape[-1] // 2]
 
         # compute the configuration error
         error_q = q_pred_bt - q_target_bt
-
         # if necessary, normalize the joint angle error
         if system_type == "pendulum":
             error_q = normalize_joint_angles(error_q)
@@ -251,6 +263,11 @@ def task_factory(
                 jnp.square(preds["rendering_ts"] - batch["rendering_ts"])
             ),
         }
+
+        # if requested, normalize the configuration loss by dividing by (q0_max - q0_min)
+        if normalize_configuration_loss is True:
+            error_q_norm = error_q / (x0_max[:n_q] - x0_min[:n_q])
+            metrics["mse_q_norm"] = jnp.mean(jnp.square(error_q_norm))
 
         if weight_on_foreground is not None:
             # allows to equally weigh the importance of correctly reconstructing the foreground and background
@@ -279,6 +296,9 @@ def task_factory(
         lr: clu_metrics.LastValue.from_output("lr")
         rmse_q: RootAverage.from_output("mse_q")
         rmse_rec: RootAverage.from_output("mse_rec")
+
+        if normalize_configuration_loss is True:
+            rmse_q_norm: RootAverage.from_output("mse_q_norm")
 
         if weight_on_foreground is not None:
             rmse_rec: RootAverage.from_output("masked_mse_rec")

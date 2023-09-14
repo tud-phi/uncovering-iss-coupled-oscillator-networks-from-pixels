@@ -35,12 +35,12 @@ export PYTHONPATH="${PYTHONPATH}://src"
 
 ## Generating the Tensorflow Dataset
 
-The compressed Tensorflow dataset can be generated from a raw dataset using the following commands:
+The compressed Tensorflow dataset can be generated using the following commands:
 
 ### Single Pendulum
 
 ```bash
-tfds build datasets/mechanical_system --data_dir data/tensorflow_datasets --config single_pendulum_64x64px --overwrite
+tfds build datasets/pendulum --data_dir data/tensorflow_datasets --config single_pendulum_64x64px --overwrite
 ```
 
 ### Planar PCS robot

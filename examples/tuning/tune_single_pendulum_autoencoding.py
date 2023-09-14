@@ -78,7 +78,7 @@ if __name__ == "__main__":
             raise ValueError(f"Unknown norm_layer_type: {norm_layer_type}")
 
         datasets, dataset_info, dataset_metadata = load_dataset(
-            "mechanical_system/single_pendulum_64x64px",
+            "pendulum/single_pendulum_64x64px",
             seed=seed,
             batch_size=batch_size,
             normalize=True,
@@ -105,8 +105,8 @@ if __name__ == "__main__":
         task_callables, metrics_collection_cls = autoencoding.task_factory(
             "pendulum",
             nn_model,
-            loss_weights=train_loss_weights,
             normalize_latent_space=normalize_latent_space,
+            loss_weights=train_loss_weights,
             rec_loss_type=rec_loss_type,
             # weight_on_foreground=0.15,
             ae_type=ae_type,

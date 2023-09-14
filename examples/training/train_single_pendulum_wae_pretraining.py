@@ -61,7 +61,7 @@ sym_exp_filepath = (
 
 if __name__ == "__main__":
     datasets, dataset_info, dataset_metadata = load_dataset(
-        "mechanical_system/single_pendulum_64x64px",
+        "pendulum/single_pendulum_64x64px",
         seed=seed,
         batch_size=batch_size,
         normalize=True,
@@ -85,8 +85,8 @@ if __name__ == "__main__":
     autoencoding_task_callables, autoencoding_metrics = autoencoding.task_factory(
         "pendulum",
         nn_model,
-        loss_weights=hyperparams[0]["loss_weights"],
         normalize_latent_space=True,
+        loss_weights=hyperparams[0]["loss_weights"],
         # weight_on_foreground=0.15,
         ae_type="wae",
     )

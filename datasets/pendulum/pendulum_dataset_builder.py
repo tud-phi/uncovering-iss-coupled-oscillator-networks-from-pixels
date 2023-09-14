@@ -1,31 +1,27 @@
-"""planar_pcs dataset."""
+"""pendulum dataset."""
 import dataclasses
-from jax import Array
 import jax.numpy as jnp
 from natsort import natsorted
 from pathlib import Path
+import shutil
 import tensorflow_datasets as tfds
-from typing import List, Optional, Tuple
+from typing import Optional
 
 
 @dataclasses.dataclass
-class PlanarPcsDatasetConfig(tfds.core.BuilderConfig):
-    state_dim: Optional[int] = None
-    horizon_dim: int = 11
-    img_size: Tuple[int, int] = (64, 64)
-    origin_uv: Tuple[int, int] = (32, 8)
-    num_segments: int = 1
-    strain_selector: Optional[Tuple] = (None,)
-    q_max: Tuple = (10 * jnp.pi, 0.05, 0.1)
-    q_d_max: Tuple = (10 * jnp.pi, 0.05, 0.1)
+class PendulumDatasetConfig(tfds.core.BuilderConfig):
+    state_dim: int = 2
+    horizon_dim: int = 1
+    img_size: tuple = (64, 64)
+    num_links: int = 1
     num_simulations: int = 20000
-    dt: float = 5e-3
-    sim_dt: float = 1e-3
+    dt = 5e-2
+    sim_dt = 2.5e-2
     seed: int = 0
 
 
-class PlanarPcs(tfds.core.GeneratorBasedBuilder):
-    """DatasetBuilder for planar pcs dataset."""
+class Pendulum(tfds.core.GeneratorBasedBuilder):
+    """DatasetBuilder for pendulum dataset."""
 
     VERSION = tfds.core.Version("1.0.0")
     RELEASE_NOTES = {
@@ -34,55 +30,43 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
     # pytype: disable=wrong-keyword-args
     BUILDER_CONFIGS = [
         # `name` (and optionally `description`) are required for each config
-        PlanarPcsDatasetConfig(
-            name="cc_64x64px",
-            description="Planar constant curvature continuum robot with images of size 64x64px.",
+        PendulumDatasetConfig(
+            name="single_pendulum_32x32px",
+            description="Single pendulum dataset with images of size 32x32px.",
             state_dim=2,
             horizon_dim=11,
-            num_segments=1,
-            strain_selector=(True, False, False),
-            q_max=(10 * jnp.pi,),
-            q_d_max=(10 * jnp.pi,),
+            img_size=(32, 32),
+            num_links=1
         ),
-        PlanarPcsDatasetConfig(
-            name="cs_64x64px",
-            description="Planar constant strain continuum robot with images of size 64x64px.",
-            state_dim=6,
-            num_segments=1,
+        PendulumDatasetConfig(
+            name="single_pendulum_64x64px",
+            description="Single pendulum dataset with images of size 64x64px.",
+            state_dim=2,
+            horizon_dim=11,
+            img_size=(64, 64),
+            num_links=1
         ),
-        PlanarPcsDatasetConfig(
-            name="pcc_ns-2_64x64px",
-            description="Planar two segment piecewise constant curvature continuum robot with images of size 64x64px.",
+        PendulumDatasetConfig(
+            name="double_pendulum_32x32px",
+            description="Double pendulum dataset with images of size 32x32px.",
             state_dim=4,
-            num_segments=2,
-            strain_selector=(True, False, False, True, False, False),
-            q_max=(5 * jnp.pi, 5 * jnp.pi),
-            q_d_max=(5 * jnp.pi, 5 * jnp.pi),
+            horizon_dim=11,
+            img_size=(32, 32),
+            num_links=2
         ),
-        PlanarPcsDatasetConfig(
-            name="pcc_ns-3_64x64px",
-            description="Planar three segment piecewise constant curvature continuum robot with images of size 64x64px.",
-            state_dim=6,
-            num_segments=3,
-            strain_selector=(
-                True,
-                False,
-                False,
-                True,
-                False,
-                False,
-                True,
-                False,
-                False,
-            ),
-            q_max=(3.33 * jnp.pi, 3.33 * jnp.pi, 3.33 * jnp.pi),
-            q_d_max=(3.33 * jnp.pi, 3.33 * jnp.pi, 3.33 * jnp.pi),
+        PendulumDatasetConfig(
+            name="double_pendulum_64x64px",
+            description="Double pendulum dataset with images of size 64x64px.",
+            state_dim=4,
+            horizon_dim=11,
+            img_size=(64, 64),
+            num_links=2
         ),
     ]
     # pytype: enable=wrong-keyword-args
 
     def _info(self) -> tfds.core.DatasetInfo:
-        """Returns the dataset info."""
+        """Returns the dataset metadata."""
 
         return self.dataset_info_from_configs(
             features=tfds.features.FeaturesDict(
@@ -103,8 +87,8 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
                     "rendering_ts": tfds.features.Sequence(
                         tfds.features.Image(
                             shape=(
-                                self.builder_config.img_size[1],
                                 self.builder_config.img_size[0],
+                                self.builder_config.img_size[1],
                                 3,
                             )
                         ),
@@ -123,7 +107,6 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
         )
 
     def _split_generators(self, dl_manager: tfds.download.DownloadManager):
-        """Returns SplitGenerators."""
         return {
             "train": self._generate_examples(),
         }
@@ -142,78 +125,51 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
         import diffrax
         from functools import partial
         import jsrm
-        from jsrm.systems import planar_pcs
+        from jsrm.systems import pendulum
 
         from src.dataset_collection import collect_dataset
-        from src.rendering import render_planar_pcs
+        from src.rendering import render_pendulum
 
         # Pseudo random number generator
         rng = jax.random.PRNGKey(seed=self.builder_config.seed)
 
+        num_links = self.builder_config.num_links
         # filepath to symbolic expressions
         sym_exp_filepath = (
             Path(jsrm.__file__).parent
             / "symbolic_expressions"
-            / f"planar_pcs_ns-{self.builder_config.num_segments}.dill"
+            / f"pendulum_nl-{num_links}.dill"
         )
 
         # set robot parameters
-        strain_selector = jnp.array(self.builder_config.strain_selector)
-        rho = 1070 * jnp.ones(
-            (self.builder_config.num_segments,)
-        )  # Volumetric density of Dragon Skin 20 [kg/m^3]
-        # damping matrix
-        D = 2e-6 * jnp.diag(
-            jnp.repeat(
-                jnp.array([1e0, 1e3, 1e3]), self.builder_config.num_segments, axis=0
-            ),
-        )
         robot_params = {
-            "th0": jnp.array(jnp.pi),  # initial orientation angle [rad]
-            "l": 1e-1 * jnp.ones((self.builder_config.num_segments,)),
-            "r": 2e-2 * jnp.ones((self.builder_config.num_segments,)),
-            "rho": rho,
+            "m": 10.0 * jnp.ones((num_links, )),
+            "I": 3.0 * jnp.ones((num_links, )),
+            "l": 2.0 * jnp.ones((num_links, )),
+            "lc": 1.0 * jnp.ones((num_links, )),
             "g": jnp.array([0.0, -9.81]),
-            # Elastic modulus [Pa]
-            "E": 2e3 * jnp.ones((self.builder_config.num_segments,)),
-            # Shear modulus [Pa]
-            "G": 2e2 * jnp.ones((self.builder_config.num_segments,)),
-            "D": D,
         }
-        metadata = {
-            "num_segments": self.builder_config.num_segments,
-            "strain_selector": strain_selector,
-        }
+        metadata = {"num_links": num_links}
 
         # initialize the system
-        strain_basis, forward_kinematics_fn, dynamical_matrices_fn = planar_pcs.factory(
-            sym_exp_filepath, strain_selector
+        forward_kinematics_fn, dynamical_matrices_fn = pendulum.factory(
+            sym_exp_filepath
         )
 
         n_q = self.builder_config.state_dim // 2  # number of configuration variables
-        # check that the state dimension is correct
-        assert (
-            n_q == strain_basis.shape[1]
-        ), "Provided state dimension does not match the strain selector / num of segments!"
-        assert n_q == len(
-            self.builder_config.q_max
-        ), "Provided state dimension does not match the number of provided q_max values!"
-        assert n_q == len(
-            self.builder_config.q_d_max
-        ), "Provided state dimension does not match the number of provided q_d_max values!"
+        assert num_links == n_q, "Number of links must match half the state dimension."
 
         # initialize the rendering function
         rendering_fn = partial(
-            render_planar_pcs,
+            render_pendulum,
             forward_kinematics_fn,
             robot_params,
             width=self.builder_config.img_size[0],
             height=self.builder_config.img_size[1],
-            origin_uv=self.builder_config.origin_uv,
-            line_thickness=6,
+            line_thickness=2,
         )
 
-        sample_q = jnp.array(self.builder_config.q_max)
+        sample_q = jnp.array([36 / 180 * jnp.pi])
         # sample_q = jnp.array([0.0])
         sample_img = rendering_fn(sample_q)
         plt.figure(num="Sample rendering")
@@ -222,19 +178,21 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
         plt.show()
 
         # set initial conditions
-        q_max = jnp.array(self.builder_config.q_max)
-        q_d_max = jnp.array(self.builder_config.q_d_max)
-        state_init_min = jnp.concatenate([-q_max, -q_d_max], axis=0)
-        state_init_max = jnp.concatenate([q_max, q_d_max], axis=0)
+        state_init_min = jnp.zeros((2 * num_links,))
+        state_init_max = jnp.zeros((2 * num_links,))
+        state_init_min = state_init_min.at[:num_links].set(-jnp.pi)
+        state_init_max = state_init_max.at[:num_links].set(jnp.pi)
+        # maximum magnitude of the initial joint velocity [rad/s]
+        max_q_d_0 = jnp.pi * jnp.ones((num_links,))
+        state_init_min = state_init_min.at[num_links:].set(-max_q_d_0)
+        state_init_max = state_init_max.at[num_links:].set(max_q_d_0)
 
         # set initial / torque conditions
         tau = jnp.zeros((n_q,))
 
         # collect the dataset
         yield from collect_dataset(
-            ode_fn=jsrm.integration.ode_factory(
-                dynamical_matrices_fn, robot_params, tau
-            ),
+            ode_fn=jsrm.integration.ode_factory(dynamical_matrices_fn, robot_params, tau),
             rendering_fn=rendering_fn,
             rng=rng,
             num_simulations=self.builder_config.num_simulations,
@@ -247,5 +205,4 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             sim_dt=jnp.array(self.builder_config.sim_dt),
             system_params=robot_params,
             metadata=metadata,
-            sampling_dist="half-normal",
         )

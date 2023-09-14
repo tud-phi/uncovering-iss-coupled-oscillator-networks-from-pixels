@@ -24,7 +24,6 @@ def collect_dataset(
     system_params: Optional[Dict[str, Array]] = None,
     metadata: Optional[Dict[str, Any]] = None,
     sampling_dist: str = "uniform",
-    do_yield: bool = True,
     save_raw_data: bool = False,
 ):
     """
@@ -47,7 +46,6 @@ def collect_dataset(
         metadata: Dictionary with metadata to save in the dataset directory.
         sampling_dist: Distribution to sample the initial state of the simulation from. Can be one of:
             ["uniform", "arcsine", "half-normal"].
-        do_yield: Whether to yield the simulation data as a tuple (sim_idx, sample).
         save_raw_data: Whether to save the raw data (as images and labels) to the dataset_dir.
     """
     # initiate ODE term from `ode_fn`
@@ -183,8 +181,7 @@ def collect_dataset(
                 "rendering_ts": rendering_ts,
             }
 
-            if do_yield:
-                yield sim_idx, sample
+            yield sim_idx, sample
 
             # update progress bar
             bar()
