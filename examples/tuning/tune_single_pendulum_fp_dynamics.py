@@ -128,10 +128,10 @@ if __name__ == "__main__":
                 dynamical_matrices_fn, robot_params, tau=jnp.zeros((n_q,))
             ),
             loss_weights=loss_weights,
+            ae_type=ae_type,
             solver=dataset_metadata["solver_class"](),
             configuration_velocity_source=configuration_velocity_source,
             start_time_idx=start_time_idx,
-            ae_type=ae_type,
         )
 
         # add the optuna prune callback
