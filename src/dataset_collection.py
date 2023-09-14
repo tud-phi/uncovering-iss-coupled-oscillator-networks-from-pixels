@@ -45,7 +45,8 @@ def collect_dataset(
         sim_dt: Time step used for simulation [s].
         system_params: Dictionary with system parameters.
         metadata: Dictionary with metadata to save in the dataset directory.
-        sampling_dist: Distribution to sample the initial state of the simulation from. Can be either "uniform" or "arcsine".
+        sampling_dist: Distribution to sample the initial state of the simulation from. Can be one of:
+            ["uniform", "arcsine", "half-normal"].
         do_yield: Whether to yield the simulation data as a tuple (sim_idx, sample).
         save_raw_data: Whether to save the raw data (as images and labels) to the dataset_dir.
     """
@@ -109,6 +110,14 @@ def collect_dataset(
                     state_init_min
                     + (state_init_max - state_init_min) * jnp.sin(jnp.pi * u / 2) ** 2
                 )
+            elif sampling_dist == "half-normal":
+                u = random.normal(rng_x0_sampling, state_init_min.shape)
+                stdev = (state_init_max - state_init_min) / 12
+                condlist = [u < 0, u >= 0]
+                choicelist = [state_init_min, state_init_max]
+                x0 = jnp.select(condlist, choicelist) - u * stdev
+                # just to make sure that a very unlikely sample does not bring us out of bounds
+                x0 = jnp.clip(x0, state_init_min, state_init_max)
             else:
                 raise ValueError(f"Unknown sampling distribution: {sampling_dist}")
 
