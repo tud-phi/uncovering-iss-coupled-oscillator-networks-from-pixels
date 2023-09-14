@@ -130,7 +130,7 @@ if __name__ == "__main__":
             system_type,
             nn_model,
             ts=dataset_metadata["ts"],
-            sim_dt=5e-3,
+            sim_dt=dataset_metadata["sim_dt"],
             ode_fn=ode_factory(
                 dynamical_matrices_fn, robot_params, tau=jnp.zeros((n_q,))
             ),
