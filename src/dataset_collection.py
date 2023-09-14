@@ -82,7 +82,14 @@ def collect_dataset(
     # save the metadata
     if metadata is None:
         metadata = {}
-    metadata.update(dict(solver_class=type(solver), sim_dt=sim_dt, dt=dt, ts=ts))
+    metadata.update(dict(
+        dt=dt,
+        ts=ts,
+        solver_class=type(solver),
+        sim_dt=sim_dt,
+        x0_min=state_init_min,
+        x0_max=state_init_max,
+    ))
     if system_params is not None:
         metadata["system_params"] = system_params
     # save the metadata in the `dataset_dir`
@@ -112,7 +119,7 @@ def collect_dataset(
                 )
             elif sampling_dist == "half-normal":
                 u = random.normal(rng_x0_sampling, state_init_min.shape)
-                stdev = (state_init_max - state_init_min) / 12
+                stdev = (state_init_max - state_init_min) / 2
                 condlist = [u < 0, u >= 0]
                 choicelist = [state_init_min, state_init_max]
                 x0 = jnp.select(condlist, choicelist) - u * stdev
