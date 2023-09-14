@@ -30,15 +30,18 @@ def task_factory(
     ode_fn: Callable,
     ts: Array,
     sim_dt: float,
-    encode_fn: Callable = None,
-    decode_fn: Callable = None,
-    encode_kwargs: Dict[str, Any] = None,
-    decode_kwargs: Dict[str, Any] = None,
+    encode_fn: Optional[Callable] = None,
+    decode_fn: Optional[Callable] = None,
+    encode_kwargs: Optional[Dict[str, Any]] = None,
+    decode_kwargs: Optional[Dict[str, Any]] = None,
+    x0_min: Optional[Array] = None,
+    x0_max: Optional[Array] = None,
     loss_weights: Optional[Dict[str, float]] = None,
+    ae_type: str = "None",
+    normalize_configuration_loss = False,
     solver: AbstractSolver = Dopri5(),
     start_time_idx: int = 1,
     configuration_velocity_source: str = "direct-finite-differences",
-    ae_type: str = "None",
 ) -> Tuple[TaskCallables, Type[clu_metrics.Collection]]:
     """
     Factory function for the task of learning a representation using first-principle dynamics while using the
@@ -55,14 +58,17 @@ def task_factory(
         decode_fn: the function to use for decoding the latent space to the output image
         encode_kwargs: additional kwargs to pass to the encode_fn
         decode_kwargs: additional kwargs to pass to the decode_fn
+        x0_min: the minimal value for the initial state of the simulation
+        x0_max: the maximal value for the initial state of the simulation
         loss_weights: the weights for the different loss terms
+        ae_type: Autoencoder type. If None, a normal autoencoder will be used.
+            One of ["wae", "beta_vae", "None"]
+        normalize_configuration_loss: whether to normalize the configuration loss dividing by (q0_max - q0_min)
         solver: Diffrax solver to use for the simulation.
         start_time_idx: the index of the time step to start the simulation at. Needs to be >=1 to enable the application
             of finite differences for the latent-space velocity.
         configuration_velocity_source: the source of the configuration velocity.
             Can be either "direct-finite-differences", or "image-space-finite-differences"
-        ae_type: Autoencoder type. If None, a normal autoencoder will be used.
-            One of ["wae", "beta_vae", "None"]
     Returns:
         task_callables: struct containing the functions for the learning task
         metrics_collection_cls: contains class for collecting metrics
@@ -87,9 +93,6 @@ def task_factory(
     if loss_weights is None:
         loss_weights = dict(mse_q=1.0, mse_rec_static=1.0, mse_rec_dynamic=1.0)
 
-    # initiate ODE term from `ode_fn`
-    ode_term = ODETerm(ode_fn)
-
     if ae_type == "wae":
         from src.losses import wae
 
@@ -100,6 +103,12 @@ def task_factory(
         wae_mmd_loss_fn = wae.make_wae_mdd_loss(
             distribution="uniform", uniform_distr_range=uniform_distr_range
         )
+
+    if normalize_configuration_loss is True:
+        assert x0_min is not None and x0_max is not None, "x0_min and x0_max must be provided for normalizing the configuration loss"
+
+    # initiate ODE term from `ode_fn`
+    ode_term = ODETerm(ode_fn)
 
     def forward_fn(
         batch: Dict[str, Array],
@@ -324,6 +333,7 @@ def task_factory(
         rng: Optional[random.KeyArray] = None,
         training: bool = False,
     ) -> Tuple[Array, Dict[str, Array]]:
+        n_q = batch["x_ts"].shape[-1] // 2  # number of generalized coordinates
         preds = forward_fn(batch, nn_params, rng=rng, training=training)
 
         q_static_pred_bt = preds["q_static_ts"]
@@ -331,10 +341,12 @@ def task_factory(
 
         # compute the configuration error
         error_q = q_dynamic_pred_bt - q_static_pred_bt[:, start_time_idx:]
-
         # if necessary, normalize the joint angle error
         if system_type == "pendulum":
             error_q = normalize_joint_angles(error_q)
+        # if requested, normalize the configuration loss by dividing by (q0_max - q0_min)
+        if normalize_configuration_loss is True:
+            error_q = error_q / (x0_max[:n_q] - x0_min[:n_q])
 
         # compute the mean squared error
         mse_q = jnp.mean(jnp.square(error_q))
@@ -393,6 +405,18 @@ def task_factory(
         q_dynamic_pred_bt = preds["q_dynamic_ts"]
         q_target_bt = batch["x_ts"][..., :n_q]
 
+        batch_loss_dict = {
+            "mse_rec_static": jnp.mean(
+                jnp.square(preds["rendering_static_ts"] - batch["rendering_ts"])
+            ),
+            "mse_rec_dynamic": jnp.mean(
+                jnp.square(
+                    preds["rendering_dynamic_ts"]
+                    - batch["rendering_ts"][:, start_time_idx:]
+                )
+            ),
+        }
+
         # compute the configuration error
         error_q_static = q_static_pred_bt - q_target_bt
         error_q_dynamic = q_dynamic_pred_bt - q_target_bt[:, start_time_idx:]
@@ -407,20 +431,26 @@ def task_factory(
             preds["x_dynamic_ts"][..., n_q:] - batch["x_ts"][:, start_time_idx:, n_q:]
         )
 
-        return {
-            "mse_q_static": jnp.mean(jnp.square(error_q_static)),
-            "mse_rec_static": jnp.mean(
-                jnp.square(preds["rendering_static_ts"] - batch["rendering_ts"])
-            ),
-            "mse_q_dynamic": jnp.mean(jnp.square(error_q_dynamic)),
-            "msq_q_d_dynamic": jnp.mean(jnp.square(error_q_d_dynamic)),
-            "mse_rec_dynamic": jnp.mean(
-                jnp.square(
-                    preds["rendering_dynamic_ts"]
-                    - batch["rendering_ts"][:, start_time_idx:]
-                )
-            ),
-        }
+        if normalize_configuration_loss:
+            error_q_static_norm = error_q_static / (x0_max[:n_q] - x0_min[:n_q])
+            error_q_dynamic_norm = error_q_dynamic / (x0_max[:n_q] - x0_min[:n_q])
+            error_q_d_dynamic_norm = error_q_d_dynamic / (x0_max[n_q:] - x0_min[n_q:])
+            batch_loss_dict.update(
+                {
+                    "mse_q_static_norm": jnp.mean(jnp.square(error_q_static_norm)),
+                    "mse_q_dynamic_norm": jnp.mean(jnp.square(error_q_dynamic_norm)),
+                    "mse_q_d_dynamic_norm": jnp.mean(jnp.square(error_q_d_dynamic_norm)),
+                }
+            )
+        else:
+            batch_loss_dict.update({
+                "mse_q_static": jnp.mean(jnp.square(error_q_static)),
+                "mse_q_dynamic": jnp.mean(jnp.square(error_q_dynamic)),
+                "msq_q_d_dynamic": jnp.mean(jnp.square(error_q_d_dynamic)),
+            })
+
+        return batch_loss_dict
+
 
     task_callables = TaskCallables(
         system_type, assemble_input, forward_fn, loss_fn, compute_metrics
@@ -430,11 +460,17 @@ def task_factory(
     class MetricsCollection(clu_metrics.Collection):
         loss: clu_metrics.Average.from_output("loss")
         lr: clu_metrics.LastValue.from_output("lr")
-        rmse_q_static: RootAverage.from_output("mse_q_static")
         rmse_rec_static: RootAverage.from_output("mse_rec_static")
-        rmse_q_dynamic: RootAverage.from_output("mse_q_dynamic")
-        rmse_q_d_dynamic: RootAverage.from_output("msq_q_d_dynamic")
         rmse_rec_dynamic: RootAverage.from_output("mse_rec_dynamic")
+
+        if normalize_configuration_loss is True:
+            rmse_q_static_norm: RootAverage.from_output("mse_q_static_norm")
+            rmse_q_dynamic_norm: RootAverage.from_output("mse_q_dynamic_norm")
+            rmse_q_d_dynamic_norm: RootAverage.from_output("mse_q_d_dynamic_norm")
+        else:
+            rmse_q_static: RootAverage.from_output("mse_q_static")
+            rmse_q_dynamic: RootAverage.from_output("mse_q_dynamic")
+            rmse_q_d_dynamic: RootAverage.from_output("msq_q_d_dynamic")
 
     metrics_collection_cls = MetricsCollection
     return task_callables, metrics_collection_cls

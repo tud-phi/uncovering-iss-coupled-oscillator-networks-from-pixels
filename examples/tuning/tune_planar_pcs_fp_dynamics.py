@@ -129,16 +129,16 @@ if __name__ == "__main__":
         task_callables, metrics_collection_cls = fp_dynamics.task_factory(
             system_type,
             nn_model,
-            ts=dataset_metadata["ts"],
-            sim_dt=dataset_metadata["sim_dt"],
             ode_fn=ode_factory(
                 dynamical_matrices_fn, robot_params, tau=jnp.zeros((n_q,))
             ),
+            ts=dataset_metadata["ts"],
+            sim_dt=dataset_metadata["sim_dt"],
             loss_weights=loss_weights,
+            ae_type=ae_type,
             solver=dataset_metadata["solver_class"](),
             configuration_velocity_source=configuration_velocity_source,
             start_time_idx=start_time_idx,
-            ae_type=ae_type,
         )
 
         # add the optuna prune callback

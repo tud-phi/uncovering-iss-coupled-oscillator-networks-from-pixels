@@ -89,6 +89,7 @@ if __name__ == "__main__":
         sim_dt=dataset_metadata["sim_dt"],
         ode_fn=ode_factory(dynamical_matrices_fn, robot_params, tau=jnp.zeros((n_q,))),
         loss_weights=loss_weights,
+        ae_type=ae_type,
         solver=dataset_metadata["solver_class"](),
         start_time_idx=start_time_idx,
         configuration_velocity_source="direct-finite-differences",
