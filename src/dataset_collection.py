@@ -80,14 +80,16 @@ def collect_dataset(
     # save the metadata
     if metadata is None:
         metadata = {}
-    metadata.update(dict(
-        dt=dt,
-        ts=ts,
-        solver_class=type(solver),
-        sim_dt=sim_dt,
-        x0_min=state_init_min,
-        x0_max=state_init_max,
-    ))
+    metadata.update(
+        dict(
+            dt=dt,
+            ts=ts,
+            solver_class=type(solver),
+            sim_dt=sim_dt,
+            x0_min=state_init_min,
+            x0_max=state_init_max,
+        )
+    )
     if system_params is not None:
         metadata["system_params"] = system_params
     # save the metadata in the `dataset_dir`

@@ -72,7 +72,7 @@ if __name__ == "__main__":
         sim_dt=dataset_metadata["sim_dt"],
         ode_fn=ode_factory(dynamical_matrices_fn, robot_params, tau=jnp.zeros((n_q,))),
         loss_weights=loss_weights,
-        solver=dataset_metadata["solver_class"](),\
+        solver=dataset_metadata["solver_class"](),
     )
 
     # run the training loop

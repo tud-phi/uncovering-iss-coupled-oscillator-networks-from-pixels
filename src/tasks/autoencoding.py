@@ -39,7 +39,7 @@ def task_factory(
     rec_loss_type: str = "mse",
     weight_on_foreground: Optional[float] = None,
     ae_type: str = "None",
-    normalize_configuration_loss = False,
+    normalize_configuration_loss=False,
 ) -> Tuple[TaskCallables, Type[clu_metrics.Collection]]:
     """
     Factory function for the autoencoding task.
@@ -98,7 +98,9 @@ def task_factory(
         )
 
     if normalize_configuration_loss is True:
-        assert x0_min is not None and x0_max is not None, "x0_min and x0_max must be provided for normalizing the configuration loss"
+        assert (
+            x0_min is not None and x0_max is not None
+        ), "x0_min and x0_max must be provided for normalizing the configuration loss"
 
     def forward_fn(
         batch: Dict[str, Array],

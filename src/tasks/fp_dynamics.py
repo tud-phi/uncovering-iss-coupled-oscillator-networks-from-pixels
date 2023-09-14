@@ -38,7 +38,7 @@ def task_factory(
     x0_max: Optional[Array] = None,
     loss_weights: Optional[Dict[str, float]] = None,
     ae_type: str = "None",
-    normalize_configuration_loss = False,
+    normalize_configuration_loss=False,
     solver: AbstractSolver = Dopri5(),
     start_time_idx: int = 1,
     configuration_velocity_source: str = "direct-finite-differences",
@@ -105,7 +105,9 @@ def task_factory(
         )
 
     if normalize_configuration_loss is True:
-        assert x0_min is not None and x0_max is not None, "x0_min and x0_max must be provided for normalizing the configuration loss"
+        assert (
+            x0_min is not None and x0_max is not None
+        ), "x0_min and x0_max must be provided for normalizing the configuration loss"
 
     # initiate ODE term from `ode_fn`
     ode_term = ODETerm(ode_fn)
@@ -439,18 +441,21 @@ def task_factory(
                 {
                     "mse_q_static_norm": jnp.mean(jnp.square(error_q_static_norm)),
                     "mse_q_dynamic_norm": jnp.mean(jnp.square(error_q_dynamic_norm)),
-                    "mse_q_d_dynamic_norm": jnp.mean(jnp.square(error_q_d_dynamic_norm)),
+                    "mse_q_d_dynamic_norm": jnp.mean(
+                        jnp.square(error_q_d_dynamic_norm)
+                    ),
                 }
             )
         else:
-            batch_loss_dict.update({
-                "mse_q_static": jnp.mean(jnp.square(error_q_static)),
-                "mse_q_dynamic": jnp.mean(jnp.square(error_q_dynamic)),
-                "msq_q_d_dynamic": jnp.mean(jnp.square(error_q_d_dynamic)),
-            })
+            batch_loss_dict.update(
+                {
+                    "mse_q_static": jnp.mean(jnp.square(error_q_static)),
+                    "mse_q_dynamic": jnp.mean(jnp.square(error_q_dynamic)),
+                    "msq_q_d_dynamic": jnp.mean(jnp.square(error_q_d_dynamic)),
+                }
+            )
 
         return batch_loss_dict
-
 
     task_callables = TaskCallables(
         system_type, assemble_input, forward_fn, loss_fn, compute_metrics
