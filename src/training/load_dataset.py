@@ -23,7 +23,7 @@ def load_dataset(
     Args:
         name: Name of the dataset. Can also be name/config_name:version.
             https://www.tensorflow.org/datasets/api_docs/python/tfds/load
-            Example: "mechanical_system/single_pendulum"
+            Example: "pendulum/single_pendulum"
         seed: Seed for the shuffling of the training dataset.
         batch_size: Batch size of the dataset.
         val_perc: Percentage of validation dataset with respect to the entire dataset size. Needs to be in interval [0, 100].
