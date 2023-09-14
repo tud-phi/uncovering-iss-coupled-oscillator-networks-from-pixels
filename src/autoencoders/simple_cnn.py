@@ -50,7 +50,7 @@ class Decoder(nn.Module):
 
     @nn.compact
     def __call__(self, x):
-        x = self.nonlinearity(x)
+        # x = self.nonlinearity(x)
         x = nn.Dense(features=256)(x)
         if self.norm_layer is not None:
             x = self.norm_layer()(x)
