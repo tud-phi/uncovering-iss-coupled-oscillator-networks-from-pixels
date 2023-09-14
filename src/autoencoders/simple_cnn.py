@@ -31,10 +31,6 @@ class Encoder(nn.Module):
         x = self.nonlinearity(x)
         x = nn.Dense(features=self.latent_dim)(x)
 
-        # clip to [-1, 1]
-        # doesn't seem to work.
-        # x = -1.0 + 2 * nn.softmax(x)
-
         return x
 
 

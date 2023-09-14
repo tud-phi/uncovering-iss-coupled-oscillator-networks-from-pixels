@@ -31,7 +31,7 @@ tf.random.set_seed(seed=seed)
 system_type = "cc"
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 
-experiment_id = "2023-09-13_17-21-08"
+experiment_id = "2023-09-14_21-33-01"
 ckpt_dir = Path("logs") / f"{system_type}_fp_dynamics" / experiment_id
 
 batch_size = 10
@@ -39,6 +39,8 @@ loss_weights = dict(mse_q=1.0, mse_rec_static=1.0, mse_rec_dynamic=1.0)
 start_time_idx = 1
 norm_layer = nn.LayerNorm
 
+if ae_type == "beta_vae":
+    loss_weights["beta"] = 1.0
 
 if __name__ == "__main__":
     datasets, dataset_info, dataset_metadata = load_dataset(
@@ -60,7 +62,6 @@ if __name__ == "__main__":
     latent_dim = n_q
     # image shape
     img_shape = train_ds.element_spec["rendering_ts"].shape[-3:]  # image shape
-    print("image shape:", train_ds.element_spec["rendering_ts"].shape)
 
     sym_exp_filepath = (
         Path(jsrm.__file__).parent
@@ -72,7 +73,6 @@ if __name__ == "__main__":
     strain_basis, forward_kinematics_fn, dynamical_matrices_fn = planar_pcs.factory(
         sym_exp_filepath, dataset_metadata["strain_selector"]
     )
-    print(f"Strain basis: {strain_basis}")
 
     # initialize the model
     if ae_type == "beta_vae":
@@ -124,15 +124,13 @@ if __name__ == "__main__":
         print("Trajectory:", i)
 
         print(
-            f"Estimated initial velocity: {test_preds['x_dynamic_ts'][i, 0, n_q:]}rad/s, actual initial velocity: {test_batch['x_ts'][i, start_time_idx, n_q:]}rad/s"
+            f"Estimated initial velocity: {test_preds['x_dynamic_ts'][i, 0, n_q:]}rad/(ms), actual initial velocity: {test_batch['x_ts'][i, start_time_idx, n_q:]}rad/(ms)"
         )
 
         for t in range(start_time_idx, test_batch["x_ts"].shape[1]):
             print("Time step:", t)
-            q_gt = test_batch["x_ts"][i, t, :n_q] / jnp.pi * 180
-            q_pred = (
-                test_preds["q_dynamic_ts"][i, t - start_time_idx, :n_q] / jnp.pi * 180
-            )
+            q_gt = test_batch["x_ts"][i, t, :n_q]
+            q_pred = test_preds["q_dynamic_ts"][i, t - start_time_idx, :n_q]
             error_q = (
                 test_preds["q_dynamic_ts"][i, t - start_time_idx, :n_q]
                 - test_batch["x_ts"][i, t, :n_q]
@@ -140,13 +138,13 @@ if __name__ == "__main__":
             print(
                 "Ground-truth q:",
                 q_gt,
-                "deg",
+                "rad/m",
                 "Predicted q:",
                 q_pred,
-                "deg",
+                "rad/m",
                 "Error:",
-                error_q / jnp.pi * 180,
-                "deg",
+                error_q,
+                "rad/m",
             )
 
             img_gt = (128 * (1.0 + test_batch["rendering_ts"][i, t])).astype(jnp.uint8)

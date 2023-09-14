@@ -36,7 +36,7 @@ class Pendulum(tfds.core.GeneratorBasedBuilder):
             state_dim=2,
             horizon_dim=11,
             img_size=(32, 32),
-            num_links=1
+            num_links=1,
         ),
         PendulumDatasetConfig(
             name="single_pendulum_64x64px",
@@ -44,7 +44,7 @@ class Pendulum(tfds.core.GeneratorBasedBuilder):
             state_dim=2,
             horizon_dim=11,
             img_size=(64, 64),
-            num_links=1
+            num_links=1,
         ),
         PendulumDatasetConfig(
             name="double_pendulum_32x32px",
@@ -52,7 +52,7 @@ class Pendulum(tfds.core.GeneratorBasedBuilder):
             state_dim=4,
             horizon_dim=11,
             img_size=(32, 32),
-            num_links=2
+            num_links=2,
         ),
         PendulumDatasetConfig(
             name="double_pendulum_64x64px",
@@ -60,7 +60,7 @@ class Pendulum(tfds.core.GeneratorBasedBuilder):
             state_dim=4,
             horizon_dim=11,
             img_size=(64, 64),
-            num_links=2
+            num_links=2,
         ),
     ]
     # pytype: enable=wrong-keyword-args
@@ -143,10 +143,10 @@ class Pendulum(tfds.core.GeneratorBasedBuilder):
 
         # set robot parameters
         robot_params = {
-            "m": 10.0 * jnp.ones((num_links, )),
-            "I": 3.0 * jnp.ones((num_links, )),
-            "l": 2.0 * jnp.ones((num_links, )),
-            "lc": 1.0 * jnp.ones((num_links, )),
+            "m": 10.0 * jnp.ones((num_links,)),
+            "I": 3.0 * jnp.ones((num_links,)),
+            "l": 2.0 * jnp.ones((num_links,)),
+            "lc": 1.0 * jnp.ones((num_links,)),
             "g": jnp.array([0.0, -9.81]),
         }
         metadata = {"num_links": num_links}
@@ -192,7 +192,9 @@ class Pendulum(tfds.core.GeneratorBasedBuilder):
 
         # collect the dataset
         yield from collect_dataset(
-            ode_fn=jsrm.integration.ode_factory(dynamical_matrices_fn, robot_params, tau),
+            ode_fn=jsrm.integration.ode_factory(
+                dynamical_matrices_fn, robot_params, tau
+            ),
             rendering_fn=rendering_fn,
             rng=rng,
             num_simulations=self.builder_config.num_simulations,
