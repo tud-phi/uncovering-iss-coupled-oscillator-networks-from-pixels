@@ -30,6 +30,10 @@ class OptunaPruneCallback(LoopCallbackBase[S]):
             if self.trial.should_prune():
                 raise optuna.TrialPruned()
 
+            # also prune if the loss is too high
+            if loop_state.logs["stateful_metrics"]["loss_val"] > 1e6:
+                raise optuna.TrialPruned()
+
         return Logs(), loop_state.state
 
     def on_train_batch_end(self, state, batch, elapsed, loop_state: LoopState[S]):
