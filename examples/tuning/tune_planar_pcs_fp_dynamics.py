@@ -6,7 +6,7 @@ from jax import config as jax_config
 jax_config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 import jsrm
-from jsrm.integration import ode_factory
+from jsrm.integration import ode_with_forcing_factory
 from jsrm.systems.planar_pcs import factory as planar_pcs_factory
 import logging
 from pathlib import Path
@@ -129,9 +129,7 @@ if __name__ == "__main__":
         task_callables, metrics_collection_cls = fp_dynamics.task_factory(
             system_type,
             nn_model,
-            ode_fn=ode_factory(
-                dynamical_matrices_fn, robot_params, tau=jnp.zeros((n_q,))
-            ),
+            ode_fn=ode_with_forcing_factory(dynamical_matrices_fn, robot_params),
             ts=dataset_metadata["ts"],
             sim_dt=dataset_metadata["sim_dt"],
             loss_weights=loss_weights,

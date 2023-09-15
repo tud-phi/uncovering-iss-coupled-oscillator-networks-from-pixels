@@ -6,7 +6,7 @@ from jax import config as jax_config
 jax_config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 import jsrm
-from jsrm.integration import ode_factory
+from jsrm.integration import ode_with_forcing_factory
 from jsrm.systems.pendulum import factory, normalize_joint_angles
 import logging
 from pathlib import Path
@@ -124,9 +124,7 @@ if __name__ == "__main__":
             nn_model,
             ts=dataset_metadata["ts"],
             sim_dt=dataset_metadata["sim_dt"],
-            ode_fn=ode_factory(
-                dynamical_matrices_fn, robot_params, tau=jnp.zeros((n_q,))
-            ),
+            ode_fn=ode_with_forcing_factory(dynamical_matrices_fn, robot_params),
             loss_weights=loss_weights,
             ae_type=ae_type,
             solver=dataset_metadata["solver_class"](),

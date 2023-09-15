@@ -1,7 +1,7 @@
 from jax import config as jax_config
 
 jax_config.update("jax_enable_x64", True)
-from jax import Array, jacfwd, jacrev, random
+from jax import Array, random
 import jax.numpy as jnp
 import jsrm
 from jsrm.integration import ode_factory
@@ -68,7 +68,7 @@ if __name__ == "__main__":
         nn_model,
         ts=dataset_metadata["ts"],
         sim_dt=dataset_metadata["sim_dt"],
-        ode_fn=ode_factory(dynamical_matrices_fn, robot_params, tau=jnp.zeros((n_q,))),
+        ode_fn=ode_with_forcing_factory(dynamical_matrices_fn, robot_params),
         loss_weights=loss_weights,
         solver=dataset_metadata["solver_class"](),
         configuration_velocity_source="direct-finite-differences",

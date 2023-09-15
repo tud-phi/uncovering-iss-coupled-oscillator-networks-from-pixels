@@ -239,7 +239,7 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
 
         # collect the dataset
         yield from collect_dataset(
-            ode_fn=jsrm.integration.ode_factory_with_forcing(
+            ode_fn=jsrm.integration.ode_with_forcing_factory(
                 dynamical_matrices_fn, robot_params
             ),
             rendering_fn=rendering_fn,

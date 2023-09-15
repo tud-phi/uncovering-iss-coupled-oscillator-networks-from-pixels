@@ -4,7 +4,7 @@ from flax.core import FrozenDict
 from flax.struct import dataclass
 from flax import linen as nn  # Linen API
 from functools import partial
-from jax import Array, debug, jacrev, random, vmap
+from jax import Array, debug, jacrev, jit, random, vmap
 import jax.numpy as jnp
 from jsrm.systems.pendulum import normalize_joint_angles
 from typing import Any, Callable, Dict, Optional, Tuple, Type
@@ -111,6 +111,29 @@ def task_factory(
 
     # initiate ODE term from `ode_fn`
     ode_term = ODETerm(ode_fn)
+
+    def ode_solve_fn(x0: Array, tau: Array):
+        """
+        Uses diffrax.diffeqsolve for solving the ode
+        Arguments:
+            x0: initial state of shape (2*n_q, )
+            tau: external torques of shape (n_tau, )
+        Returns:
+            sol: solution of the ode as a diffrax class
+        """
+        return diffeqsolve(
+            ode_term,
+            solver=solver,
+            t0=t0,  # initial time
+            t1=tf,  # final time
+            dt0=sim_dt,  # time step of integration
+            y0=x0,
+            args=tau,
+            saveat=SaveAt(ts=ts[start_time_idx:]),
+            max_steps=max_int_steps,
+        )
+
+    batched_ode_solve_fn = jit(vmap(ode_solve_fn, in_axes=(0, 0)))
 
     def forward_fn(
         batch: Dict[str, Array],
@@ -246,19 +269,10 @@ def task_factory(
         # specify initial state for the dynamic rollout
         x_init_bt = jnp.concatenate((q_init_bt, q_d_init_bt), axis=-1)
 
-        ode_solve_fn = partial(
-            diffeqsolve,
-            ode_term,
-            solver,
-            saveat=SaveAt(ts=ts[start_time_idx:]),
-            max_steps=max_int_steps,
-        )
         # simulate
-        sol_bt = vmap(ode_solve_fn, in_axes=(None, None, None, 0))(
-            t0,  # initial time
-            tf,  # final time
-            sim_dt,  # time step of integration
+        sol_bt = batched_ode_solve_fn(
             x_init_bt.astype(jnp.float64),  # initial state
+            batch["tau"],  # external torques
         )
 
         # extract the rolled-out latent representations

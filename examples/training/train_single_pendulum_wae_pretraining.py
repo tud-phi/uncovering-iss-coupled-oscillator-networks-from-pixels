@@ -7,7 +7,7 @@ jax_config.update("jax_enable_x64", True)
 from jax import random
 import jax.numpy as jnp
 import jsrm
-from jsrm.integration import ode_factory
+from jsrm.integration import ode_with_forcing_factory
 from jsrm.systems import pendulum
 from pathlib import Path
 import optax
@@ -112,7 +112,7 @@ if __name__ == "__main__":
     fp_dynamics_task_callables, fp_dynamics_metrics = fp_dynamics.task_factory(
         "pendulum",
         nn_model,
-        ode_fn=ode_factory(dynamical_matrices_fn, robot_params, tau=jnp.zeros((n_q,))),
+        ode_fn=ode_with_forcing_factory(dynamical_matrices_fn, robot_params),
         ts=dataset_metadata["ts"],
         sim_dt=dataset_metadata["sim_dt"],
         loss_weights=hyperparams[1]["loss_weights"],
