@@ -16,14 +16,14 @@ def collect_dataset(
     num_simulations: int,
     horizon_dim: int,
     dt: Array,
-    state_init_min: Array,
-    state_init_max: Array,
+    x0_min: Array,
+    x0_max: Array,
     dataset_dir: str,
     solver: AbstractSolver = Dopri5(),
     sim_dt: Optional[Array] = None,
     system_params: Optional[Dict[str, Array]] = None,
     metadata: Optional[Dict[str, Any]] = None,
-    sampling_dist: str = "uniform",
+    x0_sampling_dist: str = "uniform",
     save_raw_data: bool = False,
 ):
     """
@@ -37,14 +37,14 @@ def collect_dataset(
         num_simulations: Number of simulations to run.
         horizon_dim: Number of samples in each trajectory.
         dt: Time step used for samples [s].
-        state_init_min: Array with minimal values for the initial state of the simulation.
-        state_init_max: Array with maximal values for the initial state of the simulation.
+        x0_min: Array with minimal values for the initial state of the simulation.
+        x0_max: Array with maximal values for the initial state of the simulation.
         dataset_dir: Directory to save the dataset.
         solver: Diffrax solver to use for the simulation.
         sim_dt: Time step used for simulation [s].
         system_params: Dictionary with system parameters.
         metadata: Dictionary with metadata to save in the dataset directory.
-        sampling_dist: Distribution to sample the initial state of the simulation from. Can be one of:
+        x0_sampling_dist: Distribution to sample the initial state of the simulation from. Can be one of:
             ["uniform", "arcsine", "half-normal"].
         save_raw_data: Whether to save the raw data (as images and labels) to the dataset_dir.
     """
@@ -65,7 +65,7 @@ def collect_dataset(
     # number of total samples
     num_samples = num_simulations * (ts.shape[0] - 1)
     # state dimension
-    state_dim = state_init_min.shape[0]
+    state_dim = x0_min.shape[0]
 
     # dataset directory
     dataset_path = Path(dataset_dir)
@@ -86,8 +86,8 @@ def collect_dataset(
             ts=ts,
             solver_class=type(solver),
             sim_dt=sim_dt,
-            x0_min=state_init_min,
-            x0_max=state_init_max,
+            x0_min=x0_min,
+            x0_max=x0_max,
         )
     )
     if system_params is not None:
@@ -104,29 +104,30 @@ def collect_dataset(
             rng, rng_x0_sampling = random.split(rng)
 
             # generate initial state of the simulation
-            if sampling_dist == "uniform":
+            if x0_sampling_dist == "uniform":
                 x0 = random.uniform(
                     rng_x0_sampling,
-                    state_init_min.shape,
-                    minval=state_init_min,
-                    maxval=state_init_max,
+                    x0_min.shape,
+                    minval=x0_min,
+                    maxval=x0_max,
                 )
-            elif sampling_dist == "arcsine":
-                u = random.uniform(rng_x0_sampling, state_init_min.shape)
+            elif x0_sampling_dist == "arcsine":
+                u = random.uniform(rng_x0_sampling, x0_min.shape)
                 x0 = (
-                    state_init_min
-                    + (state_init_max - state_init_min) * jnp.sin(jnp.pi * u / 2) ** 2
+                        x0_min
+                        + (x0_max - x0_min) * jnp.sin(jnp.pi * u / 2) ** 2
                 )
-            elif sampling_dist == "half-normal":
-                u = random.normal(rng_x0_sampling, state_init_min.shape)
-                stdev = (state_init_max - state_init_min) / 2
+            elif x0_sampling_dist == "half-normal":
+                u = random.normal(rng_x0_sampling, x0_min.shape)
+                stdev = (x0_max - x0_min) / 2
                 condlist = [u < 0, u >= 0]
-                choicelist = [state_init_min, state_init_max]
+                choicelist = [x0_min, x0_max]
                 x0 = jnp.select(condlist, choicelist) - u * stdev
                 # just to make sure that a very unlikely sample does not bring us out of bounds
-                x0 = jnp.clip(x0, state_init_min, state_init_max)
+                x0 = jnp.clip(x0, x0_min, x0_max)
             else:
-                raise ValueError(f"Unknown sampling distribution: {sampling_dist}")
+                raise ValueError(f"Unknown sampling distribution: {x0_sampling_dist}")
+            else:
 
             # simulate
             sol = diffeqsolve(
