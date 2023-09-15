@@ -4,13 +4,14 @@ from flax.core import FrozenDict
 from flax.struct import dataclass
 from flax import linen as nn  # Linen API
 from functools import partial
-from jax import Array, debug, random
+from jax import Array, debug, random, vmap
 import jax.numpy as jnp
 from jsrm.systems.pendulum import normalize_joint_angles
 from typing import Any, Callable, Dict, Optional, Tuple, Type
 
 from src.losses.kld import kullback_leiber_divergence
 from src.losses.masked_mse import masked_mse_loss
+from src.losses import metric_losses
 from src.metrics import RootAverage
 from src.structs import TaskCallables
 
@@ -244,6 +245,12 @@ def task_factory(
 
             loss = loss + loss_weights["beta"] * kld_loss
 
+        if loss_weights.get("time_alignment", 0.0) > 0.0:
+            time_alignment_loss = jnp.mean(vmap(
+                partial(metric_losses.time_alignment_loss, margin=1e-1)
+            )(preds["q_ts"]))
+            loss = loss + loss_weights["time_alignment"] * time_alignment_loss
+
         return loss, preds
 
     def compute_metrics(
@@ -286,6 +293,11 @@ def task_factory(
                 preds["mu_ts"], preds["logvar_ts"]
             )
 
+        if loss_weights.get("time_alignment", 0.0) > 0.0:
+            metrics["time_alignment"] = jnp.mean(vmap(
+                partial(metric_losses.time_alignment_loss, margin=1e-1)
+            )(preds["q_ts"]))
+
         return metrics
 
     task_callables = TaskCallables(
@@ -307,6 +319,9 @@ def task_factory(
 
         if ae_type == "beta_vae":
             kld: clu_metrics.Average.from_output("kld")
+
+        if loss_weights.get("time_alignment", 0.0) > 0.0:
+            time_alignment: clu_metrics.Average.from_output("time_alignment")
 
     metrics_collection_cls = MetricsCollection
 
