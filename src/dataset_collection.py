@@ -2,7 +2,8 @@ from alive_progress import alive_bar
 import cv2
 from diffrax import AbstractERK, AbstractSolver, diffeqsolve, Dopri5, ODETerm, SaveAt
 import dill
-from jax import Array, lax, random
+from functools import partial
+from jax import Array, jit, lax, random
 import jax.numpy as jnp
 from pathlib import Path
 import shutil
@@ -24,13 +25,14 @@ def collect_dataset(
     system_params: Optional[Dict[str, Array]] = None,
     metadata: Optional[Dict[str, Any]] = None,
     x0_sampling_dist: str = "uniform",
+    tau_max: Optional[Array] = None,
     save_raw_data: bool = False,
 ):
     """
     Collect a simulated dataset for a given ODE system. The initial state is uniformly sampled from the given bounds.
     Args:
         ode_fn: ODE function. It should have the following signature:
-            ode_fn(t, x) -> x_dot
+            ode_fn(t, x, tau) -> x_dot
         rendering_fn: Function to render the state of the system. It should have the following signature:
             rendering_fn(q) -> img
         rng: PRNG key for random number generation.
@@ -46,11 +48,9 @@ def collect_dataset(
         metadata: Dictionary with metadata to save in the dataset directory.
         x0_sampling_dist: Distribution to sample the initial state of the simulation from. Can be one of:
             ["uniform", "arcsine", "half-normal"].
+        tau_max: Maximal torque to apply to the system where actual torque is sampled from a uniform distribution.
         save_raw_data: Whether to save the raw data (as images and labels) to the dataset_dir.
     """
-    # initiate ODE term from `ode_fn`
-    ode_term = ODETerm(ode_fn)
-
     # initiate time steps array of samples
     ts = jnp.arange(0, horizon_dim * dt, step=dt)
 
@@ -61,6 +61,11 @@ def collect_dataset(
         assert (
             sim_dt <= dt
         ), "The simulation time step needs to be smaller than the sampling time step."
+
+    # jit the ode fn
+    ode_fn = jit(ode_fn)
+    # initiate ODE term from `ode_fn`
+    ode_term = ODETerm(ode_fn)
 
     # number of total samples
     num_samples = num_simulations * (ts.shape[0] - 1)
@@ -101,7 +106,12 @@ def collect_dataset(
     sample_idx = 0
     with alive_bar(num_simulations) as bar:
         for sim_idx in range(num_simulations):
-            rng, rng_x0_sampling = random.split(rng)
+            rng, rng_x0_sampling, rng_tau_sampling = random.split(rng, num=3)
+
+            # dimension of the state space
+            n_x = x0_max.shape[0]
+            # dimension of configuration space
+            n_q = n_x // 2
 
             # generate initial state of the simulation
             if x0_sampling_dist == "uniform":
@@ -127,7 +137,12 @@ def collect_dataset(
                 x0 = jnp.clip(x0, x0_min, x0_max)
             else:
                 raise ValueError(f"Unknown sampling distribution: {x0_sampling_dist}")
+
+            # sample the external torques or set them to zero
+            if tau_max is None:
+                tau = jnp.zeros((n_q,))
             else:
+                tau = random.uniform(rng_tau_sampling, (n_q,), minval=-tau_max, maxval=tau_max)
 
             # simulate
             sol = diffeqsolve(
@@ -137,6 +152,7 @@ def collect_dataset(
                 t1=ts[-1],
                 dt0=sim_dt,
                 y0=x0,
+                args=tau,
                 max_steps=None,
                 saveat=SaveAt(ts=ts),
             )
@@ -144,13 +160,8 @@ def collect_dataset(
             # states along the simulation
             x_ts = sol.ys
 
-            # dimension of the state space
-            n_x = x_ts.shape[1]
-            # dimension of configuration space
-            n_q = n_x // 2
-
             # define labels dict
-            labels = dict(t_ts=ts, x_ts=x_ts)
+            labels = dict(t_ts=ts, x_ts=x_ts, tau=tau)
 
             if save_raw_data:
                 # folder to save the simulation data

@@ -84,6 +84,12 @@ class Pendulum(tfds.core.GeneratorBasedBuilder):
                         ),
                         dtype=jnp.float64,
                     ),
+                    "tau": tfds.features.Tensor(
+                        shape=(
+                            self.builder_config.state_dim // 2,
+                        ),
+                        dtype=jnp.float64,
+                    ),
                     "rendering_ts": tfds.features.Sequence(
                         tfds.features.Image(
                             shape=(
@@ -187,13 +193,10 @@ class Pendulum(tfds.core.GeneratorBasedBuilder):
         state_init_min = state_init_min.at[num_links:].set(-max_q_d_0)
         state_init_max = state_init_max.at[num_links:].set(max_q_d_0)
 
-        # set initial / torque conditions
-        tau = jnp.zeros((n_q,))
-
         # collect the dataset
         yield from collect_dataset(
-            ode_fn=jsrm.integration.ode_factory(
-                dynamical_matrices_fn, robot_params, tau
+            ode_fn=jsrm.integration.ode_factory_with_forcing(
+                dynamical_matrices_fn, robot_params
             ),
             rendering_fn=rendering_fn,
             rng=rng,

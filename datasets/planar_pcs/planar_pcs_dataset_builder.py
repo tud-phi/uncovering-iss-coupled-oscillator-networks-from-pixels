@@ -100,6 +100,12 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
                         ),
                         dtype=jnp.float64,
                     ),
+                    "tau": tfds.features.Tensor(
+                        shape=(
+                            self.builder_config.state_dim // 2,
+                        ),
+                        dtype=jnp.float64,
+                    ),
                     "rendering_ts": tfds.features.Sequence(
                         tfds.features.Image(
                             shape=(
@@ -227,13 +233,14 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
         state_init_min = jnp.concatenate([-q_max, -q_d_max], axis=0)
         state_init_max = jnp.concatenate([q_max, q_d_max], axis=0)
 
-        # set initial / torque conditions
-        tau = jnp.zeros((n_q,))
+        # define maximum torque as some scaling of the steady-state torques acting at (q_max, q_d_max)
+        B, C, G, K, D, alpha = dynamical_matrices_fn(robot_params, q_max, jnp.zeros_like(q_d_max))
+        tau_max = 1.5 * jnp.abs(G + K )
 
         # collect the dataset
         yield from collect_dataset(
-            ode_fn=jsrm.integration.ode_factory(
-                dynamical_matrices_fn, robot_params, tau
+            ode_fn=jsrm.integration.ode_factory_with_forcing(
+                dynamical_matrices_fn, robot_params
             ),
             rendering_fn=rendering_fn,
             rng=rng,
@@ -247,5 +254,6 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             sim_dt=jnp.array(self.builder_config.sim_dt),
             system_params=robot_params,
             metadata=metadata,
-            sampling_dist="half-normal",
+            x0_sampling_dist="uniform",
+            tau_max=tau_max,
         )
