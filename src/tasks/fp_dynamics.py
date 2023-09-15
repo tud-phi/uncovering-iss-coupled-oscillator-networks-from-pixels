@@ -1,5 +1,5 @@
 from clu import metrics as clu_metrics
-from diffrax import AbstractSolver, diffeqsolve, Dopri5, ODETerm, SaveAt
+from diffrax import AbstractSolver, diffeqsolve, Dopri5, ODETerm, PIDController, SaveAt
 from flax.core import FrozenDict
 from flax.struct import dataclass
 from flax import linen as nn  # Linen API
@@ -78,8 +78,10 @@ def task_factory(
     # compute the dynamic rollout of the latent representation
     t0 = ts[start_time_idx]  # start time
     tf = ts[-1]  # end time
+    # minimum step size
+    dtmin = 1e-2 * sim_dt
     # maximum of integrator steps
-    max_int_steps = int((tf - t0) / sim_dt) + 1
+    max_int_steps = int((tf - t0) / dtmin) + 1
 
     if encode_fn is None:
         encode_fn = nn_model.encode
@@ -251,7 +253,8 @@ def task_factory(
             ode_term,
             solver,
             saveat=SaveAt(ts=ts[start_time_idx:]),
-            max_steps=max_int_steps,
+            stepsize_controller=PIDController(rtol=1e-4, atol=1e-7, dtmin=dtmin, force_dtmin=True),
+            max_steps=100 * max_int_steps,
         )
         # simulate
         sol_bt = vmap(ode_solve_fn, in_axes=(None, None, None, 0))(
