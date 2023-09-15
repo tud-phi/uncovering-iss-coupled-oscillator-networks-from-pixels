@@ -96,6 +96,8 @@ def task_factory(
     if ae_type == "wae":
         from src.losses import wae
 
+        assert system_type == "pendulum", "WAE only implemented for pendulum system"
+
         if system_type == "pendulum":
             uniform_distr_range = (-jnp.pi, jnp.pi)
         else:
