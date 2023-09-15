@@ -19,3 +19,17 @@ def time_alignment_loss(z_ts: Array, margin: float) -> Array:
     loss = jnp.mean(jnp.maximum(z_ts_diff_norm - margin, 0.0))
 
     return loss
+
+
+def time_contrastive_loss(z_bt: Array, margin: float) -> Array:
+    """
+    Time contrastive loss. This brings all the latent samples in z_bt up to within a certain distance of each other.
+    Args:
+        z_bt: latent batch of shape (batch_size, horizon, latent_dim)
+        margin: margin for the time contrastive loss (i.e. the maximum distance between time-consecutive latent samples)
+    Returns:
+        loss: time contrastive loss
+    """
+    # compute the distance between time-consecutive latent samples
+    z_bt_diff = z_bt[:, 1:] - z_bt[:, -1]
+    z_bt_diff_norm = jnp.linalg.norm(z_bt_diff, axis=-1)
