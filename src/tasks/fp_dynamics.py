@@ -68,7 +68,7 @@ def task_factory(
         start_time_idx: the index of the time step to start the simulation at. Needs to be >=1 to enable the application
             of finite differences for the latent-space velocity.
         configuration_velocity_source: the source of the configuration velocity.
-            Can be either "direct-finite-differences", or "image-space-finite-differences"
+            Can be either "direct-finite-differences", "image-space-finite-differences", or "ground-truth".
     Returns:
         task_callables: struct containing the functions for the learning task
         metrics_collection_cls: contains class for collecting metrics
@@ -262,6 +262,9 @@ def task_factory(
 
                 # reshape the result to (batch_dim, n_q)
                 q_d_init_bt = q_d_init_hat_bt_flat.reshape(q_init_bt.shape)
+            case "ground-truth":
+                # use the ground-truth velocity
+                q_d_init_bt = batch["x_ts"][:, start_time_idx, n_q:]
             case _:
                 raise ValueError(
                     f"configuration_velocity_source must be either 'direct-finite-differences' "
