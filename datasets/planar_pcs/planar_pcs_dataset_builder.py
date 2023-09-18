@@ -42,7 +42,7 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             num_segments=1,
             strain_selector=(True, False, False),
             q_max=(10 * jnp.pi,),
-            q_d_max=(10 * jnp.pi,),
+            q_d_max=(0.2 * jnp.pi,),
         ),
         PlanarPcsDatasetConfig(
             name="cs_64x64px",
@@ -169,7 +169,7 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             (self.builder_config.num_segments,)
         )  # Volumetric density of Dragon Skin 20 [kg/m^3]
         # damping matrix
-        D = 2e-6 * jnp.diag(
+        D = 5e-6 * jnp.diag(
             jnp.repeat(
                 jnp.array([1e0, 1e3, 1e3]), self.builder_config.num_segments, axis=0
             ),
@@ -181,9 +181,9 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             "rho": rho,
             "g": jnp.array([0.0, -9.81]),
             # Elastic modulus [Pa]
-            "E": 2e3 * jnp.ones((self.builder_config.num_segments,)),
+            "E": 2e2 * jnp.ones((self.builder_config.num_segments,)),
             # Shear modulus [Pa]
-            "G": 2e2 * jnp.ones((self.builder_config.num_segments,)),
+            "G": 1e2 * jnp.ones((self.builder_config.num_segments,)),
             "D": D,
         }
         metadata = {
@@ -235,7 +235,8 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
 
         # define maximum torque as some scaling of the steady-state torques acting at (q_max, q_d_max)
         B, C, G, K, D, alpha = dynamical_matrices_fn(robot_params, q_max, jnp.zeros_like(q_d_max))
-        tau_max = 1.5 * jnp.abs(G + K )
+        # tau_max = 1.1 * jnp.abs(G + K )
+        tau_max = 0.3 * jnp.abs(G + K )
 
         # collect the dataset
         yield from collect_dataset(
