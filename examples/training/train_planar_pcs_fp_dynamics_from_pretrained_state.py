@@ -19,6 +19,7 @@ from src.tasks import fp_dynamics
 from src.training.load_dataset import load_dataset
 from src.training.loops import run_training
 from src.training.train_state_utils import restore_train_state
+from src.visualization.dataset_distribution import plot_acting_forces_distribution, plot_basic_distribution
 
 # prevent tensorflow from loading everything onto the GPU, as we don't have enough memory for that
 tf.config.experimental.set_visible_devices([], "GPU")
@@ -97,6 +98,10 @@ if __name__ == "__main__":
     strain_basis, forward_kinematics_fn, dynamical_matrices_fn = planar_pcs.factory(
         sym_exp_filepath, strain_selector=dataset_metadata["strain_selector"]
     )
+
+    # plot training dataset distribution
+    plot_basic_distribution(train_ds)
+    plot_acting_forces_distribution(train_ds, system_type, robot_params, dynamical_matrices_fn)
 
     # initialize the model
     if ae_type == "beta_vae":
