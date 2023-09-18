@@ -6,6 +6,7 @@ import numpy as onp
 from pathlib import Path
 import tensorflow as tf
 from tqdm import tqdm
+from typing import Tuple
 
 
 def extract_states_from_dataset(ds: tf.data.Dataset) -> Tuple[Array, Array]:
@@ -26,5 +27,8 @@ def extract_states_from_dataset(ds: tf.data.Dataset) -> Tuple[Array, Array]:
 
         x_ss = x_ss.at[batch_idx].set(x_bt)
         tau_ss = tau_ss.at[batch_idx].set(tau_bt)
+
+    x_ss = x_ss.reshape((-1, x_ss.shape[-1]))
+    tau_ss = tau_ss.reshape((-1, tau_ss.shape[-1]))
 
     return x_ss, tau_ss

@@ -30,12 +30,28 @@ def plot_basic_distribution(
     plt.show()
 
     # create a scatter plot of q vs q_d
+    # for q_idx in range(n_q):
+    #     plt.figure(num=r"Scatter plot of q vs. q_d")
+    #     plt.scatter(x_ss[:, q_idx], x_ss[:, n_q + q_idx], label=rf"$q_{q_idx}$")
+    #     plt.xlabel(r"$q$")
+    #     plt.ylabel(r"$q_d$")
+    #     plt.legend()
+    #     plt.tight_layout()
+    #     plt.show()
+
+    # create seaborn histplot of q vs q_d
     for q_idx in range(n_q):
-        plt.figure(num=r"Scatter plot of $q$ vs. $q_d$")
-        plt.scatter(x_ss[:, q_idx], x_ss[:, n_q + q_idx], label=rf"$q_{q_idx}$")
+        plt.figure(num=r"Histogram of q vs. q_d")
+        sns.histplot(
+            x=x_ss[:, q_idx],
+            y=x_ss[:, n_q + q_idx],
+            bins=50,
+            cbar=True,
+            cbar_kws=dict(shrink=0.75),
+            label=rf"$q_{q_idx}$",
+        )
         plt.xlabel(r"$q$")
         plt.ylabel(r"$q_d$")
-        plt.legend()
         plt.tight_layout()
         plt.show()
 
@@ -64,11 +80,16 @@ def plot_acting_forces_distribution(
     tau_dict_ss = vmap(compute_acting_forces)(x_ss)
 
     plt.figure(num="Distribution of acting forces")
-    sns.violinplot(x=jnp.linalg.norm(tau_dict_ss["tau_coriolis"], axis=-1), color="red", label=r"$\tau_{coriolis}$")
-    sns.violinplot(x=jnp.linalg.norm(tau_dict_ss["tau_g"], axis=-1), color="blue", label=r"$\tau_{g}$")
-    sns.violinplot(x=jnp.linalg.norm(tau_dict_ss["tau_el"], axis=-1), color="green", label=r"$\tau_{el}$")
-    sns.violinplot(x=jnp.linalg.norm(tau_dict_ss["tau_d"], axis=-1), color="orange", label=r"$\tau_{d}$")
-    plt.xlabel("force")
-    plt.legend()
+    data = [
+        jnp.linalg.norm(tau_dict_ss["tau_coriolis"], axis=-1),
+        jnp.linalg.norm(tau_dict_ss["tau_g"], axis=-1),
+        jnp.linalg.norm(tau_dict_ss["tau_el"], axis=-1),
+        jnp.linalg.norm(tau_dict_ss["tau_d"], axis=-1),
+        jnp.linalg.norm(tau_ss, axis=-1),
+    ]
+    names = ["coriolis", "gravity", "elastic", "damping", "external"]
+    ax = sns.violinplot(data=data, scale="count", legend=True)
+    plt.ylabel("Eucledian norm of the acting forces")
+    ax.set(xticklabels=names)
     plt.tight_layout()
     plt.show()
