@@ -56,7 +56,7 @@ elif ae_type == "beta_vae":
     loss_weights = dict(mse_q=0.0, mse_rec=1.0, beta=1.0)
 else:
     if system_type == "cc":
-        ckpt_timestamp = "2023-09-12_13-34-25"
+        ckpt_timestamp = "2023-09-16_11-54-15"
     elif system_type == "pcc_ns-2":
         ckpt_timestamp = "2023-09-12_19-35-14"
     else:

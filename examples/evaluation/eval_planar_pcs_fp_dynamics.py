@@ -31,7 +31,11 @@ tf.random.set_seed(seed=seed)
 system_type = "cc"
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 
-experiment_id = "2023-09-14_21-33-01"
+if ae_type == "beta_vae":
+    experiment_id = "2023-09-18_20-43-40"
+else:
+    # ae_type == "None"
+    experiment_id = "2023-09-18_11-21-53"
 ckpt_dir = Path("logs") / f"{system_type}_fp_dynamics" / experiment_id
 
 batch_size = 10
