@@ -89,7 +89,7 @@ def plot_acting_forces_distribution(
     ]
     names = ["coriolis", "gravity", "elastic", "damping", "external"]
     ax = sns.violinplot(data=data, scale="count", legend=True)
-    plt.ylabel("Eucledian norm of the acting forces")
+    plt.ylabel("Euclidean norm of the acting forces")
     ax.set(xticklabels=names)
     plt.tight_layout()
     plt.show()
