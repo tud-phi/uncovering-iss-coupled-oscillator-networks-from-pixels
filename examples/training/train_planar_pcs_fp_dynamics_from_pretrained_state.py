@@ -1,4 +1,6 @@
 from datetime import datetime
+from flax import traverse_util
+from flax.core.frozen_dict import freeze, unfreeze
 import flax.linen as nn
 from jax import config as jax_config
 
@@ -8,17 +10,20 @@ import jax.numpy as jnp
 import jsrm
 from jsrm.integration import ode_with_forcing_factory
 from jsrm.systems import planar_pcs
+import optax
 from pathlib import Path
 import tensorflow as tf
 
 # jax_config.update("jax_platform_name", "cpu")  # set default device to 'cpu'
 
 from src.autoencoders.simple_cnn import Autoencoder
+from src.autoencoders.staged_autoencoder import StagedAutoencoder
 from src.autoencoders.vae import VAE
 from src.tasks import fp_dynamics
 from src.training.load_dataset import load_dataset
 from src.training.loops import run_training
-from src.training.train_state_utils import restore_train_state
+from src.training.optim import create_learning_rate_fn
+from src.training.train_state_utils import initialize_train_state, restore_train_state
 from src.visualization.dataset_distribution import plot_acting_forces_distribution, plot_basic_distribution
 
 # prevent tensorflow from loading everything onto the GPU, as we don't have enough memory for that
@@ -59,7 +64,7 @@ elif ae_type == "beta_vae":
     weight_decay = 0.00010327082269198063
 else:
     # ae_type == "None"
-    base_lr = 1e-4
+    base_lr = 1e-2
     loss_weights = dict(mse_q=0.70, mse_rec_static=1.0, mse_rec_dynamic=77.0)
     weight_decay = 1.7e-05
 
@@ -100,18 +105,19 @@ if __name__ == "__main__":
     )
 
     # plot training dataset distribution
-    plot_basic_distribution(train_ds)
-    plot_acting_forces_distribution(train_ds, system_type, robot_params, dynamical_matrices_fn)
+    # plot_basic_distribution(train_ds)
+    # plot_acting_forces_distribution(train_ds, system_type, robot_params, dynamical_matrices_fn)
 
     # initialize the model
     if ae_type == "beta_vae":
-        nn_model = VAE(
+        backbone = VAE(
             latent_dim=latent_dim, img_shape=img_shape, norm_layer=nn.LayerNorm
         )
     else:
-        nn_model = Autoencoder(
+        backbone = Autoencoder(
             latent_dim=latent_dim, img_shape=img_shape, norm_layer=nn.LayerNorm
         )
+    nn_model = StagedAutoencoder(backbone=backbone, config_dim=n_q, mirror_head=True)
 
     # call the factory function for the sensing task
     task_callables, metrics_collection_cls = fp_dynamics.task_factory(
@@ -127,11 +133,51 @@ if __name__ == "__main__":
         configuration_velocity_source=configuration_velocity_source,
     )
 
-    pretrained_state = restore_train_state(
-        rng, ckpt_dir, nn_model, metrics_collection_cls=metrics_collection_cls
+    # extract dummy batch from dataset
+    nn_dummy_batch = next(train_ds.as_numpy_iterator())
+    # assemble input for dummy batch
+    nn_dummy_input = task_callables.assemble_input_fn(nn_dummy_batch)
+
+    # initialize the learning rate scheduler
+    lr_fn = create_learning_rate_fn(
+        num_epochs=num_epochs,
+        steps_per_epoch=len(train_ds),
+        base_lr=base_lr,
+        warmup_epochs=warmup_epochs,
     )
-    # reset training step
-    pretrained_state = pretrained_state.replace(step=0)
+    pretrained_state = restore_train_state(
+        rng, ckpt_dir, backbone, metrics_collection_cls=metrics_collection_cls
+    )
+    # initialize the train state
+    state = initialize_train_state(
+        rng,
+        nn_model,
+        nn_dummy_input=nn_dummy_input,
+        metrics_collection_cls=metrics_collection_cls,
+        init_fn=nn_model.__call__,
+        learning_rate_fn=lr_fn,
+        weight_decay=weight_decay,
+    )
+    params = unfreeze(state.params)
+    # copy the pretrained parameters into the new state
+    params["backbone"] = pretrained_state.params
+    params["head"]["kernel"] = 3.0 * jnp.ones_like(params["head"]["kernel"])
+    print("head params:\n", params["head"])
+    # freeze the parameters again and save to the new state
+    state = state.replace(step=0, params=freeze(params))
+    # initialize the Adam with weight decay optimizer for both neural networks
+    partition_optimizers = {
+        "trainable": optax.adamw(lr_fn),
+        "frozen": optax.set_to_zero(),
+    }
+    param_partitions = freeze(
+        traverse_util.path_aware_map(
+            lambda path, v: "frozen" if "backbone" in path else "trainable",
+            state.params,
+        )
+    )
+    # print("param_partitions:\n", param_partitions)
+    fp_dynamics_tx = optax.multi_transform(partition_optimizers, param_partitions)
 
     # run the training loop
     print("Run training...")
@@ -142,11 +188,11 @@ if __name__ == "__main__":
         task_callables=task_callables,
         metrics_collection_cls=metrics_collection_cls,
         num_epochs=num_epochs,
-        state=pretrained_state,
+        state=state,
         nn_model=nn_model,
+        tx=fp_dynamics_tx,
         base_lr=base_lr,
-        warmup_epochs=warmup_epochs,
-        weight_decay=weight_decay,
         logdir=logdir,
     )
     print("Final training metrics:\n", state.metrics.compute())
+    print("Final params of head:\n", state.params["head"])
