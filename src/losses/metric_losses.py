@@ -3,16 +3,16 @@ from jax import Array, debug, random, vmap
 import jax.numpy as jnp
 
 
-def euclidean_distance(x1: Array, x2: Array) -> Array:
+def sum_squared_distance(x1: Array, x2: Array) -> Array:
     """
-    Compute the Euclidean distance between two vectors along the last dimension.
+    Compute the sum of the squared distance between two vectors along the last dimension.
     Args:
         x1: first vector
         x2: second vector
     Returns:
         distance: Euclidean distance between x1 and x2
     """
-    return jnp.linalg.norm(x1 - x2, axis=-1)
+    return jnp.sum((x1 - x2) ** 2, axis=-1)
 
 
 def time_alignment_loss(z_ts: Array, margin: float) -> Array:
@@ -25,7 +25,7 @@ def time_alignment_loss(z_ts: Array, margin: float) -> Array:
         loss: time alignment loss
     """
     # compute the distance between time-consecutive latent samples
-    z_ts_diff_norm = euclidean_distance(z_ts[1:], z_ts[:-1])
+    z_ts_diff_norm = sum_squared_distance(z_ts[1:], z_ts[:-1])
 
     # compute the time alignment loss
     loss = jnp.mean(jnp.maximum(z_ts_diff_norm - margin, 0.0))
@@ -51,7 +51,7 @@ def contrastive_loss(x1: Array, x2: Array, gamma: float, margin: Array) -> Array
         loss: contrastive loss
     """
     # compute the Euclidean distance between x1 and x2
-    distance = euclidean_distance(x1, x2)
+    distance = sum_squared_distance(x1, x2)
 
     # compute the contrastive loss
     loss = gamma * distance + (1.0 - gamma) * jnp.clip(
@@ -128,10 +128,10 @@ def triplet_loss(x_a: Array, x_p: Array, x_n: Array, margin: float) -> Array:
         loss: triplet loss
     """
     # compute the Euclidean distance between the anchor and positive vectors
-    distance_ap = euclidean_distance(x_a, x_p)
+    distance_ap = sum_squared_distance(x_a, x_p)
 
     # compute the Euclidean distance between the anchor and negative vectors
-    distance_an = euclidean_distance(x_a, x_n)
+    distance_an = sum_squared_distance(x_a, x_n)
 
     # compute the triplet loss
     loss = jnp.clip(distance_ap - distance_an + margin, a_min=0.0, a_max=None)
