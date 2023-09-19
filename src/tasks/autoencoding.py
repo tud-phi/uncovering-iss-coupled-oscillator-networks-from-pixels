@@ -41,6 +41,7 @@ def task_factory(
     weight_on_foreground: Optional[float] = None,
     ae_type: str = "None",
     normalize_configuration_loss=False,
+    margin: float = 1e0,
 ) -> Tuple[TaskCallables, Type[clu_metrics.Collection]]:
     """
     Factory function for the autoencoding task.
@@ -63,6 +64,7 @@ def task_factory(
         ae_type: Autoencoder type. If None, a normal autoencoder will be used.
             One of ["wae", "beta_vae", "None"]
         normalize_configuration_loss: whether to normalize the configuration loss dividing by (q0_max - q0_min)
+        margin: margin for the deep metric (for example contrastive or triplet) losses
     Returns:
         task_callables: struct containing the functions for the learning task
         metrics_collection_cls: contains class for collecting metrics
@@ -247,9 +249,13 @@ def task_factory(
 
         if loss_weights.get("time_alignment", 0.0) > 0.0:
             time_alignment_loss = jnp.mean(vmap(
-                partial(metric_losses.time_alignment_loss, margin=1e-1)
+                partial(metric_losses.time_alignment_loss, margin=margin)
             )(preds["q_ts"]))
             loss = loss + loss_weights["time_alignment"] * time_alignment_loss
+
+        if loss_weights.get("contrastive", 0.0) > 0.0:
+            contrastive_loss = metric_losses.batch_time_contrastive_loss(preds["q_ts"], margin=margin, rng=rng)
+            loss = loss + loss_weights["contrastive"] * contrastive_loss
 
         return loss, preds
 
@@ -295,7 +301,7 @@ def task_factory(
 
         if loss_weights.get("time_alignment", 0.0) > 0.0:
             metrics["time_alignment"] = jnp.mean(vmap(
-                partial(metric_losses.time_alignment_loss, margin=1e-1)
+                partial(metric_losses.time_alignment_loss, margin=margin)
             )(preds["q_ts"]))
 
         return metrics

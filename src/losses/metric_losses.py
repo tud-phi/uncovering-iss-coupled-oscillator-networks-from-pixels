@@ -1,5 +1,18 @@
-from jax import Array
+from functools import partial
+from jax import Array, debug, random, vmap
 import jax.numpy as jnp
+
+
+def euclidean_distance(x1: Array, x2: Array) -> Array:
+    """
+    Compute the Euclidean distance between two vectors along the last dimension.
+    Args:
+        x1: first vector
+        x2: second vector
+    Returns:
+        distance: Euclidean distance between x1 and x2
+    """
+    return jnp.linalg.norm(x1 - x2, axis=-1)
 
 
 def time_alignment_loss(z_ts: Array, margin: float) -> Array:
@@ -12,8 +25,7 @@ def time_alignment_loss(z_ts: Array, margin: float) -> Array:
         loss: time alignment loss
     """
     # compute the distance between time-consecutive latent samples
-    z_ts_diff = z_ts[1:] - z_ts[:-1]
-    z_ts_diff_norm = jnp.linalg.norm(z_ts_diff, axis=-1)
+    z_ts_diff_norm = euclidean_distance(z_ts[1:], z_ts[:-1])
 
     # compute the time alignment loss
     loss = jnp.mean(jnp.maximum(z_ts_diff_norm - margin, 0.0))
@@ -21,15 +33,74 @@ def time_alignment_loss(z_ts: Array, margin: float) -> Array:
     return loss
 
 
-def time_contrastive_loss(z_bt: Array, margin: float) -> Array:
+def contrastive_loss(x1: Array, x2: Array, gamma: float, margin: Array) -> Array:
     """
-    Time contrastive loss. This brings all the latent samples in z_bt up to within a certain distance of each other.
+    Contrastive loss between the two (latent) vectors x1 and x2.
+
+    References:
+    https://towardsdatascience.com/the-why-and-the-how-of-deep-metric-learning-e70e16e199c0
+    KAYA, Mahmut, and Hasan Şakir BİLGE. 2019. "Deep Metric Learning: A Survey" Symmetry 11, no. 9: 1066.
+    https://doi.org/10.3390/sym11091066
+
+    Args:
+        x1: first vector of shape (N, )
+        x2: second vector of shape (N, )
+        gamma: scalar defining if x1 and x2 form a positive (value 1) or a negative pair (value 0).
+        margin: margin for the contrastive loss as a scalar or of shape (N, )
+    Returns:
+        loss: contrastive loss
+    """
+    # compute the Euclidean distance between x1 and x2
+    distance = euclidean_distance(x1, x2)
+
+    # compute the contrastive loss
+    loss = gamma * distance + (1.0 - gamma) * jnp.clip(margin - distance, a_min=0.0, a_max=None)
+
+    return loss
+
+
+def batch_time_contrastive_loss(z_bt: Array, margin: float, rng: random.KeyArray) -> Array:
+    """
+    Batch contrastive loss.
+    This brings all the time-consecutive latent samples in z_bt up to within a certain distance of each other.
     Args:
         z_bt: latent batch of shape (batch_size, horizon, latent_dim)
-        margin: margin for the time contrastive loss (i.e. the maximum distance between time-consecutive latent samples)
+        margin: margin for the batch contrastive loss (i.e. the minimum distance between time-separate latent samples)
+        rng: random number generator
     Returns:
-        loss: time contrastive loss
+        loss: batch contrastive loss
     """
-    # compute the distance between time-consecutive latent samples
-    z_bt_diff = z_bt[:, 1:] - z_bt[:, -1]
-    z_bt_diff_norm = jnp.linalg.norm(z_bt_diff, axis=-1)
+    horizon = z_bt.shape[1]
+    rng, subkey1, subkey2, subkey3, subkey4 = random.split(rng, 5)
+
+    # generate the contrastive loss for positive (i.e., time-consecutive) pairs
+    # randomly select a time index for the positive (time-consecutive) latent sample
+    pos_time_idx = random.randint(subkey1, (z_bt.shape[0],), minval=0, maxval=horizon - 1)
+    pos_loss = jnp.mean(vmap(
+        partial(contrastive_loss, gamma=1.0, margin=margin),
+        in_axes=(0, 0),
+        out_axes=0,
+    )(z_bt[:, pos_time_idx], z_bt[:, pos_time_idx + 1]))
+
+    # generate the contrastive loss for negative (i.e., time-separate) pairs
+    neg_batch_permutation = random.permutation(subkey2, z_bt.shape[0])
+    neg_first_time_idx = random.randint(
+        subkey3,
+        (z_bt.shape[0],),
+        minval=0,
+        maxval=jnp.clip(horizon // 2 - 2, a_min=0, a_max=None),
+    )
+    neg_second_time_idx = random.randint(
+        subkey4,
+        (z_bt.shape[0],),
+        minval=jnp.clip(horizon // 2 + 1, a_min=None, a_max=horizon),
+        maxval=horizon - 1
+    )
+    neg_loss = jnp.mean(vmap(
+        partial(contrastive_loss, gamma=0.0, margin=margin),
+        in_axes=(0, 0),
+        out_axes=0,
+    )(z_bt[:, neg_first_time_idx], z_bt[neg_batch_permutation, neg_second_time_idx]))
+
+    return pos_loss + neg_loss
+
