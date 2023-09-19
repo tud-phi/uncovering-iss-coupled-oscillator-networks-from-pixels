@@ -54,12 +54,16 @@ def contrastive_loss(x1: Array, x2: Array, gamma: float, margin: Array) -> Array
     distance = euclidean_distance(x1, x2)
 
     # compute the contrastive loss
-    loss = gamma * distance + (1.0 - gamma) * jnp.clip(margin - distance, a_min=0.0, a_max=None)
+    loss = gamma * distance + (1.0 - gamma) * jnp.clip(
+        margin - distance, a_min=0.0, a_max=None
+    )
 
     return loss
 
 
-def batch_time_contrastive_loss(z_bt: Array, margin: float, rng: random.KeyArray) -> Array:
+def batch_time_contrastive_loss(
+    z_bt: Array, margin: float, rng: random.KeyArray
+) -> Array:
     """
     Batch contrastive loss.
     This brings all the time-consecutive latent samples in z_bt up to within a certain distance of each other.
@@ -75,12 +79,16 @@ def batch_time_contrastive_loss(z_bt: Array, margin: float, rng: random.KeyArray
 
     # generate the contrastive loss for positive (i.e., time-consecutive) pairs
     # randomly select a time index for the positive (time-consecutive) latent sample
-    pos_time_idx = random.randint(subkey1, (z_bt.shape[0],), minval=0, maxval=horizon - 1)
-    pos_loss = jnp.mean(vmap(
-        partial(contrastive_loss, gamma=1.0, margin=margin),
-        in_axes=(0, 0),
-        out_axes=0,
-    )(z_bt[:, pos_time_idx], z_bt[:, pos_time_idx + 1]))
+    pos_time_idx = random.randint(
+        subkey1, (z_bt.shape[0],), minval=0, maxval=horizon - 1
+    )
+    pos_loss = jnp.mean(
+        vmap(
+            partial(contrastive_loss, gamma=1.0, margin=margin),
+            in_axes=(0, 0),
+            out_axes=0,
+        )(z_bt[:, pos_time_idx], z_bt[:, pos_time_idx + 1])
+    )
 
     # generate the contrastive loss for negative (i.e., time-separate) pairs
     neg_batch_permutation = random.permutation(subkey2, z_bt.shape[0])
@@ -94,13 +102,15 @@ def batch_time_contrastive_loss(z_bt: Array, margin: float, rng: random.KeyArray
         subkey4,
         (z_bt.shape[0],),
         minval=jnp.clip(horizon // 2 + 1, a_min=None, a_max=horizon),
-        maxval=horizon
+        maxval=horizon,
     )
-    neg_loss = jnp.mean(vmap(
-        partial(contrastive_loss, gamma=0.0, margin=margin),
-        in_axes=(0, 0),
-        out_axes=0,
-    )(z_bt[:, neg_first_time_idx], z_bt[neg_batch_permutation, neg_second_time_idx]))
+    neg_loss = jnp.mean(
+        vmap(
+            partial(contrastive_loss, gamma=0.0, margin=margin),
+            in_axes=(0, 0),
+            out_axes=0,
+        )(z_bt[:, neg_first_time_idx], z_bt[neg_batch_permutation, neg_second_time_idx])
+    )
 
     return pos_loss + neg_loss
 
@@ -154,14 +164,20 @@ def batch_time_triplet_loss(z_bt: Array, margin: float, rng: random.KeyArray) ->
         subkey2,
         (z_bt.shape[0],),
         minval=jnp.clip(horizon // 2 + 1, a_min=None, a_max=horizon),
-        maxval=horizon
+        maxval=horizon,
     )
     batch_permutation = random.permutation(subkey3, z_bt.shape[0])
 
-    loss = jnp.mean(vmap(
-        partial(triplet_loss, margin=margin),
-        in_axes=(0, 0, 0),
-        out_axes=0,
-    )(z_bt[:, time_idx_anchor], z_bt[:, time_idx_pos], z_bt[batch_permutation, time_idx_neg]))
+    loss = jnp.mean(
+        vmap(
+            partial(triplet_loss, margin=margin),
+            in_axes=(0, 0, 0),
+            out_axes=0,
+        )(
+            z_bt[:, time_idx_anchor],
+            z_bt[:, time_idx_pos],
+            z_bt[batch_permutation, time_idx_neg],
+        )
+    )
 
     return loss

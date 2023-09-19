@@ -85,9 +85,7 @@ class Pendulum(tfds.core.GeneratorBasedBuilder):
                         dtype=jnp.float64,
                     ),
                     "tau": tfds.features.Tensor(
-                        shape=(
-                            self.builder_config.state_dim // 2,
-                        ),
+                        shape=(self.builder_config.state_dim // 2,),
                         dtype=jnp.float64,
                     ),
                     "rendering_ts": tfds.features.Sequence(

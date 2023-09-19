@@ -19,7 +19,9 @@ def extract_states_from_dataset(ds: tf.data.Dataset) -> Tuple[Array, Array]:
             f"Extracting states from dataset: processing batch {batch_idx + 1} / {num_batches}"
         )
         x_bt = batch["x_ts"]
-        tau_bt = jnp.repeat(jnp.expand_dims(batch["tau"], axis=1), x_bt.shape[1], axis=1)
+        tau_bt = jnp.repeat(
+            jnp.expand_dims(batch["tau"], axis=1), x_bt.shape[1], axis=1
+        )
 
         if batch_idx == 0:
             x_ss = jnp.zeros((num_batches,) + x_bt.shape)

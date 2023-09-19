@@ -248,19 +248,25 @@ def task_factory(
             loss = loss + loss_weights["beta"] * kld_loss
 
         if loss_weights.get("time_alignment", 0.0) > 0.0:
-            time_alignment_loss = jnp.mean(vmap(
-                partial(metric_losses.time_alignment_loss, margin=margin)
-            )(preds["q_ts"]))
+            time_alignment_loss = jnp.mean(
+                vmap(partial(metric_losses.time_alignment_loss, margin=margin))(
+                    preds["q_ts"]
+                )
+            )
             loss = loss + loss_weights["time_alignment"] * time_alignment_loss
 
         if loss_weights.get("contrastive", 0.0) > 0.0:
-            contrastive_loss = metric_losses.batch_time_contrastive_loss(preds["q_ts"], margin=margin, rng=rng)
+            contrastive_loss = metric_losses.batch_time_contrastive_loss(
+                preds["q_ts"], margin=margin, rng=rng
+            )
             loss = loss + loss_weights["contrastive"] * contrastive_loss
 
             # debug.print("contrastive_loss = {contrastive_loss}", contrastive_loss=contrastive_loss)
 
         if loss_weights.get("triplet", 0.0) > 0.0:
-            triplet_loss = metric_losses.batch_time_triplet_loss(preds["q_ts"], margin=margin, rng=rng)
+            triplet_loss = metric_losses.batch_time_triplet_loss(
+                preds["q_ts"], margin=margin, rng=rng
+            )
             loss = loss + loss_weights["triplet"] * triplet_loss
 
             # debug.print("triplet_loss = {triplet_loss}", triplet_loss=triplet_loss)
@@ -308,9 +314,11 @@ def task_factory(
             )
 
         if loss_weights.get("time_alignment", 0.0) > 0.0:
-            metrics["time_alignment"] = jnp.mean(vmap(
-                partial(metric_losses.time_alignment_loss, margin=margin)
-            )(preds["q_ts"]))
+            metrics["time_alignment"] = jnp.mean(
+                vmap(partial(metric_losses.time_alignment_loss, margin=margin))(
+                    preds["q_ts"]
+                )
+            )
 
         return metrics
 

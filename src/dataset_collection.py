@@ -123,10 +123,7 @@ def collect_dataset(
                 )
             elif x0_sampling_dist == "arcsine":
                 u = random.uniform(rng_x0_sampling, x0_min.shape)
-                x0 = (
-                        x0_min
-                        + (x0_max - x0_min) * jnp.sin(jnp.pi * u / 2) ** 2
-                )
+                x0 = x0_min + (x0_max - x0_min) * jnp.sin(jnp.pi * u / 2) ** 2
             elif x0_sampling_dist == "half-normal":
                 u = random.normal(rng_x0_sampling, x0_min.shape)
                 stdev = (x0_max - x0_min) / 2
@@ -142,7 +139,9 @@ def collect_dataset(
             if tau_max is None:
                 tau = jnp.zeros((n_q,))
             else:
-                tau = random.uniform(rng_tau_sampling, (n_q,), minval=-tau_max, maxval=tau_max)
+                tau = random.uniform(
+                    rng_tau_sampling, (n_q,), minval=-tau_max, maxval=tau_max
+                )
 
             # simulate
             sol = diffeqsolve(

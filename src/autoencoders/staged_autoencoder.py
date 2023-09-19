@@ -23,7 +23,8 @@ default_kernel_init = initializers.lecun_normal()
 class StagedAutoencoder(nn.Module):
     backbone: nn.Module
     config_dim: int  # dimensionality of the configuration space
-    mirror_head: bool = False  # weather to use the same nn parameters in the encoder and decoder head
+    # whether to use the same nn parameters in the encoder and decoder head
+    mirror_head: bool = False
 
     def setup(self):
         if self.mirror_head:
@@ -64,24 +65,22 @@ class MirroredDense(nn.Module):
     param_dtype: Dtype = jnp.float32
     precision: PrecisionLike = None
     kernel_init: Callable[[PRNGKey, Shape, Dtype], Array] = default_kernel_init
-    bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = (
-        initializers.zeros_init()
-    )
+    bias_init: Callable[[PRNGKey, Shape, Dtype], Array] = initializers.zeros_init()
 
     def setup(self):
-        assert self.features == 1, (
-            "Currently, the inverse of the kernel is only implemented for 1D kernels. Otherwise, we need to make sure that the kernel is positive definite and therefore invertible."
-        )
+        assert (
+            self.features == 1
+        ), "Currently, the inverse of the kernel is only implemented for 1D kernels. Otherwise, we need to make sure that the kernel is positive definite and therefore invertible."
 
         self.kernel = self.param(
-            'kernel',
+            "kernel",
             self.kernel_init,
             (self.features, self.features),
             self.param_dtype,
         )
         if self.use_bias:
             self.bias = self.param(
-                'bias', self.bias_init, (self.features,), self.param_dtype
+                "bias", self.bias_init, (self.features,), self.param_dtype
             )
         else:
             self.bias = None
