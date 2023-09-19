@@ -4,13 +4,14 @@ from flax.core import FrozenDict
 from flax.struct import dataclass
 from flax import linen as nn  # Linen API
 from functools import partial
-from jax import Array, debug, random
+from jax import Array, debug, random, vmap
 import jax.numpy as jnp
 from jsrm.systems.pendulum import normalize_joint_angles
 from typing import Any, Callable, Dict, Optional, Tuple, Type
 
 from src.losses.kld import kullback_leiber_divergence
 from src.losses.masked_mse import masked_mse_loss
+from src.losses import metric_losses
 from src.metrics import RootAverage
 from src.structs import TaskCallables
 
@@ -40,6 +41,7 @@ def task_factory(
     weight_on_foreground: Optional[float] = None,
     ae_type: str = "None",
     normalize_configuration_loss=False,
+    margin: float = 1e0,
 ) -> Tuple[TaskCallables, Type[clu_metrics.Collection]]:
     """
     Factory function for the autoencoding task.
@@ -62,6 +64,7 @@ def task_factory(
         ae_type: Autoencoder type. If None, a normal autoencoder will be used.
             One of ["wae", "beta_vae", "None"]
         normalize_configuration_loss: whether to normalize the configuration loss dividing by (q0_max - q0_min)
+        margin: margin for the deep metric (for example contrastive or triplet) losses
     Returns:
         task_callables: struct containing the functions for the learning task
         metrics_collection_cls: contains class for collecting metrics
@@ -244,6 +247,24 @@ def task_factory(
 
             loss = loss + loss_weights["beta"] * kld_loss
 
+        if loss_weights.get("time_alignment", 0.0) > 0.0:
+            time_alignment_loss = jnp.mean(vmap(
+                partial(metric_losses.time_alignment_loss, margin=margin)
+            )(preds["q_ts"]))
+            loss = loss + loss_weights["time_alignment"] * time_alignment_loss
+
+        if loss_weights.get("contrastive", 0.0) > 0.0:
+            contrastive_loss = metric_losses.batch_time_contrastive_loss(preds["q_ts"], margin=margin, rng=rng)
+            loss = loss + loss_weights["contrastive"] * contrastive_loss
+
+            # debug.print("contrastive_loss = {contrastive_loss}", contrastive_loss=contrastive_loss)
+
+        if loss_weights.get("triplet", 0.0) > 0.0:
+            triplet_loss = metric_losses.batch_time_triplet_loss(preds["q_ts"], margin=margin, rng=rng)
+            loss = loss + loss_weights["triplet"] * triplet_loss
+
+            # debug.print("triplet_loss = {triplet_loss}", triplet_loss=triplet_loss)
+
         return loss, preds
 
     def compute_metrics(
@@ -286,6 +307,11 @@ def task_factory(
                 preds["mu_ts"], preds["logvar_ts"]
             )
 
+        if loss_weights.get("time_alignment", 0.0) > 0.0:
+            metrics["time_alignment"] = jnp.mean(vmap(
+                partial(metric_losses.time_alignment_loss, margin=margin)
+            )(preds["q_ts"]))
+
         return metrics
 
     task_callables = TaskCallables(
@@ -307,6 +333,9 @@ def task_factory(
 
         if ae_type == "beta_vae":
             kld: clu_metrics.Average.from_output("kld")
+
+        if loss_weights.get("time_alignment", 0.0) > 0.0:
+            time_alignment: clu_metrics.Average.from_output("time_alignment")
 
     metrics_collection_cls = MetricsCollection
 
