@@ -79,6 +79,7 @@ def batch_time_contrastive_loss(
 
     # generate the contrastive loss for positive (i.e., time-consecutive) pairs
     # randomly select a time index for the positive (time-consecutive) latent sample
+    pos_batch_permutation = jnp.arange(z_bt.shape[0])
     pos_time_idx = random.randint(
         subkey1, (z_bt.shape[0],), minval=0, maxval=horizon - 1
     )
@@ -87,7 +88,7 @@ def batch_time_contrastive_loss(
             partial(contrastive_loss, gamma=1.0, margin=margin),
             in_axes=(0, 0),
             out_axes=0,
-        )(z_bt[:, pos_time_idx], z_bt[:, pos_time_idx + 1])
+        )(z_bt[pos_batch_permutation, pos_time_idx], z_bt[pos_batch_permutation, pos_time_idx + 1])
     )
 
     # generate the contrastive loss for negative (i.e., time-separate) pairs
@@ -109,7 +110,7 @@ def batch_time_contrastive_loss(
             partial(contrastive_loss, gamma=0.0, margin=margin),
             in_axes=(0, 0),
             out_axes=0,
-        )(z_bt[:, neg_first_time_idx], z_bt[neg_batch_permutation, neg_second_time_idx])
+        )(z_bt[pos_batch_permutation, neg_first_time_idx], z_bt[neg_batch_permutation, neg_second_time_idx])
     )
 
     return pos_loss + neg_loss
@@ -166,6 +167,7 @@ def batch_time_triplet_loss(z_bt: Array, margin: float, rng: random.KeyArray) ->
         minval=jnp.clip(horizon // 2 + 1, a_min=None, a_max=horizon),
         maxval=horizon,
     )
+    batch_no_permutation = jnp.arange(z_bt.shape[0])
     batch_permutation = random.permutation(subkey3, z_bt.shape[0])
 
     loss = jnp.mean(
@@ -174,8 +176,8 @@ def batch_time_triplet_loss(z_bt: Array, margin: float, rng: random.KeyArray) ->
             in_axes=(0, 0, 0),
             out_axes=0,
         )(
-            z_bt[:, time_idx_anchor],
-            z_bt[:, time_idx_pos],
+            z_bt[batch_no_permutation, time_idx_anchor],
+            z_bt[batch_no_permutation, time_idx_pos],
             z_bt[batch_permutation, time_idx_neg],
         )
     )
