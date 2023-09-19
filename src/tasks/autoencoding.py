@@ -257,6 +257,14 @@ def task_factory(
             contrastive_loss = metric_losses.batch_time_contrastive_loss(preds["q_ts"], margin=margin, rng=rng)
             loss = loss + loss_weights["contrastive"] * contrastive_loss
 
+            # debug.print("contrastive_loss = {contrastive_loss}", contrastive_loss=contrastive_loss)
+
+        if loss_weights.get("triplet", 0.0) > 0.0:
+            triplet_loss = metric_losses.batch_time_triplet_loss(preds["q_ts"], margin=margin, rng=rng)
+            loss = loss + loss_weights["triplet"] * triplet_loss
+
+            # debug.print("triplet_loss = {triplet_loss}", triplet_loss=triplet_loss)
+
         return loss, preds
 
     def compute_metrics(

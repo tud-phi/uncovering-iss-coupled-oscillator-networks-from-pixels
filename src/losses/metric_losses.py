@@ -94,7 +94,7 @@ def batch_time_contrastive_loss(z_bt: Array, margin: float, rng: random.KeyArray
         subkey4,
         (z_bt.shape[0],),
         minval=jnp.clip(horizon // 2 + 1, a_min=None, a_max=horizon),
-        maxval=horizon - 1
+        maxval=horizon
     )
     neg_loss = jnp.mean(vmap(
         partial(contrastive_loss, gamma=0.0, margin=margin),
@@ -104,3 +104,64 @@ def batch_time_contrastive_loss(z_bt: Array, margin: float, rng: random.KeyArray
 
     return pos_loss + neg_loss
 
+
+def triplet_loss(x_a: Array, x_p: Array, x_n: Array, margin: float) -> Array:
+    """
+    Triplet loss between the anchor, positive, and negative vectors.
+    Args:
+        x_a: anchor vector of shape (N, )
+        x_p: positive vector of shape (N, )
+        x_n: negative vector of shape (N, )
+        margin: margin for the triplet loss
+    Returns:
+        loss: triplet loss
+    """
+    # compute the Euclidean distance between the anchor and positive vectors
+    distance_ap = euclidean_distance(x_a, x_p)
+
+    # compute the Euclidean distance between the anchor and negative vectors
+    distance_an = euclidean_distance(x_a, x_n)
+
+    # compute the triplet loss
+    loss = jnp.clip(distance_ap - distance_an + margin, a_min=0.0, a_max=None)
+
+    return loss
+
+
+def batch_time_triplet_loss(z_bt: Array, margin: float, rng: random.KeyArray) -> Array:
+    """
+    Batch triplet loss.
+    This brings all the time-consecutive latent samples in z_bt up to within a certain distance of each other.
+    Args:
+        z_bt: latent batch of shape (batch_size, horizon, latent_dim)
+        margin: margin for the batch triplet loss
+        rng: random number generator
+    Returns:
+        loss: batch triplet loss
+    """
+    horizon = z_bt.shape[1]
+    rng, subkey1, subkey2, subkey3 = random.split(rng, 4)
+
+    # identify anchor, positive, and negative latent samples
+    time_idx_anchor = random.randint(
+        subkey1,
+        (z_bt.shape[0],),
+        minval=0,
+        maxval=jnp.clip(horizon // 2 - 2, a_min=0, a_max=None),
+    )
+    time_idx_pos = time_idx_anchor + 1
+    time_idx_neg = random.randint(
+        subkey2,
+        (z_bt.shape[0],),
+        minval=jnp.clip(horizon // 2 + 1, a_min=None, a_max=horizon),
+        maxval=horizon
+    )
+    batch_permutation = random.permutation(subkey3, z_bt.shape[0])
+
+    loss = jnp.mean(vmap(
+        partial(triplet_loss, margin=margin),
+        in_axes=(0, 0, 0),
+        out_axes=0,
+    )(z_bt[:, time_idx_anchor], z_bt[:, time_idx_pos], z_bt[batch_permutation, time_idx_neg]))
+
+    return loss
