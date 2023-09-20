@@ -11,6 +11,9 @@ from src.autoencoders.vae import VAE
 from src.tasks import autoencoding
 from src.training.load_dataset import load_dataset
 from src.training.loops import run_training
+from src.visualization.latent_space import (
+    visualize_mapping_from_configuration_to_latent_space,
+)
 
 # prevent tensorflow from loading everything onto the GPU, as we don't have enough memory for that
 tf.config.experimental.set_visible_devices([], "GPU")
@@ -43,9 +46,9 @@ if ae_type == "wae":
     base_lr = 5e-3
     warmup_epochs = 5
 elif ae_type == "beta_vae":
-    loss_weights = dict(mse_q=0.0, mse_rec=1.0, beta=5e-3)
-    base_lr = 1e-3
-    weight_decay = 1e-4
+elif ae_type == "triplet":
+    loss_weights = dict(mse_q=0.0, mse_rec=1.0, triplet=1e2)
+    base_lr = 2e-3
 else:
     loss_weights = dict(mse_q=0.2, mse_rec=1.0)
     base_lr = 2e-3
@@ -91,6 +94,7 @@ if __name__ == "__main__":
         nn_model,
         loss_weights=loss_weights,
         ae_type=ae_type,
+        margin=1e-2
     )
 
     # run the training loop
@@ -109,3 +113,7 @@ if __name__ == "__main__":
         logdir=logdir,
     )
     print("Final training metrics:\n", state.metrics.compute())
+
+    visualize_mapping_from_configuration_to_latent_space(
+        test_ds, state, task_callables, rng=rng
+    )
