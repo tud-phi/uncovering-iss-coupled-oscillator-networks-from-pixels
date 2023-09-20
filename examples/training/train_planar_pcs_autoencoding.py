@@ -46,6 +46,9 @@ if ae_type == "wae":
     base_lr = 5e-3
     warmup_epochs = 5
 elif ae_type == "beta_vae":
+    loss_weights = dict(mse_q=0.0, mse_rec=1.0, beta=5e-3)
+    base_lr = 1e-3
+    weight_decay = 1e-4
 elif ae_type == "triplet":
     loss_weights = dict(mse_q=0.0, mse_rec=1.0, triplet=1e2)
     base_lr = 2e-3
