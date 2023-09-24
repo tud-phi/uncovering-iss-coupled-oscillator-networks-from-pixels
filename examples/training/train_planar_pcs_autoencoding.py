@@ -25,6 +25,7 @@ tf.random.set_seed(seed=seed)
 
 system_type = "cc"
 ae_type = "beta_vae"
+encourage_time_alignment = True
 
 if system_type == "cc":
     latent_dim = 1
@@ -47,6 +48,8 @@ if ae_type == "wae":
     warmup_epochs = 5
 elif ae_type == "beta_vae":
     loss_weights = dict(mse_q=0.0, mse_rec=1.0, beta=5e-3)
+    if encourage_time_alignment:
+        loss_weights["time_alignment"] = 2e1
     base_lr = 1e-3
     weight_decay = 1e-4
 elif ae_type == "triplet":
