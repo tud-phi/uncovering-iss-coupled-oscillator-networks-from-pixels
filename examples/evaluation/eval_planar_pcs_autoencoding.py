@@ -48,7 +48,10 @@ if ae_type == "wae":
     loss_weights = dict(mse_q=0.0, mse_rec=1.0, mmd=1.0)
 elif ae_type == "beta_vae":
     if system_type == "cc":
-        ckpt_timestamp = "2023-09-15_15-23-19"
+        # Normal Beta-VAE:
+        # ckpt_timestamp = "2023-09-15_15-23-19"
+        # With time alignment loss:
+        ckpt_timestamp = "2023-09-24_14-41-33"
     elif system_type == "pcc_ns-2":
         ckpt_timestamp = "2023-09-12_19-10-56"
     else:
