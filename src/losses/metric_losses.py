@@ -25,10 +25,12 @@ def time_alignment_loss(z_ts: Array, margin: float) -> Array:
         loss: time alignment loss
     """
     # compute the distance between time-consecutive latent samples
-    z_ts_diff_norm = sum_squared_distance(z_ts[1:], z_ts[:-1])
+    distance = sum_squared_distance(z_ts[1:], z_ts[:-1])
 
     # compute the time alignment loss
-    loss = jnp.mean(jnp.maximum(z_ts_diff_norm - margin, 0.0))
+    loss = jnp.mean(jnp.clip(
+        distance - margin, a_min=0.0, a_max=None
+    ))
 
     return loss
 
