@@ -54,6 +54,9 @@ elif ae_type == "beta_vae":
     else:
         raise NotImplementedError
     loss_weights = dict(mse_q=0.0, mse_rec=1.0, beta=1.0)
+elif ae_type == "triplet":
+    ckpt_timestamp = "2023-09-19_19-11-45"
+    loss_weights = dict(mse_q=0.0, mse_rec=1.0, triplet=1e0)
 else:
     if system_type == "cc":
         ckpt_timestamp = "2023-09-16_11-54-15"
