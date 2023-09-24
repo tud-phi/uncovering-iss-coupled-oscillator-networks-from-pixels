@@ -44,13 +44,13 @@ system_type = "cc"
 pretrained_ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 ckpt_dir = Path("logs") / f"{system_type}_autoencoding" / f"2023-09-24_14-41-33"
 
-num_epochs = 50
+num_epochs = 40
 warmup_epochs = 5
 batch_size = 100
 start_time_idx = 0
 configuration_velocity_source = "ground-truth"
 
-base_lr = 5e-1
+base_lr = 1e-1
 loss_weights = dict(mse_q=1e-2, mse_rec_static=0.0, mse_rec_dynamic=100)
 weight_decay = 0.0
 
@@ -147,7 +147,8 @@ if __name__ == "__main__":
     params = unfreeze(state.params)
     # copy the pretrained parameters into the new state
     params["backbone"] = pretrained_state.params
-    params["head"]["kernel"] = 3.0 * jnp.ones_like(params["head"]["kernel"])
+    # make sure that the kernel of the head is positive definite
+    params["head"]["kernel"] = jnp.abs(params["head"]["kernel"])
     print("head params:\n", params["head"])
     # freeze the parameters again and save to the new state
     state = state.replace(step=0, params=freeze(params))
