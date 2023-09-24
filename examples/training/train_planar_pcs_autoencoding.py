@@ -35,7 +35,7 @@ elif system_type == "pcc_ns-3":
 else:
     raise ValueError(f"Unknown system type: {system_type}!")
 
-batch_size = 50
+batch_size = 100
 num_epochs = 50
 warmup_epochs = 5
 weight_decay = 0.0
