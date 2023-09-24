@@ -248,10 +248,8 @@ def task_factory(
             loss = loss + loss_weights["beta"] * kld_loss
 
         if loss_weights.get("time_alignment", 0.0) > 0.0:
-            time_alignment_loss = jnp.mean(
-                vmap(partial(metric_losses.time_alignment_loss, margin=margin))(
-                    preds["q_ts"]
-                )
+            time_alignment_loss = metric_losses.batch_time_alignment_loss(
+                preds["q_ts"], margin=margin
             )
             loss = loss + loss_weights["time_alignment"] * time_alignment_loss
 
@@ -314,10 +312,8 @@ def task_factory(
             )
 
         if loss_weights.get("time_alignment", 0.0) > 0.0:
-            metrics["time_alignment"] = jnp.mean(
-                vmap(partial(metric_losses.time_alignment_loss, margin=margin))(
-                    preds["q_ts"]
-                )
+            metrics["time_alignment"] = metric_losses.batch_time_alignment_loss(
+                preds["q_ts"], margin=margin
             )
 
         return metrics

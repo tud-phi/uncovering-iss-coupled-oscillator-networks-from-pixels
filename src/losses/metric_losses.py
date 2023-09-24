@@ -15,22 +15,53 @@ def sum_squared_distance(x1: Array, x2: Array) -> Array:
     return jnp.sum((x1 - x2) ** 2, axis=-1)
 
 
-def time_alignment_loss(z_ts: Array, margin: float) -> Array:
+def positive_alignment_loss(x1: Array, x2: Array, margin: float) -> Array:
     """
-    Time alignment loss. This brings all the latent samples in z_ts up to within a certain distance of each other.
-    Args:
-        z_ts: latent trajectory of shape (horizon, latent_dim)
-        margin: margin for the time alignment loss (i.e. the maximum distance between time-consecutive latent samples)
-    Returns:
-        loss: time alignment loss
-    """
-    # compute the distance between time-consecutive latent samples
-    distance = sum_squared_distance(z_ts[1:], z_ts[:-1])
+    Alignment loss between the two positive (latent) vectors x1 and x2.
 
-    # compute the time alignment loss
-    loss = jnp.mean(jnp.clip(
-        distance - margin, a_min=0.0, a_max=None
-    ))
+    Args:
+        x1: first vector of shape (N, )
+        x2: second vector of shape (N, )
+        margin: margin for the contrastive loss as a scalar or of shape (N, )
+    Returns:
+        loss: contrastive loss
+    """
+    # compute the Euclidean distance between x1 and x2
+    distance = sum_squared_distance(x1, x2)
+
+    # compute the contrastive loss
+    loss = jnp.clip(distance - margin, a_min=0.0, a_max=None)
+
+    return loss
+
+
+def batch_time_alignment_loss(z_bt: Array, margin: float) -> Array:
+    """
+    Batch time alignment loss.
+    This brings all the time-consecutive latent samples in z_bt up to within a certain distance of each other.
+    Args:
+        z_bt: latent batch of shape (batch_size, horizon, latent_dim)
+        margin: margin for the batch time alignment loss (i.e. the minimum distance between time-separate latent samples)
+        rng: random number generator
+    Returns:
+        loss: batch time alignment loss
+    """
+    horizon = z_bt.shape[1]
+    start_time_indices = jnp.arange(horizon - 1)
+
+    loss = jnp.mean(
+        # vmap over the batch dimension
+        vmap(
+            # vmap over the time dimension
+            vmap(
+                lambda z_ts, start_time_idx: positive_alignment_loss(z_ts[start_time_idx], z_ts[start_time_idx + 1], margin=margin),
+                in_axes=(None, 0),
+                out_axes=0,
+            ),
+            in_axes=(0, None),
+            out_axes=0,
+        )(z_bt, start_time_indices)
+    )
 
     return loss
 
