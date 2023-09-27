@@ -8,7 +8,7 @@ dill
 flax
 jax
 jax-models
-jax-soft-robot-modelling>=0.3
+jsrm>=0.3
 matplotlib
 natsort
 numpy
