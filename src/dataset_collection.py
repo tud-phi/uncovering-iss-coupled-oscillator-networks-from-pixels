@@ -159,8 +159,11 @@ def collect_dataset(
             # states along the simulation
             x_ts = sol.ys
 
+            # derivative of state at t0
+            x_d_t0 = ode_fn(ts[0], x0, tau)
+
             # define labels dict
-            labels = dict(t_ts=ts, x_ts=x_ts, tau=tau)
+            labels = dict(t_ts=ts, x_ts=x_ts, tau=tau, x_d_t0=x_d_t0)
 
             if save_raw_data:
                 # folder to save the simulation data
