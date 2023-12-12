@@ -105,6 +105,24 @@ class Pendulum(tfds.core.GeneratorBasedBuilder):
                         ),
                         length=self.builder_config.horizon_dim,
                     ),
+                    "rendering_d_ts": tfds.features.Tensor(
+                        shape=(
+                            self.builder_config.horizon_dim,
+                            self.builder_config.img_size[0],
+                            self.builder_config.img_size[1],
+                            3,
+                        ),
+                        dtype=jnp.float32,
+                    ),
+                    "rendering_dd_ts": tfds.features.Tensor(
+                        shape=(
+                            self.builder_config.horizon_dim,
+                            self.builder_config.img_size[0],
+                            self.builder_config.img_size[1],
+                            3,
+                        ),
+                        dtype=jnp.float32,
+                    ),
                 }
             ),
             # If there's a common (input, target) tuple from the
@@ -214,5 +232,5 @@ class Pendulum(tfds.core.GeneratorBasedBuilder):
             solver=diffrax.Dopri5(),
             sim_dt=jnp.array(self.builder_config.sim_dt),
             system_params=robot_params,
-            metadata=metadata,
+            metadata=metadata
         )

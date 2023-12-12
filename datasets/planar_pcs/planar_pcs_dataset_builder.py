@@ -121,6 +121,24 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
                         ),
                         length=self.builder_config.horizon_dim,
                     ),
+                    "rendering_d_ts": tfds.features.Tensor(
+                        shape=(
+                            self.builder_config.horizon_dim,
+                            self.builder_config.img_size[0],
+                            self.builder_config.img_size[1],
+                            3,
+                        ),
+                        dtype=jnp.float32,
+                    ),
+                    "rendering_dd_ts": tfds.features.Tensor(
+                        shape=(
+                            self.builder_config.horizon_dim,
+                            self.builder_config.img_size[0],
+                            self.builder_config.img_size[1],
+                            3,
+                        ),
+                        dtype=jnp.float32,
+                    ),
                 }
             ),
             # If there's a common (input, target) tuple from the

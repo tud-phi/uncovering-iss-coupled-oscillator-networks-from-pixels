@@ -5,9 +5,12 @@ import dill
 from functools import partial
 from jax import Array, jit, lax, random, vmap
 import jax.numpy as jnp
+import numpy as onp
 from pathlib import Path
 import shutil
 from typing import Any, Callable, Dict, Optional, Type, TypeVar
+
+from src.numerical_derivative import savotzky_golay_scipy
 
 
 def collect_dataset(
@@ -174,14 +177,14 @@ def collect_dataset(
                 # save the labels in dataset_dir
                 jnp.savez(file=str(sim_dir / "labels.npz"), **labels)
 
-            rendering_ts = []
+            rendering_ts_ls = []
             for time_idx in range(x_ts.shape[0]):
                 # configuration for current time step
                 q = x_ts[time_idx, :n_q]
 
                 # render the image
                 img = rendering_fn(q)
-                rendering_ts.append(img)
+                rendering_ts_ls.append(img)
 
                 if save_raw_data:
                     # save the image
@@ -192,10 +195,33 @@ def collect_dataset(
                 # update sample index
                 sample_idx += 1
 
+            # stack the renderings in one array
+            rendering_ts = jnp.stack(rendering_ts_ls, axis=0)
+
+            # compute the numerical time derivatives of the renderings
+            rendering_d_ts, rendering_dd_ts = savotzky_golay_scipy(
+                dt.item(),
+                rendering_ts,
+            )
+
+            if save_raw_data:
+                for time_idx in range(x_ts.shape[0]):
+                    # save the 1st derivative of the image
+                    cv2.imwrite(
+                        str(sim_dir / f"rendering_d_time_idx-{time_idx}.jpeg"), rendering_d_ts[time_idx]
+                    )
+                    # save the 2nd derivative of the image
+                    cv2.imwrite(
+                        str(sim_dir / f"rendering_dd_time_idx-{time_idx}.jpeg"), rendering_dd_ts[time_idx]
+                    )
+
+
             # merge labels with image and id
             sample = labels | {
                 "id": sim_idx,
-                "rendering_ts": rendering_ts,
+                "rendering_ts": onp.array(rendering_ts),
+                "rendering_d_ts": onp.array(rendering_d_ts.astype(jnp.float32)),
+                "rendering_dd_ts": onp.array(rendering_dd_ts.astype(jnp.float32)),
             }
 
             yield sim_idx, sample
