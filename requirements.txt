@@ -8,7 +8,7 @@ dill
 flax
 jax
 jax-models
-jsrm>=0.3
+jsrm>=0.0.6
 matplotlib
 natsort
 numpy
