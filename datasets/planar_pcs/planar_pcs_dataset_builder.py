@@ -100,6 +100,13 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
                         ),
                         dtype=jnp.float64,
                     ),
+                    "x_d_ts": tfds.features.Tensor(
+                        shape=(
+                            self.builder_config.horizon_dim,
+                            self.builder_config.state_dim,
+                        ),
+                        dtype=jnp.float64,
+                    ),
                     "tau": tfds.features.Tensor(
                         shape=(self.builder_config.state_dim // 2,),
                         dtype=jnp.float64,

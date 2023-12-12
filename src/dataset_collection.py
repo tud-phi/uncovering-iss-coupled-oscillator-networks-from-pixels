@@ -3,7 +3,7 @@ import cv2
 from diffrax import AbstractERK, AbstractSolver, diffeqsolve, Dopri5, ODETerm, SaveAt
 import dill
 from functools import partial
-from jax import Array, jit, lax, random
+from jax import Array, jit, lax, random, vmap
 import jax.numpy as jnp
 from pathlib import Path
 import shutil
@@ -64,6 +64,7 @@ def collect_dataset(
 
     # jit the ode fn
     ode_fn = jit(ode_fn)
+    ode_fn_vmapped = jit(vmap(ode_fn, in_axes=(0, 0, None)))
     # initiate ODE term from `ode_fn`
     ode_term = ODETerm(ode_fn)
 
@@ -160,10 +161,10 @@ def collect_dataset(
             x_ts = sol.ys
 
             # derivative of state at t0
-            x_d_t0 = ode_fn(ts[0], x0, tau)
+            x_d_ts = ode_fn_vmapped(ts, x_ts, tau)
 
             # define labels dict
-            labels = dict(t_ts=ts, x_ts=x_ts, tau=tau, x_d_t0=x_d_t0)
+            labels = dict(t_ts=ts, x_ts=x_ts, x_d_ts=x_d_ts, tau=tau)
 
             if save_raw_data:
                 # folder to save the simulation data
