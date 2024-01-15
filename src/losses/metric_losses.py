@@ -54,7 +54,9 @@ def batch_time_alignment_loss(z_bt: Array, margin: float) -> Array:
         vmap(
             # vmap over the time dimension
             vmap(
-                lambda z_ts, start_time_idx: positive_alignment_loss(z_ts[start_time_idx], z_ts[start_time_idx + 1], margin=margin),
+                lambda z_ts, start_time_idx: positive_alignment_loss(
+                    z_ts[start_time_idx], z_ts[start_time_idx + 1], margin=margin
+                ),
                 in_axes=(None, 0),
                 out_axes=0,
             ),
@@ -121,7 +123,10 @@ def batch_time_contrastive_loss(
             partial(contrastive_loss, gamma=1.0, margin=margin),
             in_axes=(0, 0),
             out_axes=0,
-        )(z_bt[pos_batch_permutation, pos_time_idx], z_bt[pos_batch_permutation, pos_time_idx + 1])
+        )(
+            z_bt[pos_batch_permutation, pos_time_idx],
+            z_bt[pos_batch_permutation, pos_time_idx + 1],
+        )
     )
 
     # generate the contrastive loss for negative (i.e., time-separate) pairs
@@ -143,7 +148,10 @@ def batch_time_contrastive_loss(
             partial(contrastive_loss, gamma=0.0, margin=margin),
             in_axes=(0, 0),
             out_axes=0,
-        )(z_bt[pos_batch_permutation, neg_first_time_idx], z_bt[neg_batch_permutation, neg_second_time_idx])
+        )(
+            z_bt[pos_batch_permutation, neg_first_time_idx],
+            z_bt[neg_batch_permutation, neg_second_time_idx],
+        )
     )
 
     return pos_loss + neg_loss

@@ -232,5 +232,5 @@ class Pendulum(tfds.core.GeneratorBasedBuilder):
             solver=diffrax.Dopri5(),
             sim_dt=jnp.array(self.builder_config.sim_dt),
             system_params=robot_params,
-            metadata=metadata
+            metadata=metadata,
         )

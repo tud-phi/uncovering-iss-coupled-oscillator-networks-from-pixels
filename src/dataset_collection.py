@@ -208,13 +208,14 @@ def collect_dataset(
                 for time_idx in range(x_ts.shape[0]):
                     # save the 1st derivative of the image
                     cv2.imwrite(
-                        str(sim_dir / f"rendering_d_time_idx-{time_idx}.jpeg"), rendering_d_ts[time_idx]
+                        str(sim_dir / f"rendering_d_time_idx-{time_idx}.jpeg"),
+                        rendering_d_ts[time_idx],
                     )
                     # save the 2nd derivative of the image
                     cv2.imwrite(
-                        str(sim_dir / f"rendering_dd_time_idx-{time_idx}.jpeg"), rendering_dd_ts[time_idx]
+                        str(sim_dir / f"rendering_dd_time_idx-{time_idx}.jpeg"),
+                        rendering_dd_ts[time_idx],
                     )
-
 
             # merge labels with image and id
             sample = labels | {
