@@ -101,15 +101,13 @@ def restore_train_state(
         tx=tx,
         metrics=metrics_collection_cls.empty(),
     )
-    state_dict = dict(state)
 
     options = ocp.CheckpointManagerOptions()
     ckpt_mgr = ocp.CheckpointManager(ckpt_dir, options=options)
     if step is None:
         step = ckpt_mgr.latest_step()
 
-    restored_ckpt = ckpt_mgr.restore(step, args=ocp.args.StandardRestore(state_dict))
-    print("restored checkpoint", restored_ckpt)
+    restored_ckpt = ckpt_mgr.restore(step, args=ocp.args.StandardRestore(state))
     nn_params = restored_ckpt["params"]
 
     # update the parameters of the neural networks in the TrainState object
