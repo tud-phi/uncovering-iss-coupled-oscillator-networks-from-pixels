@@ -3,12 +3,7 @@ from flax import linen as nn  # Linen API
 from flax.training import orbax_utils
 from jax import Array, random
 import jax.numpy as jnp
-from orbax.checkpoint import (
-    Checkpointer,
-    CheckpointManager,
-    CheckpointManagerOptions,
-    PyTreeCheckpointer,
-)
+import orbax.checkpoint as ocp
 import optax
 import os
 from typing import Any, Callable, Dict, Optional, Type, Union
@@ -76,25 +71,24 @@ def restore_train_state(
     rng: random.KeyArray,
     ckpt_dir: os.PathLike,
     nn_model: nn.Module,
+    nn_dummy_input: Array,
     metrics_collection_cls: Type[clu_metrics.Collection],
+    init_fn: Optional[Callable] = None,
+    init_kwargs: Dict[str, Any] = None,
     step: int = None,
     learning_rate_fn: Union[float, Callable] = 0.0,
     b1: float = 0.9,
     b2: float = 0.999,
     weight_decay: float = 0.0,
 ) -> TrainState:
-    ckptr = Checkpointer(PyTreeCheckpointer())
-    ckpt_mgr = CheckpointManager(
-        ckpt_dir,
-        ckptr,
-    )
-    if step is None:
-        step = ckpt_mgr.latest_step()
+    if init_kwargs is None:
+        init_kwargs = {}
 
-    # restore_args = orbax_utils.restore_args_from_target(nn_model, mesh=None)
-    # nn_model = ckpt_mgr.restore(step, items=nn_model, restore_kwargs={'restore_args': restore_args})
-    restored_ckpt = ckpt_mgr.restore(step)
-    nn_params = restored_ckpt["params"]
+    # initialize parameters of the neural networks by passing a dummy input through the network
+    # Hint: pass the `rng` and a dummy input to the `init` method of the neural network object
+    nn_dummy_params = nn_model.init(rng, nn_dummy_input, method=init_fn, **init_kwargs)[
+        "params"
+    ]
 
     # initialize the Adam with weight decay optimizer for both neural networks
     tx = optax.adamw(learning_rate_fn, b1=b1, b2=b2, weight_decay=weight_decay)
@@ -102,10 +96,23 @@ def restore_train_state(
     # create the TrainState object for both neural networks
     state = TrainState.create(
         apply_fn=nn_model.apply,
-        params=nn_params,
+        params=nn_dummy_params,
         rng=rng,
         tx=tx,
         metrics=metrics_collection_cls.empty(),
     )
+    state_dict = dict(state)
+
+    options = ocp.CheckpointManagerOptions()
+    ckpt_mgr = ocp.CheckpointManager(ckpt_dir, options=options)
+    if step is None:
+        step = ckpt_mgr.latest_step()
+
+    restored_ckpt = ckpt_mgr.restore(step, args=ocp.args.StandardRestore(state_dict))
+    print("restored checkpoint", restored_ckpt)
+    nn_params = restored_ckpt["params"]
+
+    # update the parameters of the neural networks in the TrainState object
+    state = state.replace(params=nn_params)
 
     return state

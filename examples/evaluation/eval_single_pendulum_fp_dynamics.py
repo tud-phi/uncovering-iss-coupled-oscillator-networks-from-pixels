@@ -102,7 +102,14 @@ if __name__ == "__main__":
         configuration_velocity_source="direct-finite-differences",
     )
 
-    state = restore_train_state(rng, ckpt_dir, nn_model, metrics_collection_cls)
+    # use float32 for initialization of neural network parameters
+    from jax.experimental import enable_x64
+    with enable_x64(False):
+        # extract dummy batch from dataset
+        nn_dummy_batch = next(test_ds.as_numpy_iterator())
+        # assemble input for dummy batch
+        nn_dummy_input = task_callables.assemble_input_fn(nn_dummy_batch)
+        state = restore_train_state(rng, ckpt_dir, nn_model, nn_dummy_input, metrics_collection_cls)
 
     print("Run testing...")
     state, test_history = run_eval(test_ds, state, task_callables)

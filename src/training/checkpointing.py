@@ -1,11 +1,6 @@
 from flax import linen as nn  # Linen API
 from flax.training import orbax_utils
-from orbax.checkpoint import (
-    Checkpointer,
-    CheckpointManager,
-    CheckpointManagerOptions,
-    PyTreeCheckpointer,
-)
+import orbax.checkpoint as ocp
 import os
 from typing import Optional, Union
 
@@ -21,7 +16,7 @@ from ciclo.timetracking import Elapsed
 from ciclo.types import S
 
 
-class OrbaxCheckpoint(LoopCallbackBase[S]):
+class OrbaxCheckpointerCallback(LoopCallbackBase[S]):
     def __init__(
         self,
         ckpt_dir: Union[str, os.PathLike],
@@ -49,19 +44,20 @@ class OrbaxCheckpoint(LoopCallbackBase[S]):
         self.minimize = self.mode == OptimizationMode.min
         self._best: Optional[float] = None
 
-        self.mngr_options = CheckpointManagerOptions(
+        self.mngr_options = ocp.CheckpointManagerOptions(
             save_interval_steps=save_interval_steps,
             max_to_keep=max_to_keep,
             keep_time_interval=keep_time_interval,
             keep_period=keep_period,
             create=True,
         )
-        orbax_checkpointer = PyTreeCheckpointer()
-        self.mngr = CheckpointManager(ckpt_dir, orbax_checkpointer, self.mngr_options)
+        self.mngr = ocp.CheckpointManager(
+            ckpt_dir,
+            options=self.mngr_options
+        )
 
     def __call__(self, elapsed: Elapsed, state: S, logs: Optional[Logs] = None) -> None:
         save_checkpoint = True
-        step_or_metric = elapsed.steps
 
         if self.monitor is not None:
             if logs is None:
@@ -82,7 +78,6 @@ class OrbaxCheckpoint(LoopCallbackBase[S]):
                 or (not self.minimize and value > self._best)
             ):
                 self._best = value
-                step_or_metric = value if self.mode == OptimizationMode.max else -value
             else:
                 save_checkpoint = False
 
@@ -92,7 +87,7 @@ class OrbaxCheckpoint(LoopCallbackBase[S]):
                 save_args = orbax_utils.save_args_from_target(state)
                 save_kwargs = {"save_args": save_args}
 
-            self.mngr.save(elapsed.steps, state, save_kwargs=save_kwargs)
+            self.mngr.save(elapsed.steps, args=ocp.args.StandardSave(state), save_kwargs=save_kwargs)
 
     def __loop_callback__(self, loop_state: LoopState[S]) -> CallbackOutput[S]:
         self(loop_state.elapsed, loop_state.state, loop_state.accumulated_logs)
@@ -102,3 +97,6 @@ class OrbaxCheckpoint(LoopCallbackBase[S]):
         self, state, batch, elapsed, loop_state: LoopState[S]
     ) -> CallbackOutput[S]:
         return self.__loop_callback__(loop_state)
+
+    def wait_until_finished(self):
+        self.mngr.wait_until_finished()

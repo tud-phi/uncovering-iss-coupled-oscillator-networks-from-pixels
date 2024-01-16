@@ -13,7 +13,7 @@ import tensorflow as tf
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type
 
 from src.structs import TaskCallables, TrainState
-from src.training.checkpoint import OrbaxCheckpoint
+from src.training.checkpointing import OrbaxCheckpointerCallback
 from src.training.train_state_utils import initialize_train_state
 from src.training.optim import create_learning_rate_fn
 
@@ -224,14 +224,17 @@ def run_training(
 
     if callbacks is None:
         callbacks = []
+
+    orbax_checkpointer_callback = None
     if logdir is not None:
+        orbax_checkpointer_callback = OrbaxCheckpointerCallback(
+            logdir.resolve(),
+            max_to_keep=1,
+            monitor="loss_val",
+            mode="min",
+        )
         callbacks.append(
-            OrbaxCheckpoint(
-                logdir.resolve(),
-                max_to_keep=1,
-                monitor="loss_val",
-                mode="min",
-            ),
+            orbax_checkpointer_callback
         )
     if show_pbar:
         callbacks.append(ciclo.keras_bar(total=num_total_train_steps))
@@ -268,6 +271,9 @@ def run_training(
         test_name="val",
         stop=num_total_train_steps,
     )
+
+    if orbax_checkpointer_callback is not None:
+        orbax_checkpointer_callback.wait_until_finished()
 
     return state, history, elapsed
 
