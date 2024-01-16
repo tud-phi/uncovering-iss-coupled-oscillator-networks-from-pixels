@@ -3,7 +3,7 @@ from flax.core import FrozenDict
 from flax.struct import dataclass
 from flax import linen as nn  # Linen API
 from functools import partial
-from jax import Array, debug, jacfwd, jacrev, jit, random, vmap
+from jax import Array, debug, jacfwd, jacrev, jit, jvp, random, vmap
 import jax.numpy as jnp
 from jsrm.systems.pendulum import normalize_joint_angles
 from typing import Any, Callable, Dict, Optional, Tuple, Type
@@ -107,6 +107,14 @@ def task_factory(
         batch_size = batch["rendering_ts"].shape[0]
         n_q = batch["x_ts"].shape[-1] // 2  # number of generalized coordinates
 
+        # partial function for the encoder
+        encode_fn_with_params = partial(
+            nn_model.apply,
+            {"params": nn_params},
+            method=encode_fn,
+            **encode_kwargs
+        )
+
         # static predictions by passing the image through the encoder
         # output will be of shape batch_dim * time_dim x latent_dim
         # if the system is a pendulum, the latent dim should be 2*n_q
@@ -139,8 +147,14 @@ def task_factory(
             q_pred_bt = encoder_output
 
         # compute the configuration velocity and acceleration by using the derivative of the encoder
-        q_d_pred_bt = jacrev(nn_model.encode)(rendering_bt) @ rendering_d_bt
-        q_dd_pred_bt = jacfwd(jacrev(nn_model.encode))(rendering_bt) @ rendering_dd_bt
+        q_pred_bt, q_d_pred_bt = jvp(encode_fn_with_params, (rendering_bt,), (rendering_d_bt,))
+        print("q_pred_bt.shape:", q_pred_bt.shape)
+        # q_d_pred_bt = jacrev(nn_model.encode)(rendering_bt) @ rendering_d_bt
+
+        # TODO: check if this is mathematically correct
+        # q_dd_pred_bt = jacfwd(jacrev(nn_model.encode))(rendering_bt) @ rendering_dd_bt
+        q_dd_pred_bt = jnp.zeros_like(q_d_pred_bt)
+        # q_dd = J @ x_dd + J_d @ x_d
 
         # stack the q and q_d to the state vector
         x_bt = jnp.concatenate((q_pred_bt, q_d_pred_bt), axis=-1)
