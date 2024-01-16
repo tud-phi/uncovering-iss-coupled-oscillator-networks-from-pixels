@@ -17,6 +17,8 @@ from src.autoencoders.simple_cnn import Autoencoder
 from src.tasks import fp_dynamics_sindy_loss
 from src.training.load_dataset import load_dataset
 from src.training.loops import run_training
+from src.training.optim import create_learning_rate_fn
+from src.training.train_state_utils import initialize_train_state
 
 # prevent tensorflow from loading everything onto the GPU, as we don't have enough memory for that
 tf.config.experimental.set_visible_devices([], "GPU")
@@ -71,8 +73,30 @@ if __name__ == "__main__":
         x0_max=dataset_metadata["x0_max"],
     )
 
+    # extract dummy batch from dataset
+    nn_dummy_batch = next(train_ds.as_numpy_iterator())
+    # assemble input for dummy batch
+    nn_dummy_input = task_callables.assemble_input_fn(nn_dummy_batch)
+
+    # create learning rate schedule
+    lr_fn = create_learning_rate_fn(
+        0,
+        steps_per_epoch=len(train_ds),
+        base_lr=1e-4,
+        warmup_epochs=0,
+    )
+
+    # initialize the train state
+    state = initialize_train_state(
+        rng,
+        nn_model,
+        nn_dummy_input=nn_dummy_input,
+        metrics_collection_cls=metrics_collection_cls,
+        learning_rate_fn=lr_fn,
+    )
+
     for batch in train_ds:
-        print(batch.keys())
+        task_callables.forward_fn(batch, state.params)
         break
 
     # run the training loop
