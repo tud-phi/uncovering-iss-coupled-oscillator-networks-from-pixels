@@ -16,7 +16,7 @@ def load_dataset(
     num_threads: Optional[int] = None,
     prefetch: int = 2,
     normalize: bool = True,
-    grayscale: bool = False,
+    grayscale: bool = False
 ) -> Tuple[Dict[str, tf.data.Dataset], tfds.core.DatasetInfo, Dict]:
     """
     Loads the dataset and splits it into a training, validation and test set.
@@ -87,6 +87,8 @@ def load_dataset(
                 lambda sample: sample
                 | {
                     "rendering_ts": tf.image.rgb_to_grayscale(sample["rendering_ts"]),
+                    "rendering_d_ts": tf.image.rgb_to_grayscale(sample["rendering_d_ts"]),
+                    "rendering_dd_ts": tf.image.rgb_to_grayscale(sample["rendering_dd_ts"]),
                 }
             )
 
@@ -97,6 +99,8 @@ def load_dataset(
                 | {
                     "rendering_ts": tf.cast(sample["rendering_ts"], tf.float32) / 128.0
                     - 1.0,
+                    "rendering_d_ts": tf.cast(sample["rendering_d_ts"], tf.float32) / 128.0,
+                    "rendering_dd_ts": tf.cast(sample["rendering_dd_ts"], tf.float32) / 128.0,
                 }
             )
 
