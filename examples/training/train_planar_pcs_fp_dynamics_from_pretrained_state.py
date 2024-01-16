@@ -42,7 +42,7 @@ tf.random.set_seed(seed=seed)
 
 system_type = "cc"
 pretrained_ae_type = "beta_vae"  # "None", "beta_vae", "wae"
-ckpt_dir = Path("logs") / f"{system_type}_autoencoding" / f"2023-09-24_14-41-33"
+ckpt_dir = Path("logs").resolve() / f"{system_type}_autoencoding" / f"2023-09-24_14-41-33"
 
 num_epochs = 40
 warmup_epochs = 5
@@ -55,7 +55,7 @@ loss_weights = dict(mse_q=1e-2, mse_rec_static=0.0, mse_rec_dynamic=100)
 weight_decay = 0.0
 
 now = datetime.now()
-logdir = Path("logs") / f"{system_type}_fp_dynamics" / f"{now:%Y-%m-%d_%H-%M-%S}"
+logdir = Path("logs").resolve() / f"{system_type}_fp_dynamics" / f"{now:%Y-%m-%d_%H-%M-%S}"
 logdir.mkdir(parents=True, exist_ok=True)
 
 if __name__ == "__main__":

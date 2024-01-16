@@ -85,7 +85,7 @@ else:
     start_time_idx = 7
 
 now = datetime.now()
-logdir = Path("logs") / "single_pendulum_fp_dynamics" / f"{now:%Y-%m-%d_%H-%M-%S}"
+logdir = Path("logs").resolve() / "single_pendulum_fp_dynamics" / f"{now:%Y-%m-%d_%H-%M-%S}"
 logdir.mkdir(parents=True, exist_ok=True)
 
 sym_exp_filepath = (

@@ -61,7 +61,7 @@ else:
     weight_decay = 1.7e-05
 
 now = datetime.now()
-logdir = Path("logs") / f"{system_type}_fp_dynamics" / f"{now:%Y-%m-%d_%H-%M-%S}"
+logdir = Path("logs").resolve() / f"{system_type}_fp_dynamics" / f"{now:%Y-%m-%d_%H-%M-%S}"
 logdir.mkdir(parents=True, exist_ok=True)
 
 if __name__ == "__main__":

@@ -36,7 +36,7 @@ if ae_type == "beta_vae":
 else:
     # ae_type == "None"
     experiment_id = "2023-09-18_11-21-53"
-ckpt_dir = Path("logs") / f"{system_type}_fp_dynamics" / experiment_id
+ckpt_dir = Path("logs").resolve() / f"{system_type}_fp_dynamics" / experiment_id
 
 batch_size = 10
 loss_weights = dict(mse_q=1.0, mse_rec_static=1.0, mse_rec_dynamic=1.0)

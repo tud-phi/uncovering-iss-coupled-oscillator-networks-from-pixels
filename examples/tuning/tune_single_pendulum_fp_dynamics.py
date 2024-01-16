@@ -39,7 +39,7 @@ now = datetime.now()
 experiment_name = "single_pendulum_fp_dynamics"
 datetime_str = f"{now:%Y-%m-%d_%H-%M-%S}"
 study_id = f"study-{experiment_name}-{datetime_str}"  # Unique identifier of the study.
-logdir = Path("logs") / experiment_name / datetime_str
+logdir = Path("logs").resolve() / experiment_name / datetime_str
 logdir.mkdir(parents=True, exist_ok=True)
 
 sym_exp_filepath = (

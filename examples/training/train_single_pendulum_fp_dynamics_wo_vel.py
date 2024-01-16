@@ -34,7 +34,7 @@ loss_weights = dict(mse_q=0.0, mse_rec_static=5.0, mse_rec_dynamic=25.0)
 
 now = datetime.now()
 logdir = (
-    Path("logs") / "single_pendulum_fp_dynamics_wo_vel" / f"{now:%Y-%m-%d_%H-%M-%S}"
+    Path("logs").resolve() / "single_pendulum_fp_dynamics_wo_vel" / f"{now:%Y-%m-%d_%H-%M-%S}"
 )
 logdir.mkdir(parents=True, exist_ok=True)
 

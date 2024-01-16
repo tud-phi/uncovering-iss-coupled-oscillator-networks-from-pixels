@@ -36,14 +36,14 @@ batch_size = 10
 norm_layer = None
 
 if ae_type == "wae":
-    ckpt_dir = Path("logs") / "single_pendulum_autoencoding" / "2023-09-09_22-08-41"
+    ckpt_dir = Path("logs").resolve() / "single_pendulum_autoencoding" / "2023-09-09_22-08-41"
     loss_weights = dict(mse_q=0.0, mse_rec=5.0, mmd=1.0)
     norm_layer = nn.LayerNorm
 elif ae_type == "beta_vae":
-    ckpt_dir = Path("logs") / "single_pendulum_autoencoding" / "2023-08-28_22-55-41"
+    ckpt_dir = Path("logs").resolve() / "single_pendulum_autoencoding" / "2023-08-28_22-55-41"
     loss_weights = dict(mse_q=0.0, mse_rec=1.0, beta=1.0)
 else:
-    ckpt_dir = Path("logs") / "single_pendulum_autoencoding" / "2023-04-26_15-57-20"
+    ckpt_dir = Path("logs").resolve() / "single_pendulum_autoencoding" / "2023-04-26_15-57-20"
     loss_weights = dict(mse_q=1.0, mse_rec=5.0)
 
 sym_exp_filepath = (

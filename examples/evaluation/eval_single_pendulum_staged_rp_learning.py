@@ -34,7 +34,7 @@ sym_exp_filepath = (
     Path(jsrm.__file__).parent / "symbolic_expressions" / f"pendulum_nl-1.dill"
 )
 ckpt_dir = (
-    Path("logs")
+    Path("logs").resolve()
     / "single_pendulum_staged_rp_learning"
     / "2023-05-06_18-02-19"
     / "dynamic_learning"
