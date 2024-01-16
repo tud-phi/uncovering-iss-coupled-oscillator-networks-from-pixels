@@ -227,7 +227,7 @@ def run_training(
     if logdir is not None:
         callbacks.append(
             OrbaxCheckpoint(
-                logdir,
+                logdir.resolve(),
                 max_to_keep=1,
                 monitor="loss_val",
                 mode="min",

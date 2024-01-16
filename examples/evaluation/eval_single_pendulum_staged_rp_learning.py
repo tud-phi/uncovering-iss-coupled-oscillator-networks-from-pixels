@@ -4,7 +4,7 @@ jax_config.update("jax_enable_x64", True)
 from jax import Array, random
 import jax.numpy as jnp
 import jsrm
-from jsrm.integration import ode_factory
+from jsrm.integration import ode_factory, ode_with_forcing_factory
 from jsrm.systems import pendulum
 import matplotlib.pyplot as plt
 from pathlib import Path
@@ -34,7 +34,7 @@ sym_exp_filepath = (
     Path(jsrm.__file__).parent / "symbolic_expressions" / f"pendulum_nl-1.dill"
 )
 ckpt_dir = (
-    Path("logs")
+    Path("logs").resolve()
     / "single_pendulum_staged_rp_learning"
     / "2023-05-06_18-02-19"
     / "dynamic_learning"
@@ -62,6 +62,13 @@ if __name__ == "__main__":
     backbone = Autoencoder(latent_dim=latent_dim, img_shape=img_shape)
     nn_model = StagedAutoencoder(backbone=backbone, config_dim=2 * n_q)
 
+    # import solver class from diffrax
+    # https://stackoverflow.com/questions/6677424/how-do-i-import-variable-packages-in-python-like-using-variable-variables-i
+    solver_class = getattr(
+        __import__("diffrax", fromlist=[dataset_metadata["solver_class"]]),
+        dataset_metadata["solver_class"],
+    )
+
     # call the factory function for the first-principle dynamics task
     task_callables, metrics_collection_cls = fp_dynamics.task_factory(
         "pendulum",
@@ -70,7 +77,7 @@ if __name__ == "__main__":
         sim_dt=dataset_metadata["sim_dt"],
         ode_fn=ode_with_forcing_factory(dynamical_matrices_fn, robot_params),
         loss_weights=loss_weights,
-        solver=dataset_metadata["solver_class"](),
+        solver=solver_class(),
         configuration_velocity_source="direct-finite-differences",
     )
 

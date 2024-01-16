@@ -60,7 +60,9 @@ else:
     base_lr = 2e-3
 
 now = datetime.now()
-logdir = Path("logs") / f"{system_type}_autoencoding" / f"{now:%Y-%m-%d_%H-%M-%S}"
+logdir = (
+    Path("logs").resolve() / f"{system_type}_autoencoding" / f"{now:%Y-%m-%d_%H-%M-%S}"
+)
 logdir.mkdir(parents=True, exist_ok=True)
 
 if __name__ == "__main__":

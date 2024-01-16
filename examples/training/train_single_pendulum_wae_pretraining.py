@@ -51,7 +51,9 @@ hyperparams = [
 
 now = datetime.now()
 logdir = (
-    Path("logs") / "single_pendulum_staged_rp_learning" / f"{now:%Y-%m-%d_%H-%M-%S}"
+    Path("logs").resolve()
+    / "single_pendulum_staged_rp_learning"
+    / f"{now:%Y-%m-%d_%H-%M-%S}"
 )
 logdir.mkdir(parents=True, exist_ok=True)
 
@@ -108,6 +110,13 @@ if __name__ == "__main__":
     )
     print("Final WAE training metrics:\n", state.metrics.compute())
 
+    # import solver class from diffrax
+    # https://stackoverflow.com/questions/6677424/how-do-i-import-variable-packages-in-python-like-using-variable-variables-i
+    solver_class = getattr(
+        __import__("diffrax", fromlist=[dataset_metadata["solver_class"]]),
+        dataset_metadata["solver_class"],
+    )
+
     # call the factory function for the dynamic learning of the configuration space
     fp_dynamics_task_callables, fp_dynamics_metrics = fp_dynamics.task_factory(
         "pendulum",
@@ -116,7 +125,7 @@ if __name__ == "__main__":
         ts=dataset_metadata["ts"],
         sim_dt=dataset_metadata["sim_dt"],
         loss_weights=hyperparams[1]["loss_weights"],
-        solver=dataset_metadata["solver_class"](),
+        solver=solver_class(),
         configuration_velocity_source="image-space-finite-differences",
     )
 

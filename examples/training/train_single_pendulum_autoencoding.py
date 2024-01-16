@@ -58,7 +58,9 @@ else:
     warmup_epochs = 3
 
 now = datetime.now()
-logdir = Path("logs") / "single_pendulum_autoencoding" / f"{now:%Y-%m-%d_%H-%M-%S}"
+logdir = (
+    Path("logs").resolve() / "single_pendulum_autoencoding" / f"{now:%Y-%m-%d_%H-%M-%S}"
+)
 logdir.mkdir(parents=True, exist_ok=True)
 
 if __name__ == "__main__":

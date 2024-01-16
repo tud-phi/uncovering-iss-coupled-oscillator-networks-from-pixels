@@ -6,7 +6,7 @@ from src.structs import TrainState
 from src.visualization.img_animation import animate_pred_vs_target_image_pyplot
 
 model_id = "single_pendulum_autoencoding/2023-03-18_09-22-22"
-logdir = Path("logs") / model_id
+logdir = Path("logs").resolve() / model_id
 video_path = Path("videos") / model_id / "pred_vs_target_animation.mp4"
 
 if __name__ == "__main__":

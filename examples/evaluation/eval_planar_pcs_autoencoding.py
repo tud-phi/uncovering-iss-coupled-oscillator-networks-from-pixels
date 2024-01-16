@@ -69,7 +69,9 @@ else:
         raise NotImplementedError
     loss_weights = dict(mse_q=1.0, mse_rec=1.0)
 
-ckpt_dir = ckpt_dir = Path("logs") / f"{system_type}_autoencoding" / ckpt_timestamp
+ckpt_dir = ckpt_dir = (
+    Path("logs").resolve() / f"{system_type}_autoencoding" / ckpt_timestamp
+)
 batch_size = 10
 
 if __name__ == "__main__":

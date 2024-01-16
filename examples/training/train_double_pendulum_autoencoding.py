@@ -26,7 +26,9 @@ warmup_epochs = 2
 loss_weights = dict(mse_q=1.0, mse_rec=5.0)
 
 now = datetime.now()
-logdir = Path("logs") / "double_pendulum_autoencoding" / f"{now:%Y-%m-%d_%H-%M-%S}"
+logdir = (
+    Path("logs").resolve() / "double_pendulum_autoencoding" / f"{now:%Y-%m-%d_%H-%M-%S}"
+)
 logdir.mkdir(parents=True, exist_ok=True)
 
 if __name__ == "__main__":

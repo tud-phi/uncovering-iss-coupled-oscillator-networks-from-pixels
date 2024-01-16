@@ -23,7 +23,7 @@ base_lr = 5e-4
 warmup_epochs = 2
 
 now = datetime.now()
-logdir = Path("logs") / "single_pendulum_sensing" / f"{now:%Y-%m-%d_%H-%M-%S}"
+logdir = Path("logs").resolve() / "single_pendulum_sensing" / f"{now:%Y-%m-%d_%H-%M-%S}"
 logdir.mkdir(parents=True, exist_ok=True)
 
 if __name__ == "__main__":

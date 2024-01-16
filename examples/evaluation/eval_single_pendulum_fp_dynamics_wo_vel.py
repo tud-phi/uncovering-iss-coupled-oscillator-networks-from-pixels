@@ -29,7 +29,11 @@ loss_weights = dict(mse_q=1.0, mse_rec_static=5.0, mse_rec_dynamic=5.0)
 sym_exp_filepath = (
     Path(jsrm.__file__).parent / "symbolic_expressions" / f"pendulum_nl-1.dill"
 )
-ckpt_dir = Path("logs") / "single_pendulum_fp_dynamics_wo_vel" / "2023-05-02_10-20-40"
+ckpt_dir = (
+    Path("logs").resolve()
+    / "single_pendulum_fp_dynamics_wo_vel"
+    / "2023-05-02_10-20-40"
+)
 
 
 if __name__ == "__main__":
@@ -52,6 +56,13 @@ if __name__ == "__main__":
     # initialize the model
     nn_model = Autoencoder(latent_dim=2 * n_q, img_shape=img_shape)
 
+    # import solver class from diffrax
+    # https://stackoverflow.com/questions/6677424/how-do-i-import-variable-packages-in-python-like-using-variable-variables-i
+    solver_class = getattr(
+        __import__("diffrax", fromlist=[dataset_metadata["solver_class"]]),
+        dataset_metadata["solver_class"],
+    )
+
     # call the factory function for the sensing task
     task_callables, metrics_collection_cls = fp_dynamics_wo_vel.task_factory(
         "pendulum",
@@ -60,7 +71,7 @@ if __name__ == "__main__":
         sim_dt=dataset_metadata["sim_dt"],
         ode_fn=ode_factory(dynamical_matrices_fn, robot_params, tau=jnp.zeros((n_q,))),
         loss_weights=loss_weights,
-        solver=dataset_metadata["solver_class"](),
+        solver=solver_class(),
     )
 
     state = restore_train_state(rng, ckpt_dir, nn_model, metrics_collection_cls)

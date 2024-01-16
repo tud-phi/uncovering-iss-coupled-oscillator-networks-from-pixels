@@ -42,7 +42,9 @@ tf.random.set_seed(seed=seed)
 
 system_type = "cc"
 pretrained_ae_type = "beta_vae"  # "None", "beta_vae", "wae"
-ckpt_dir = Path("logs") / f"{system_type}_autoencoding" / f"2023-09-24_14-41-33"
+ckpt_dir = (
+    Path("logs").resolve() / f"{system_type}_autoencoding" / f"2023-09-24_14-41-33"
+)
 
 num_epochs = 40
 warmup_epochs = 5
@@ -55,7 +57,9 @@ loss_weights = dict(mse_q=1e-2, mse_rec_static=0.0, mse_rec_dynamic=100)
 weight_decay = 0.0
 
 now = datetime.now()
-logdir = Path("logs") / f"{system_type}_fp_dynamics" / f"{now:%Y-%m-%d_%H-%M-%S}"
+logdir = (
+    Path("logs").resolve() / f"{system_type}_fp_dynamics" / f"{now:%Y-%m-%d_%H-%M-%S}"
+)
 logdir.mkdir(parents=True, exist_ok=True)
 
 if __name__ == "__main__":
@@ -105,6 +109,13 @@ if __name__ == "__main__":
         )
     nn_model = StagedAutoencoder(backbone=backbone, config_dim=n_q, mirror_head=True)
 
+    # import solver class from diffrax
+    # https://stackoverflow.com/questions/6677424/how-do-i-import-variable-packages-in-python-like-using-variable-variables-i
+    solver_class = getattr(
+        __import__("diffrax", fromlist=[dataset_metadata["solver_class"]]),
+        dataset_metadata["solver_class"],
+    )
+
     # call the factory function for the sensing task
     task_callables, metrics_collection_cls = fp_dynamics.task_factory(
         system_type,
@@ -114,7 +125,7 @@ if __name__ == "__main__":
         sim_dt=dataset_metadata["sim_dt"],
         loss_weights=loss_weights,
         ae_type="None",
-        solver=dataset_metadata["solver_class"](),
+        solver=solver_class(),
         start_time_idx=start_time_idx,
         configuration_velocity_source=configuration_velocity_source,
     )
