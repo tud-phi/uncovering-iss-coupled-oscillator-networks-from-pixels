@@ -1,5 +1,4 @@
 alive-progress
-apache-beam
 black
 ciclo>=0.1.8
 clu
