@@ -60,7 +60,9 @@ else:
     base_lr = 2e-3
 
 now = datetime.now()
-logdir = Path("logs").resolve() / f"{system_type}_autoencoding" / f"{now:%Y-%m-%d_%H-%M-%S}"
+logdir = (
+    Path("logs").resolve() / f"{system_type}_autoencoding" / f"{now:%Y-%m-%d_%H-%M-%S}"
+)
 logdir.mkdir(parents=True, exist_ok=True)
 
 if __name__ == "__main__":
@@ -96,11 +98,7 @@ if __name__ == "__main__":
 
     # call the factory function for the sensing task
     task_callables, metrics_collection_cls = autoencoding.task_factory(
-        system_type,
-        nn_model,
-        loss_weights=loss_weights,
-        ae_type=ae_type,
-        margin=1e-2
+        system_type, nn_model, loss_weights=loss_weights, ae_type=ae_type, margin=1e-2
     )
 
     # run the training loop

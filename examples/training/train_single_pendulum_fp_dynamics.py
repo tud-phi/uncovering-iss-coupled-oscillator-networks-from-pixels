@@ -85,7 +85,9 @@ else:
     start_time_idx = 7
 
 now = datetime.now()
-logdir = Path("logs").resolve() / "single_pendulum_fp_dynamics" / f"{now:%Y-%m-%d_%H-%M-%S}"
+logdir = (
+    Path("logs").resolve() / "single_pendulum_fp_dynamics" / f"{now:%Y-%m-%d_%H-%M-%S}"
+)
 logdir.mkdir(parents=True, exist_ok=True)
 
 sym_exp_filepath = (
@@ -127,9 +129,9 @@ if __name__ == "__main__":
 
     # import solver class from diffrax
     # https://stackoverflow.com/questions/6677424/how-do-i-import-variable-packages-in-python-like-using-variable-variables-i
-    solver_class = getattr(__import__(
-        "diffrax", fromlist=[dataset_metadata["solver_class"]]),
-        dataset_metadata["solver_class"]
+    solver_class = getattr(
+        __import__("diffrax", fromlist=[dataset_metadata["solver_class"]]),
+        dataset_metadata["solver_class"],
     )
 
     # call the factory function for the sensing task
