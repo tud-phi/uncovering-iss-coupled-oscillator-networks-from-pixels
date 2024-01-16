@@ -81,6 +81,13 @@ if __name__ == "__main__":
             latent_dim=latent_dim, img_shape=img_shape, norm_layer=norm_layer
         )
 
+    # import solver class from diffrax
+    # https://stackoverflow.com/questions/6677424/how-do-i-import-variable-packages-in-python-like-using-variable-variables-i
+    solver_class = getattr(__import__(
+        "diffrax", fromlist=[dataset_metadata["solver_class"]]),
+        dataset_metadata["solver_class"]
+    )
+
     # call the factory function for the sensing task
     task_callables, metrics_collection_cls = fp_dynamics.task_factory(
         "pendulum",
@@ -90,7 +97,7 @@ if __name__ == "__main__":
         ode_fn=ode_with_forcing_factory(dynamical_matrices_fn, robot_params),
         loss_weights=loss_weights,
         ae_type=ae_type,
-        solver=dataset_metadata["solver_class"](),
+        solver=solver_class(),
         start_time_idx=start_time_idx,
         configuration_velocity_source="direct-finite-differences",
     )

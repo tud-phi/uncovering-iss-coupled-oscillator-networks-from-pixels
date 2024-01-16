@@ -89,12 +89,13 @@ def collect_dataset(
         dict(
             dt=dt,
             ts=ts,
-            solver_class=type(solver),
+            solver_class=solver.__class__.__name__,
             sim_dt=sim_dt,
             x0_min=x0_min,
             x0_max=x0_max,
         )
     )
+    print("Metadata:\n", metadata)
     if system_params is not None:
         metadata["system_params"] = system_params
     # save the metadata in the `dataset_dir`
