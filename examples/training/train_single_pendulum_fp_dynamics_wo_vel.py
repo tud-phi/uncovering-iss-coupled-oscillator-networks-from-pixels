@@ -15,7 +15,7 @@ import tensorflow as tf
 
 from src.autoencoders.simple_cnn import Autoencoder
 from src.tasks import fp_dynamics_wo_vel
-from src.training.load_dataset import load_dataset
+from src.training.dataset_utils import load_dataset
 from src.training.loops import run_training
 
 # prevent tensorflow from loading everything onto the GPU, as we don't have enough memory for that

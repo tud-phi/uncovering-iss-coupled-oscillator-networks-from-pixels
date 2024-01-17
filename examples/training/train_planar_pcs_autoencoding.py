@@ -9,7 +9,7 @@ import tensorflow as tf
 from src.autoencoders.simple_cnn import Autoencoder
 from src.autoencoders.vae import VAE
 from src.tasks import autoencoding
-from src.training.load_dataset import load_dataset
+from src.training.dataset_utils import load_dataset
 from src.training.loops import run_training
 from src.visualization.latent_space import (
     visualize_mapping_from_configuration_to_latent_space,

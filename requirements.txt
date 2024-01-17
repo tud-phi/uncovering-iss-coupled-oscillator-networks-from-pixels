@@ -1,5 +1,4 @@
 alive-progress
-apache-beam
 black
 ciclo>=0.1.8
 clu
@@ -16,7 +15,7 @@ opencv-python
 optax
 optuna
 optuna-dashboard
-orbax-checkpoint>=0.3.5
+orbax-checkpoint>=0.5.0
 pytest
 seaborn
 tensorboard

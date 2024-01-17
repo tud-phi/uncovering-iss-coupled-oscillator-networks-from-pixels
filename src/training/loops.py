@@ -5,7 +5,6 @@ from flax import linen as nn  # Linen API
 from functools import partial
 import jax
 from jax import Array, debug, random
-from jax.experimental import enable_x64
 import jax.numpy as jnp
 import optax
 from pathlib import Path
@@ -13,7 +12,7 @@ import tensorflow as tf
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type
 
 from src.structs import TaskCallables, TrainState
-from src.training.checkpoint import OrbaxCheckpoint
+from src.training.checkpointing import OrbaxCheckpointerCallback
 from src.training.train_state_utils import initialize_train_state
 from src.training.optim import create_learning_rate_fn
 
@@ -198,22 +197,20 @@ def run_training(
         # assemble input for dummy batch
         nn_dummy_input = task_callables.assemble_input_fn(nn_dummy_batch)
 
-        # use float32 for initialization of neural network parameters
-        with enable_x64(False):
-            # initialize the train state
-            state = initialize_train_state(
-                rng,
-                nn_model,
-                nn_dummy_input=nn_dummy_input,
-                metrics_collection_cls=metrics_collection_cls,
-                init_fn=init_fn,
-                init_kwargs=init_kwargs,
-                tx=tx,
-                learning_rate_fn=learning_rate_fn,
-                b1=b1,
-                b2=b2,
-                weight_decay=weight_decay,
-            )
+        # initialize the train state
+        state = initialize_train_state(
+            rng,
+            nn_model,
+            nn_dummy_input=nn_dummy_input,
+            metrics_collection_cls=metrics_collection_cls,
+            init_fn=init_fn,
+            init_kwargs=init_kwargs,
+            tx=tx,
+            learning_rate_fn=learning_rate_fn,
+            b1=b1,
+            b2=b2,
+            weight_decay=weight_decay,
+        )
     else:
         state = state.replace(metrics=metrics_collection_cls.empty())
 
@@ -224,15 +221,16 @@ def run_training(
 
     if callbacks is None:
         callbacks = []
+
+    orbax_checkpointer_callback = None
     if logdir is not None:
-        callbacks.append(
-            OrbaxCheckpoint(
-                logdir.resolve(),
-                max_to_keep=1,
-                monitor="loss_val",
-                mode="min",
-            ),
+        orbax_checkpointer_callback = OrbaxCheckpointerCallback(
+            logdir.resolve(),
+            max_to_keep=1,
+            monitor="loss_val",
+            mode="min",
         )
+        callbacks.append(orbax_checkpointer_callback)
     if show_pbar:
         callbacks.append(ciclo.keras_bar(total=num_total_train_steps))
 
@@ -268,6 +266,9 @@ def run_training(
         test_name="val",
         stop=num_total_train_steps,
     )
+
+    if orbax_checkpointer_callback is not None:
+        orbax_checkpointer_callback.wait_until_finished()
 
     return state, history, elapsed
 

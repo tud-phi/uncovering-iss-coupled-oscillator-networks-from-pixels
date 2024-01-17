@@ -91,20 +91,27 @@ def task_factory(
         decode_kwargs = {}
 
     if loss_weights is None:
-        loss_weights = dict(mse_q=1.0, mse_rec_static=1.0, mse_rec_dynamic=1.0)
+        loss_weights = {}
+    loss_weights = (
+        dict(mse_q=1.0, mse_rec_static=1.0, mse_rec_dynamic=1.0) | loss_weights
+    )
 
     if ae_type == "wae":
-        from src.losses import wae
+        loss_weights = dict(mmd=1.0) | loss_weights
 
         assert system_type == "pendulum", "WAE only implemented for pendulum system"
-
         if system_type == "pendulum":
             uniform_distr_range = (-jnp.pi, jnp.pi)
         else:
             uniform_distr_range = (-1.0, 1.0)
+
+        from src.losses import wae
+
         wae_mmd_loss_fn = wae.make_wae_mdd_loss(
             distribution="uniform", uniform_distr_range=uniform_distr_range
         )
+    elif ae_type == "beta_vae":
+        loss_weights = dict(beta=1.0) | loss_weights
 
     if normalize_configuration_loss is True:
         assert (

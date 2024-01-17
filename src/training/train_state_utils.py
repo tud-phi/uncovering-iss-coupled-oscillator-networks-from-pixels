@@ -2,13 +2,9 @@ from clu import metrics as clu_metrics
 from flax import linen as nn  # Linen API
 from flax.training import orbax_utils
 from jax import Array, random
+from jax.experimental import enable_x64
 import jax.numpy as jnp
-from orbax.checkpoint import (
-    Checkpointer,
-    CheckpointManager,
-    CheckpointManagerOptions,
-    PyTreeCheckpointer,
-)
+import orbax.checkpoint as ocp
 import optax
 import os
 from typing import Any, Callable, Dict, Optional, Type, Union
@@ -50,11 +46,12 @@ def initialize_train_state(
     if init_kwargs is None:
         init_kwargs = {}
 
-    # initialize parameters of the neural networks by passing a dummy input through the network
-    # Hint: pass the `rng` and a dummy input to the `init` method of the neural network object
-    nn_params = nn_model.init(rng, nn_dummy_input, method=init_fn, **init_kwargs)[
-        "params"
-    ]
+    # use float32 for initialization of neural network parameters
+    with enable_x64(False):
+        # initialize parameters of the neural networks by passing a dummy input through the network
+        nn_params = nn_model.init(rng, nn_dummy_input, method=init_fn, **init_kwargs)[
+            "params"
+        ]
 
     if tx is None:
         # initialize the Adam with weight decay optimizer for both neural networks
@@ -76,28 +73,43 @@ def restore_train_state(
     rng: random.KeyArray,
     ckpt_dir: os.PathLike,
     nn_model: nn.Module,
+    nn_dummy_input: Array,
     metrics_collection_cls: Type[clu_metrics.Collection],
     step: int = None,
+    init_fn: Optional[Callable] = None,
+    init_kwargs: Dict[str, Any] = None,
+    tx: optax.GradientTransformation = None,
     learning_rate_fn: Union[float, Callable] = 0.0,
     b1: float = 0.9,
     b2: float = 0.999,
     weight_decay: float = 0.0,
 ) -> TrainState:
-    ckptr = Checkpointer(PyTreeCheckpointer())
-    ckpt_mgr = CheckpointManager(
-        ckpt_dir,
-        ckptr,
-    )
+    if init_kwargs is None:
+        init_kwargs = {}
+
+    # use float32 for initialization of neural network parameters
+    with enable_x64(False):
+        # initialize parameters of the neural networks by passing a dummy input through the network
+        nn_dummy_params = nn_model.init(
+            rng, nn_dummy_input, method=init_fn, **init_kwargs
+        )["params"]
+
+    # load the nn_params from the checkpoint
+    options = ocp.CheckpointManagerOptions()
+    ckpt_mgr = ocp.CheckpointManager(ckpt_dir, options=options)
     if step is None:
         step = ckpt_mgr.latest_step()
+    nn_params = ckpt_mgr.restore(step, args=ocp.args.StandardRestore(nn_dummy_params))
 
-    # restore_args = orbax_utils.restore_args_from_target(nn_model, mesh=None)
-    # nn_model = ckpt_mgr.restore(step, items=nn_model, restore_kwargs={'restore_args': restore_args})
-    restored_ckpt = ckpt_mgr.restore(step)
-    nn_params = restored_ckpt["params"]
-
-    # initialize the Adam with weight decay optimizer for both neural networks
-    tx = optax.adamw(learning_rate_fn, b1=b1, b2=b2, weight_decay=weight_decay)
+    if tx is None:
+        # initialize the Adam with weight decay optimizer for both neural networks
+        tx = optax.adamw(
+            learning_rate_fn,
+            b1=b1,
+            b2=b2,
+            weight_decay=weight_decay,
+            mu_dtype=jnp.float32,
+        )
 
     # create the TrainState object for both neural networks
     state = TrainState.create(

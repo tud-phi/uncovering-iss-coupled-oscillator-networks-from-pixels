@@ -6,6 +6,8 @@ import tensorflow as tf
 import tensorflow_datasets as tfds
 from typing import Dict, Optional, Tuple
 
+from src.structs import TaskCallables
+
 
 def load_dataset(
     name: str,
@@ -117,3 +119,16 @@ def load_dataset(
     )
 
     return datasets, dataset_info, metadata
+
+
+def load_dummy_neural_network_input(
+    ds: tf.data.Dataset,
+    task_callables: TaskCallables,
+) -> tf.Tensor:
+    # extract dummy batch from dataset
+    nn_dummy_batch = next(ds.as_numpy_iterator())
+
+    # assemble input for dummy batch
+    nn_dummy_input = task_callables.assemble_input_fn(nn_dummy_batch)
+
+    return nn_dummy_input

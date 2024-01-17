@@ -11,7 +11,7 @@ from src.autoencoders.convnext import ConvNeXtAutoencoder
 from src.autoencoders.simple_cnn import Autoencoder
 from src.autoencoders.vae import VAE
 from src.tasks import autoencoding
-from src.training.load_dataset import load_dataset
+from src.training.dataset_utils import load_dataset
 from src.training.loops import run_training, run_eval
 
 # prevent tensorflow from loading everything onto the GPU, as we don't have enough memory for that

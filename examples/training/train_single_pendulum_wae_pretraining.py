@@ -18,7 +18,7 @@ import tensorflow as tf
 from src.autoencoders.simple_cnn import Autoencoder
 from src.autoencoders.staged_autoencoder import StagedAutoencoder
 from src.tasks import autoencoding, fp_dynamics
-from src.training.load_dataset import load_dataset
+from src.training.dataset_utils import load_dataset
 from src.training.loops import run_training
 from src.training.optim import create_learning_rate_fn
 

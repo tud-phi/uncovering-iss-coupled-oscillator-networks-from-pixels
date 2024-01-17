@@ -13,7 +13,7 @@ import tensorflow as tf
 
 from src.autoencoders.simple_cnn import Autoencoder
 from src.autoencoders.vae import VAE
-from src.training.load_dataset import load_dataset
+from src.training.dataset_utils import load_dataset, load_dummy_neural_network_input
 from src.training.loops import run_eval
 from src.tasks import fp_dynamics
 from src.training.train_state_utils import restore_train_state
@@ -102,7 +102,12 @@ if __name__ == "__main__":
         configuration_velocity_source="direct-finite-differences",
     )
 
-    state = restore_train_state(rng, ckpt_dir, nn_model, metrics_collection_cls)
+    # load the neural network dummy input
+    nn_dummy_input = load_dummy_neural_network_input(test_ds, task_callables)
+    # load the training state from the checkpoint directory
+    state = restore_train_state(
+        rng, ckpt_dir, nn_model, nn_dummy_input, metrics_collection_cls
+    )
 
     print("Run testing...")
     state, test_history = run_eval(test_ds, state, task_callables)

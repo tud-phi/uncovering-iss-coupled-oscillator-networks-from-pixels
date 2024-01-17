@@ -79,26 +79,32 @@ def task_factory(
         decode_kwargs = {}
 
     if loss_weights is None:
-        if rec_loss_type == "mse":
-            loss_weights = dict(mse_q=0.0, mse_rec=1.0)
-        elif rec_loss_type == "bce":
-            loss_weights = dict(mse_q=0.0, bce_rec=1.0)
-        else:
-            raise ValueError(f"Unknown reconstruction loss type: {rec_loss_type}")
+        loss_weights = {}
+    if rec_loss_type == "mse":
+        loss_weights = dict(mse_q=0.0, mse_rec=1.0) | loss_weights
+    elif rec_loss_type == "bce":
+        loss_weights = dict(mse_q=0.0, bce_rec=1.0) | loss_weights
+    else:
+        raise ValueError(f"Unknown reconstruction loss type: {rec_loss_type}")
 
     if weight_on_foreground is not None:
         assert rec_loss_type == "mse", "Only MSE loss is supported for masked MSE loss"
 
     if ae_type == "wae":
-        from src.losses import wae
+        loss_weights = dict(mmd=1.0) | loss_weights
 
         if system_type == "pendulum":
             uniform_distr_range = (-jnp.pi, jnp.pi)
         else:
             uniform_distr_range = (-1.0, 1.0)
+
+        from src.losses import wae
+
         wae_mmd_loss_fn = wae.make_wae_mdd_loss(
             distribution="uniform", uniform_distr_range=uniform_distr_range
         )
+    elif ae_type == "beta_vae":
+        loss_weights = dict(beta=1.0) | loss_weights
 
     if normalize_configuration_loss is True:
         assert (

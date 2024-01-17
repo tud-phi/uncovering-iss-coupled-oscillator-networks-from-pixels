@@ -76,7 +76,10 @@ def task_factory(
         decode_kwargs = {}
 
     if loss_weights is None:
-        loss_weights = dict(mse_q=1.0, mse_rec_static=1.0, mse_rec_dynamic=1.0)
+        loss_weights = {}
+    loss_weights = (
+        dict(mse_q=1.0, mse_rec_static=1.0, mse_rec_dynamic=1.0) | loss_weights
+    )
 
     # initiate ODE term from `ode_fn`
     ode_term = ODETerm(ode_fn)
