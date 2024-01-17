@@ -41,7 +41,7 @@ logdir = (
 logdir.mkdir(parents=True, exist_ok=True)
 
 # set hyperparameters
-batch_size = 5
+batch_size = 15
 num_epochs = 50
 warmup_epochs = 5
 ae_type = "None"  # "None", "beta_vae", "wae"
@@ -54,7 +54,7 @@ loss_weights = dict(
 
 if __name__ == "__main__":
     datasets, dataset_info, dataset_metadata = load_dataset(
-        "pendulum/single_pendulum_32x32px",
+        "pendulum/single_pendulum_24x24px",
         seed=seed,
         batch_size=batch_size,
         normalize=True,
