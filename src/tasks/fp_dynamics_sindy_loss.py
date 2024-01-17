@@ -87,6 +87,7 @@ def task_factory(
             uniform_distr_range = (-1.0, 1.0)
 
         from src.losses import wae
+
         wae_mmd_loss_fn = wae.make_wae_mdd_loss(
             distribution="uniform", uniform_distr_range=uniform_distr_range
         )
@@ -118,10 +119,7 @@ def task_factory(
             # output will be of shape batch_dim * time_dim x latent_dim
             # if the system is a pendulum, the latent dim should be 2*n_q
             _model_output = nn_model.apply(
-                {"params": nn_params},
-                _rendering_bt,
-                method=encode_fn,
-                **encode_kwargs
+                {"params": nn_params}, _rendering_bt, method=encode_fn, **encode_kwargs
             )
 
             if ae_type == "beta_vae":
@@ -140,9 +138,7 @@ def task_factory(
                 # if the system is a pendulum, we interpret the encoder output as sin(theta) and cos(theta) for each joint
                 # e.g. for two joints: z = [sin(q_1), sin(q_2), cos(q_1), cos(q_2)]
                 # output of arctan2 will be in the range [-pi, pi]
-                _q_bt = jnp.arctan2(
-                    _q_bt[..., :n_q], _q_bt[..., n_q:]
-                )
+                _q_bt = jnp.arctan2(_q_bt[..., :n_q], _q_bt[..., n_q:])
 
             _aux_bt = dict(
                 mu_bt=_mu_bt,
@@ -152,26 +148,31 @@ def task_factory(
             return _q_bt, _aux_bt
 
         # compute the configuration and its velocity (using the Jacobian-vector product)
-        q_pred_bt, q_d_pred_bt, aux_bt = jvp(_encode, (rendering_bt,), (rendering_d_bt,), has_aux=True)
+        q_pred_bt, q_d_pred_bt, aux_bt = jvp(
+            _encode, (rendering_bt,), (rendering_d_bt,), has_aux=True
+        )
         mu_bt, logvar_bt = aux_bt["mu_bt"], aux_bt["logvar_bt"]
 
         # compute jacobian of the encoder and its derivative
-        jac_encoder_bt, jac_d_encoder_bt, _ = jvp(jacrev(_encode, has_aux=True), (rendering_bt,), (rendering_d_bt,), has_aux=True)
+        jac_encoder_bt, jac_d_encoder_bt, _ = jvp(
+            jacrev(_encode, has_aux=True),
+            (rendering_bt,),
+            (rendering_d_bt,),
+            has_aux=True,
+        )
         # compute the configuration acceleration (using the product rule)
         # q_dd = J @ x_dd + J_d @ x_d
-        q_dd_pred_bt = jnp.tensordot(jac_encoder_bt, rendering_dd_bt, axes=4) + jnp.tensordot(jac_d_encoder_bt, rendering_d_bt, axes=4)
+        q_dd_pred_bt = jnp.tensordot(
+            jac_encoder_bt, rendering_dd_bt, axes=4
+        ) + jnp.tensordot(jac_d_encoder_bt, rendering_d_bt, axes=4)
 
         # stack the q and q_d to the state vector
         x_bt = jnp.concatenate((q_pred_bt, q_d_pred_bt), axis=-1)
         # construct tau_ts
-        tau_ts = jnp.repeat(
-            batch["tau"][:, None, ...], repeats=ts.shape[0], axis=1
-        )
+        tau_ts = jnp.repeat(batch["tau"][:, None, ...], repeats=ts.shape[0], axis=1)
         tau_bt = tau_ts.reshape((-1, *tau_ts.shape[2:]))
         # evaluate the dynamics function at the state vector
-        x_d_ode_bt = vmap(
-            ode_fn
-        )(ts, x_bt, tau_bt)
+        x_d_ode_bt = vmap(ode_fn)(ts, x_bt, tau_bt)
         # acceleration of the generalized/latent coordinates
         q_dd_ode_pred_bt = x_d_ode_bt[..., n_q:]
 
@@ -197,12 +198,18 @@ def task_factory(
             return _rendering_bt
 
         # compute the rendering and its velocity (using the Jacobian-vector product)
-        rendering_pred_bt, rendering_d_pred_bt = jvp(_decode, (q_pred_bt,), (q_d_pred_bt,))
+        rendering_pred_bt, rendering_d_pred_bt = jvp(
+            _decode, (q_pred_bt,), (q_d_pred_bt,)
+        )
 
         # compute jacobian of the decoder and its derivative
-        jac_decoder_bt, jac_d_decoder_bt = jvp(jacfwd(_decode), (q_pred_bt,), (q_d_pred_bt,))
+        jac_decoder_bt, jac_d_decoder_bt = jvp(
+            jacfwd(_decode), (q_pred_bt,), (q_d_pred_bt,)
+        )
         # compute the rendering acceleration (using the product rule)
-        rendering_dd_pred_bt = jnp.tensordot(jac_decoder_bt, q_dd_pred_bt, axes=2) + jnp.tensordot(jac_d_decoder_bt, q_d_pred_bt, axes=2)
+        rendering_dd_pred_bt = jnp.tensordot(
+            jac_decoder_bt, q_dd_pred_bt, axes=2
+        ) + jnp.tensordot(jac_d_decoder_bt, q_d_pred_bt, axes=2)
 
         # reshape to batch_dim x time_dim x n_q
         q_pred_ts = q_pred_bt.reshape((batch_size, -1, *q_pred_bt.shape[1:]))
@@ -258,7 +265,9 @@ def task_factory(
         mse_sindy_q_dd = jnp.mean(jnp.square(preds["q_dd_ode_ts"] - preds["q_dd_ts"]))
 
         # compute the SINDy rendering_dd loss
-        mse_sindy_rendering_dd = jnp.mean(jnp.square(preds["rendering_dd_ts"] - batch["rendering_dd_ts"]))
+        mse_sindy_rendering_dd = jnp.mean(
+            jnp.square(preds["rendering_dd_ts"] - batch["rendering_dd_ts"])
+        )
 
         # total loss
         loss = (
