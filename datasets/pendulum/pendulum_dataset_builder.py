@@ -31,6 +31,14 @@ class Pendulum(tfds.core.GeneratorBasedBuilder):
     BUILDER_CONFIGS = [
         # `name` (and optionally `description`) are required for each config
         PendulumDatasetConfig(
+            name="single_pendulum_24x24px",
+            description="Single pendulum dataset with images of size 24x24px.",
+            state_dim=2,
+            horizon_dim=4,
+            img_size=(24, 24),
+            num_links=1,
+        ),
+        PendulumDatasetConfig(
             name="single_pendulum_32x32px",
             description="Single pendulum dataset with images of size 32x32px.",
             state_dim=2,
