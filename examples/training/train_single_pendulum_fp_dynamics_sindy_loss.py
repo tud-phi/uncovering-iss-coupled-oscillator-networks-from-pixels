@@ -41,13 +41,15 @@ logdir = (
 logdir.mkdir(parents=True, exist_ok=True)
 
 # set hyperparameters
-batch_size = 1
+batch_size = 5
 num_epochs = 50
 warmup_epochs = 5
 ae_type = "None"  # "None", "beta_vae", "wae"
-base_lr = 1e-3
+base_lr = 2e-3
 loss_weights = dict(
     mse_rec=1.0,
+    mse_sindy_q_dd=1.0,
+    mse_sindy_rendering_dd=1.0,
 )
 
 if __name__ == "__main__":
