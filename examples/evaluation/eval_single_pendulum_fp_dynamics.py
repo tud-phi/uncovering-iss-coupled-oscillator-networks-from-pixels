@@ -105,7 +105,9 @@ if __name__ == "__main__":
     # load the neural network dummy input
     nn_dummy_input = load_dummy_neural_network_input(test_ds, task_callables)
     # load the training state from the checkpoint directory
-    state = restore_train_state(rng, ckpt_dir, nn_model, nn_dummy_input, metrics_collection_cls)
+    state = restore_train_state(
+        rng, ckpt_dir, nn_model, nn_dummy_input, metrics_collection_cls
+    )
 
     print("Run testing...")
     state, test_history = run_eval(test_ds, state, task_callables)

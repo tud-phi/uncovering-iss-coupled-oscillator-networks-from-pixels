@@ -49,7 +49,9 @@ def initialize_train_state(
     # use float32 for initialization of neural network parameters
     with enable_x64(False):
         # initialize parameters of the neural networks by passing a dummy input through the network
-        nn_params = nn_model.init(rng, nn_dummy_input, method=init_fn, **init_kwargs)["params"]
+        nn_params = nn_model.init(rng, nn_dummy_input, method=init_fn, **init_kwargs)[
+            "params"
+        ]
 
     if tx is None:
         # initialize the Adam with weight decay optimizer for both neural networks
@@ -88,7 +90,9 @@ def restore_train_state(
     # use float32 for initialization of neural network parameters
     with enable_x64(False):
         # initialize parameters of the neural networks by passing a dummy input through the network
-        nn_dummy_params = nn_model.init(rng, nn_dummy_input, method=init_fn, **init_kwargs)["params"]
+        nn_dummy_params = nn_model.init(
+            rng, nn_dummy_input, method=init_fn, **init_kwargs
+        )["params"]
 
     # load the nn_params from the checkpoint
     options = ocp.CheckpointManagerOptions()
@@ -99,7 +103,13 @@ def restore_train_state(
 
     if tx is None:
         # initialize the Adam with weight decay optimizer for both neural networks
-        tx = optax.adamw(learning_rate_fn, b1=b1, b2=b2, weight_decay=weight_decay, mu_dtype=jnp.float32)
+        tx = optax.adamw(
+            learning_rate_fn,
+            b1=b1,
+            b2=b2,
+            weight_decay=weight_decay,
+            mu_dtype=jnp.float32,
+        )
 
     # create the TrainState object for both neural networks
     state = TrainState.create(

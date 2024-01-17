@@ -92,7 +92,9 @@ def task_factory(
 
     if loss_weights is None:
         loss_weights = {}
-    loss_weights = dict(mse_q=1.0, mse_rec_static=1.0, mse_rec_dynamic=1.0) | loss_weights
+    loss_weights = (
+        dict(mse_q=1.0, mse_rec_static=1.0, mse_rec_dynamic=1.0) | loss_weights
+    )
 
     if ae_type == "wae":
         loss_weights = dict(mmd=1.0) | loss_weights
@@ -104,6 +106,7 @@ def task_factory(
             uniform_distr_range = (-1.0, 1.0)
 
         from src.losses import wae
+
         wae_mmd_loss_fn = wae.make_wae_mdd_loss(
             distribution="uniform", uniform_distr_range=uniform_distr_range
         )

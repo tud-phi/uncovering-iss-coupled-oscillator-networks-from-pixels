@@ -51,10 +51,7 @@ class OrbaxCheckpointerCallback(LoopCallbackBase[S]):
             keep_period=keep_period,
             create=True,
         )
-        self.mngr = ocp.CheckpointManager(
-            ckpt_dir,
-            options=self.mngr_options
-        )
+        self.mngr = ocp.CheckpointManager(ckpt_dir, options=self.mngr_options)
 
     def __call__(self, elapsed: Elapsed, state: S, logs: Optional[Logs] = None) -> None:
         save_checkpoint = True
@@ -87,7 +84,11 @@ class OrbaxCheckpointerCallback(LoopCallbackBase[S]):
             #     save_args = orbax_utils.save_args_from_target(state)
             #     save_kwargs = {"save_args": save_args}
 
-            self.mngr.save(elapsed.steps, args=ocp.args.StandardSave(state.params), save_kwargs=save_kwargs)
+            self.mngr.save(
+                elapsed.steps,
+                args=ocp.args.StandardSave(state.params),
+                save_kwargs=save_kwargs,
+            )
 
     def __loop_callback__(self, loop_state: LoopState[S]) -> CallbackOutput[S]:
         self(loop_state.elapsed, loop_state.state, loop_state.accumulated_logs)

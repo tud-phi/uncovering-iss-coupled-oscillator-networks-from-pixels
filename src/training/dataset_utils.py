@@ -117,7 +117,10 @@ def load_dataset(
     return datasets, dataset_info, metadata
 
 
-def load_dummy_neural_network_input(ds: tf.data.Dataset, task_callables: TaskCallables,) -> tf.Tensor:
+def load_dummy_neural_network_input(
+    ds: tf.data.Dataset,
+    task_callables: TaskCallables,
+) -> tf.Tensor:
     # extract dummy batch from dataset
     nn_dummy_batch = next(ds.as_numpy_iterator())
 

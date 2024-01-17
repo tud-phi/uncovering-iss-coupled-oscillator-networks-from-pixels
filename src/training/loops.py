@@ -230,9 +230,7 @@ def run_training(
             monitor="loss_val",
             mode="min",
         )
-        callbacks.append(
-            orbax_checkpointer_callback
-        )
+        callbacks.append(orbax_checkpointer_callback)
     if show_pbar:
         callbacks.append(ciclo.keras_bar(total=num_total_train_steps))
 

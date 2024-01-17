@@ -99,6 +99,7 @@ def task_factory(
             uniform_distr_range = (-1.0, 1.0)
 
         from src.losses import wae
+
         wae_mmd_loss_fn = wae.make_wae_mdd_loss(
             distribution="uniform", uniform_distr_range=uniform_distr_range
         )
