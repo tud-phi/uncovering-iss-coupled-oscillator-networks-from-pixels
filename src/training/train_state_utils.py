@@ -73,9 +73,10 @@ def restore_train_state(
     nn_model: nn.Module,
     nn_dummy_input: Array,
     metrics_collection_cls: Type[clu_metrics.Collection],
+    step: int = None,
     init_fn: Optional[Callable] = None,
     init_kwargs: Dict[str, Any] = None,
-    step: int = None,
+    tx: optax.GradientTransformation = None,
     learning_rate_fn: Union[float, Callable] = 0.0,
     b1: float = 0.9,
     b2: float = 0.999,
@@ -90,27 +91,24 @@ def restore_train_state(
         "params"
     ]
 
-    # initialize the Adam with weight decay optimizer for both neural networks
-    tx = optax.adamw(learning_rate_fn, b1=b1, b2=b2, weight_decay=weight_decay)
-
-    # create the TrainState object for both neural networks
-    state = TrainState.create(
-        apply_fn=nn_model.apply,
-        params=nn_dummy_params,
-        rng=rng,
-        tx=tx,
-        metrics=metrics_collection_cls.empty(),
-    )
-
+    # load the nn_params from the checkpoint
     options = ocp.CheckpointManagerOptions()
     ckpt_mgr = ocp.CheckpointManager(ckpt_dir, options=options)
     if step is None:
         step = ckpt_mgr.latest_step()
+    nn_params = ckpt_mgr.restore(step, args=ocp.args.StandardRestore(nn_dummy_params))
 
-    restored_ckpt = ckpt_mgr.restore(step, args=ocp.args.StandardRestore(state))
-    nn_params = restored_ckpt["params"]
+    if tx is None:
+        # initialize the Adam with weight decay optimizer for both neural networks
+        tx = optax.adamw(learning_rate_fn, b1=b1, b2=b2, weight_decay=weight_decay, mu_dtype=jnp.float32)
 
-    # update the parameters of the neural networks in the TrainState object
-    state = state.replace(params=nn_params)
+    # create the TrainState object for both neural networks
+    state = TrainState.create(
+        apply_fn=nn_model.apply,
+        params=nn_params,
+        rng=rng,
+        tx=tx,
+        metrics=metrics_collection_cls.empty(),
+    )
 
     return state
