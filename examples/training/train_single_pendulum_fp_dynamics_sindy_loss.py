@@ -34,12 +34,12 @@ sym_exp_filepath = (
 
 now = datetime.now()
 logdir = (
-    Path("logs").resolve() / "single_pendulum_fp_dynamics" / f"{now:%Y-%m-%d_%H-%M-%S}"
+    Path("logs").resolve() / "single_pendulum_fp_dynamics_sindy_loss" / f"{now:%Y-%m-%d_%H-%M-%S}"
 )
 logdir.mkdir(parents=True, exist_ok=True)
 
 # set hyperparameters
-batch_size = 10
+batch_size = 1
 num_epochs = 50
 warmup_epochs = 5
 ae_type = "None"  # "None", "beta_vae", "wae"
@@ -50,7 +50,7 @@ loss_weights = dict(
 
 if __name__ == "__main__":
     datasets, dataset_info, dataset_metadata = load_dataset(
-        "pendulum/single_pendulum_64x64px",
+        "pendulum/single_pendulum_32x32px",
         seed=seed,
         batch_size=batch_size,
         normalize=True,
@@ -89,7 +89,7 @@ if __name__ == "__main__":
     # extract dummy batch from dataset
     nn_dummy_batch = next(train_ds.as_numpy_iterator())
     # assemble input for dummy batch
-    rendering_bt, rendering_d_bt, rendering_dd_bt = task_callables.assemble_input_fn(nn_dummy_batch)
+    nn_dummy_input = task_callables.assemble_input_fn(nn_dummy_batch)
 
     # create learning rate schedule
     lr_fn = create_learning_rate_fn(
@@ -103,7 +103,7 @@ if __name__ == "__main__":
     state = initialize_train_state(
         rng,
         nn_model,
-        nn_dummy_input=rendering_bt,
+        nn_dummy_input=nn_dummy_input,
         metrics_collection_cls=metrics_collection_cls,
         learning_rate_fn=lr_fn,
     )

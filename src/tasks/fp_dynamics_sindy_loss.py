@@ -13,18 +13,14 @@ from src.losses.kld import kullback_leiber_divergence
 from src.structs import TaskCallables
 
 
-def assemble_input(batch) -> Tuple[Array, Array, Array]:
+def assemble_input(batch) -> Array:
     # batch of images
     rendering_ts = batch["rendering_ts"]
-    rendering_d_ts = batch["rendering_d_ts"]
-    rendering_dd_ts = batch["rendering_dd_ts"]
 
     # flatten to the shape batch_dim * time_dim x img_width x img_height x img_channels
     rendering_bt = rendering_ts.reshape((-1, *rendering_ts.shape[2:]))
-    rendering_d_bt = rendering_d_ts.reshape((-1, *rendering_d_ts.shape[2:]))
-    rendering_dd_bt = rendering_dd_ts.reshape((-1, *rendering_dd_ts.shape[2:]))
 
-    return rendering_bt, rendering_d_bt, rendering_dd_bt
+    return rendering_bt
 
 
 def task_factory(
@@ -108,68 +104,80 @@ def task_factory(
         rng: Optional[random.KeyArray] = None,
         training: bool = False,
     ) -> Dict[str, Array]:
-        rendering_bt, rendering_d_bt, rendering_dd_bt = assemble_input(batch)
+        rendering_bt = assemble_input(batch)
+        rendering_d_ts = batch["rendering_d_ts"]
+        rendering_dd_ts = batch["rendering_dd_ts"]
+        rendering_d_bt = rendering_d_ts.reshape((-1, *rendering_d_ts.shape[2:]))
+        rendering_dd_bt = rendering_dd_ts.reshape((-1, *rendering_dd_ts.shape[2:]))
+
+        print("rendering_bt.shape:", rendering_bt.shape)
 
         batch_size = batch["rendering_ts"].shape[0]
         n_q = batch["x_ts"].shape[-1] // 2  # number of generalized coordinates
 
-        # partial function for the encoder
-        encode_fn_with_params = partial(
-            nn_model.apply,
-            {"params": nn_params},
-            method=encode_fn,
-            **encode_kwargs
-        )
-
-        # static predictions by passing the image through the encoder
-        # output will be of shape batch_dim * time_dim x latent_dim
-        # if the system is a pendulum, the latent dim should be 2*n_q
-        if ae_type == "beta_vae":
+        def _encode(_x_bt: Array) -> Tuple[Array, Dict[str, Array]]:
+            # static predictions by passing the image through the encoder
             # output will be of shape batch_dim * time_dim x latent_dim
-            mu_bt, logvar_bt = nn_model.apply(
+            # if the system is a pendulum, the latent dim should be 2*n_q
+            _model_output = nn_model.apply(
                 {"params": nn_params},
-                rendering_bt,
-                method=nn_model.encode_vae,
-                **encode_kwargs,
+                _x_bt,
+                method=encode_fn,
+                **encode_kwargs
             )
-            if training is True:
-                # reparameterize
-                encoder_output = nn_model.reparameterize(rng, mu_bt, logvar_bt)
+
+            if ae_type == "beta_vae":
+                _mu_bt, _logvar_bt = _model_output
+                if training is True:
+                    # reparameterize
+                    _q_bt = nn_model.reparameterize(rng, _mu_bt, _logvar_bt)
+                else:
+                    _q_bt = _mu_bt
             else:
-                encoder_output = mu_bt
-        else:
-            encoder_output = nn_model.apply(
-                {"params": nn_params}, rendering_bt, method=encode_fn, **encode_kwargs
+                _q_bt = _model_output
+                _mu_bt = jnp.zeros_like(_q_bt)
+                _logvar_bt = jnp.zeros_like(_mu_bt)
+
+            if system_type == "pendulum":
+                # if the system is a pendulum, we interpret the encoder output as sin(theta) and cos(theta) for each joint
+                # e.g. for two joints: z = [sin(q_1), sin(q_2), cos(q_1), cos(q_2)]
+                # output of arctan2 will be in the range [-pi, pi]
+                _q_bt = jnp.arctan2(
+                    _q_bt[..., :n_q], _q_bt[..., n_q:]
+                )
+
+            _aux_bt = dict(
+                mu_bt=_mu_bt,
+                logvar_bt=_logvar_bt,
             )
 
-        if system_type == "pendulum":
-            # if the system is a pendulum, we interpret the encoder output as sin(theta) and cos(theta) for each joint
-            # e.g. for two joints: z = [sin(q_1), sin(q_2), cos(q_1), cos(q_2)]
-            # output of arctan2 will be in the range [-pi, pi]
-            q_pred_bt = jnp.arctan2(
-                encoder_output[..., :n_q], encoder_output[..., n_q:]
-            )
-        else:
-            q_pred_bt = encoder_output
+            return _q_bt, _aux_bt
 
-        # compute the configuration velocity and acceleration by using the derivative of the encoder
-        q_pred_bt, q_d_pred_bt = jvp(encode_fn_with_params, (rendering_bt,), (rendering_d_bt,))
-        print("q_pred_bt.shape:", q_pred_bt.shape)
-        # q_d_pred_bt = jacrev(nn_model.encode)(rendering_bt) @ rendering_d_bt
+        # compute the configuration and its velocity (using the Jacobian-vector product)
+        q_pred_bt, q_d_pred_bt, aux_bt = jvp(_encode, (rendering_bt,), (rendering_d_bt,), has_aux=True)
+        mu_bt, logvar_bt = aux_bt["mu_bt"], aux_bt["logvar_bt"]
 
-        # TODO: check if this is mathematically correct
-        # q_dd_pred_bt = jacfwd(jacrev(nn_model.encode))(rendering_bt) @ rendering_dd_bt
-        q_dd_pred_bt = jnp.zeros_like(q_d_pred_bt)
+        # function to the jacobian of the encoder
+        jac_encoder_fn = jacrev(_encode, has_aux=True)
+
+        # compute jacobian of the encoder and its derivative
+        jac_encoder_bt, jac_d_encoder_bt, _ = jvp(jac_encoder_fn, (rendering_bt,), (rendering_d_bt,), has_aux=True)
+
+        # compute the configuration acceleration (using the product rule)
         # q_dd = J @ x_dd + J_d @ x_d
+        q_dd_pred_bt = jnp.tensordot(jac_encoder_bt, rendering_dd_bt, axes=4) + jnp.tensordot(jac_d_encoder_bt, rendering_d_bt, axes=4)
 
         # stack the q and q_d to the state vector
         x_bt = jnp.concatenate((q_pred_bt, q_d_pred_bt), axis=-1)
+        # construct tau_ts
+        tau_ts = jnp.repeat(
+            batch["tau"][:, None, ...], repeats=ts.shape[0], axis=1
+        )
+        tau_bt = tau_ts.reshape((-1, *tau_ts.shape[2:]))
         # evaluate the dynamics function at the state vector
         x_d_ode_bt = vmap(
-            ode_fn,
-            in_axes=(0, 0, None),
-            out_axes=0,
-        )(ts, x_bt, batch["tau"])
+            ode_fn
+        )(ts, x_bt, tau_bt)
         # acceleration of the generalized/latent coordinates
         q_dd_ode_pred_bt = x_d_ode_bt[..., n_q:]
 
@@ -231,22 +239,10 @@ def task_factory(
         n_q = batch["x_ts"].shape[-1] // 2  # number of generalized coordinates
         preds = forward_fn(batch, nn_params, rng=rng, training=training)
 
-        # q_pred_ts = preds["q_ts"]
-        # # compute the configuration error
-        # error_q = q_dynamic_pred_bt - q_static_pred_bt
-        # # if necessary, normalize the joint angle error
-        # if system_type == "pendulum":
-        #     error_q = normalize_joint_angles(error_q)
-        # # if requested, normalize the configuration loss by dividing by (q0_max - q0_min)
-        # if normalize_configuration_loss is True:
-        #     error_q = error_q / (x0_max[:n_q] - x0_min[:n_q])
-        # # compute the mean squared error
-        # mse_q = jnp.mean(jnp.square(error_q))
-
         # supervised MSE loss on the reconstructed image of the static predictions
         mse_rec = jnp.mean(jnp.square(preds["rendering_ts"] - batch["rendering_ts"]))
 
-        # compute the SINDy q/z loss
+        # compute the SINDy q_dd/z_dd loss
         mse_sindy_q_dd = jnp.mean(jnp.square(preds["q_dd_ode_ts"] - preds["q_dd_ts"]))
 
         # total loss
