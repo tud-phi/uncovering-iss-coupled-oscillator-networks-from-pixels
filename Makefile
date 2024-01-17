@@ -1,29 +1,16 @@
 #* Variables
 PYTHON := python3
 PYTHONPATH := `pwd`
-#* Formatters
-.PHONY: black
-black:
-	black --version
-	black datasets examples src
-
-.PHONY: black-check
-black-check:
-	black --version
-	black --diff --check datasets examples src
-
-.PHONY: format-codestyle
-format-codestyle: black flake8
 
 .PHONY: pre-commit-install
 pre-commit-install:
 	pre-commit install
 
-.PHONY: check-codestyle
-check-codestyle: black-check flake8
-
-.PHONY: formatting
-formatting: format-codestyle
+#* Formatters
+.PHONY: format
+format:
+	ruff --version
+	ruff format datasets examples src
 
 #* Cleaning
 .PHONY: pycache-remove
