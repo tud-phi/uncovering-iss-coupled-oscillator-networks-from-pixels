@@ -20,7 +20,7 @@ from src.autoencoders.simple_cnn import Autoencoder
 from src.autoencoders.staged_autoencoder import StagedAutoencoder
 from src.autoencoders.vae import VAE
 from src.tasks import fp_dynamics
-from src.training.load_dataset import load_dataset
+from src.training.dataset_utils import load_dataset
 from src.training.loops import run_training
 from src.training.optim import create_learning_rate_fn
 from src.training.train_state_utils import initialize_train_state, restore_train_state

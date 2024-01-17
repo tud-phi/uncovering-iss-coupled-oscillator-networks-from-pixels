@@ -6,7 +6,7 @@ import tensorflow as tf
 from src.autoencoders.simple_cnn import Encoder
 from src.autoencoders.convnext import ConvNeXtEncoder
 from src.tasks import sensing
-from src.training.load_dataset import load_dataset
+from src.training.dataset_utils import load_dataset
 from src.training.loops import run_training, run_eval
 
 # prevent tensorflow from loading everything onto the GPU, as we don't have enough memory for that

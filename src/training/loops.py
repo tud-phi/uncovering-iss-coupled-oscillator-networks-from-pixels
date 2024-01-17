@@ -5,7 +5,6 @@ from flax import linen as nn  # Linen API
 from functools import partial
 import jax
 from jax import Array, debug, random
-from jax.experimental import enable_x64
 import jax.numpy as jnp
 import optax
 from pathlib import Path
@@ -198,22 +197,20 @@ def run_training(
         # assemble input for dummy batch
         nn_dummy_input = task_callables.assemble_input_fn(nn_dummy_batch)
 
-        # use float32 for initialization of neural network parameters
-        with enable_x64(False):
-            # initialize the train state
-            state = initialize_train_state(
-                rng,
-                nn_model,
-                nn_dummy_input=nn_dummy_input,
-                metrics_collection_cls=metrics_collection_cls,
-                init_fn=init_fn,
-                init_kwargs=init_kwargs,
-                tx=tx,
-                learning_rate_fn=learning_rate_fn,
-                b1=b1,
-                b2=b2,
-                weight_decay=weight_decay,
-            )
+        # initialize the train state
+        state = initialize_train_state(
+            rng,
+            nn_model,
+            nn_dummy_input=nn_dummy_input,
+            metrics_collection_cls=metrics_collection_cls,
+            init_fn=init_fn,
+            init_kwargs=init_kwargs,
+            tx=tx,
+            learning_rate_fn=learning_rate_fn,
+            b1=b1,
+            b2=b2,
+            weight_decay=weight_decay,
+        )
     else:
         state = state.replace(metrics=metrics_collection_cls.empty())
 

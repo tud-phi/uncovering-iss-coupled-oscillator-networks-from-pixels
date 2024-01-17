@@ -2,6 +2,7 @@ from clu import metrics as clu_metrics
 from flax import linen as nn  # Linen API
 from flax.training import orbax_utils
 from jax import Array, random
+from jax.experimental import enable_x64
 import jax.numpy as jnp
 import orbax.checkpoint as ocp
 import optax
@@ -45,11 +46,10 @@ def initialize_train_state(
     if init_kwargs is None:
         init_kwargs = {}
 
-    # initialize parameters of the neural networks by passing a dummy input through the network
-    # Hint: pass the `rng` and a dummy input to the `init` method of the neural network object
-    nn_params = nn_model.init(rng, nn_dummy_input, method=init_fn, **init_kwargs)[
-        "params"
-    ]
+    # use float32 for initialization of neural network parameters
+    with enable_x64(False):
+        # initialize parameters of the neural networks by passing a dummy input through the network
+        nn_params = nn_model.init(rng, nn_dummy_input, method=init_fn, **init_kwargs)["params"]
 
     if tx is None:
         # initialize the Adam with weight decay optimizer for both neural networks
@@ -85,11 +85,10 @@ def restore_train_state(
     if init_kwargs is None:
         init_kwargs = {}
 
-    # initialize parameters of the neural networks by passing a dummy input through the network
-    # Hint: pass the `rng` and a dummy input to the `init` method of the neural network object
-    nn_dummy_params = nn_model.init(rng, nn_dummy_input, method=init_fn, **init_kwargs)[
-        "params"
-    ]
+    # use float32 for initialization of neural network parameters
+    with enable_x64(False):
+        # initialize parameters of the neural networks by passing a dummy input through the network
+        nn_dummy_params = nn_model.init(rng, nn_dummy_input, method=init_fn, **init_kwargs)["params"]
 
     # load the nn_params from the checkpoint
     options = ocp.CheckpointManagerOptions()
