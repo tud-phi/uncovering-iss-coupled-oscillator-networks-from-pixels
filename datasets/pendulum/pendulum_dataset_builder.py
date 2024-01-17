@@ -14,7 +14,7 @@ class PendulumDatasetConfig(tfds.core.BuilderConfig):
     horizon_dim: int = 1
     img_size: tuple = (64, 64)
     num_links: int = 1
-    num_simulations: int = 1000
+    num_simulations: int = 20000
     dt = 5e-2
     sim_dt = 2.5e-2
     seed: int = 0
