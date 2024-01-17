@@ -166,13 +166,15 @@ def task_factory(
             jac_encoder_bt, rendering_dd_bt, axes=4
         ) + jnp.tensordot(jac_d_encoder_bt, rendering_d_bt, axes=4)
 
+        # construct ts_bt
+        ts_bt = jnp.repeat(ts[None, ...], repeats=batch_size, axis=0).flatten()
         # stack the q and q_d to the state vector
         x_bt = jnp.concatenate((q_pred_bt, q_d_pred_bt), axis=-1)
         # construct tau_ts
         tau_ts = jnp.repeat(batch["tau"][:, None, ...], repeats=ts.shape[0], axis=1)
         tau_bt = tau_ts.reshape((-1, *tau_ts.shape[2:]))
         # evaluate the dynamics function at the state vector
-        x_d_ode_bt = vmap(ode_fn)(ts, x_bt, tau_bt)
+        x_d_ode_bt = vmap(ode_fn)(ts_bt, x_bt, tau_bt)
         # acceleration of the generalized/latent coordinates
         q_dd_ode_pred_bt = x_d_ode_bt[..., n_q:]
 
