@@ -1,5 +1,4 @@
 alive-progress
-black
 ciclo>=0.1.8
 clu
 diffrax
@@ -17,6 +16,7 @@ optuna
 optuna-dashboard
 orbax-checkpoint>=0.5.0
 pytest
+ruff
 seaborn
 tensorboard
 tensorflow  # required for tensorflow-datasets

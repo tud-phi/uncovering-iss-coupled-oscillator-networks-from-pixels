@@ -224,11 +224,11 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
         assert (
             n_q == strain_basis.shape[1]
         ), "Provided state dimension does not match the strain selector / num of segments!"
-        assert n_q == len(
-            self.builder_config.q_max
+        assert (
+            n_q == len(self.builder_config.q_max)
         ), "Provided state dimension does not match the number of provided q_max values!"
-        assert n_q == len(
-            self.builder_config.q_d_max
+        assert (
+            n_q == len(self.builder_config.q_d_max)
         ), "Provided state dimension does not match the number of provided q_d_max values!"
 
         # initialize the rendering function

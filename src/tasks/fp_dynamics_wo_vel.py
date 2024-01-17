@@ -173,13 +173,13 @@ def task_factory(
             {"params": nn_params},
             decoder_static_input,
             method=decode_fn,
-            **decode_kwargs
+            **decode_kwargs,
         )
         img_dynamic_pred_flat_bt = nn_model.apply(
             {"params": nn_params},
             decoder_dynamic_input,
             method=decode_fn,
-            **decode_kwargs
+            **decode_kwargs,
         )
 
         # reshape to batch_dim x time_dim x width x height x channels
