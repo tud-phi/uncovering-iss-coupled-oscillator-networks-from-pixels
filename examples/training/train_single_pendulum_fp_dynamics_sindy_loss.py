@@ -15,7 +15,7 @@ import tensorflow as tf
 
 from src.autoencoders.simple_cnn import Autoencoder
 from src.tasks import fp_dynamics_sindy_loss
-from src.training.load_dataset import load_dataset
+from src.training.dataset_utils import load_dataset
 from src.training.loops import run_training
 from src.training.optim import create_learning_rate_fn
 from src.training.train_state_utils import initialize_train_state
@@ -32,8 +32,21 @@ sym_exp_filepath = (
     Path(jsrm.__file__).parent / "symbolic_expressions" / f"pendulum_nl-1.dill"
 )
 
+now = datetime.now()
+logdir = (
+    Path("logs").resolve() / "single_pendulum_fp_dynamics" / f"{now:%Y-%m-%d_%H-%M-%S}"
+)
+logdir.mkdir(parents=True, exist_ok=True)
+
 # set hyperparameters
 batch_size = 10
+num_epochs = 50
+warmup_epochs = 5
+ae_type = "None"  # "None", "beta_vae", "wae"
+base_lr = 1e-3
+loss_weights = dict(
+    mse_rec=1.0,
+)
 
 if __name__ == "__main__":
     datasets, dataset_info, dataset_metadata = load_dataset(
@@ -103,7 +116,6 @@ if __name__ == "__main__":
         break
 
     # run the training loop
-    """
     print("Run training...")
     (state, train_history, elapsed) = run_training(
         rng=rng,
@@ -115,8 +127,6 @@ if __name__ == "__main__":
         nn_model=nn_model,
         base_lr=base_lr,
         warmup_epochs=warmup_epochs,
-        weight_decay=weight_decay,
         logdir=logdir,
     )
     print("Final training metrics:\n", state.metrics.compute())
-    """
