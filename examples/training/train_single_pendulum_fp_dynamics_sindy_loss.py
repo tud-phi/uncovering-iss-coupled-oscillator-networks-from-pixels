@@ -86,6 +86,7 @@ if __name__ == "__main__":
         x0_max=dataset_metadata["x0_max"],
     )
 
+    """ For debugging purposes (to avoid jit/vmap compilation)
     # extract dummy batch from dataset
     nn_dummy_batch = next(train_ds.as_numpy_iterator())
     # assemble input for dummy batch
@@ -114,6 +115,7 @@ if __name__ == "__main__":
         preds = task_callables.forward_fn(batch, state.params)
         print(preds.keys())
         break
+    """
 
     # run the training loop
     print("Run training...")
