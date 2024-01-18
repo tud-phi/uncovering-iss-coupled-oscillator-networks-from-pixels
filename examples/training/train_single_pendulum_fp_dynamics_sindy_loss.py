@@ -48,7 +48,7 @@ ae_type = "None"  # "None", "beta_vae", "wae"
 base_lr = 2e-3
 loss_weights = dict(
     mse_rec=1.0,
-    mse_sindy_q_dd=0e-7,
+    mse_sindy_q_dd=1e-6,
     mse_sindy_rendering_dd=0e-7,
 )
 
