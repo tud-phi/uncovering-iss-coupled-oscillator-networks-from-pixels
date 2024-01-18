@@ -124,7 +124,7 @@ if __name__ == "__main__":
         )
 
         # add the optuna prune callback
-        prune_callback = OptunaPruneCallback(trial, metric_name="rmse_rec_dynamic_val")
+        prune_callback = OptunaPruneCallback(trial, metric_name="rmse_q_dd_val")
         callbacks = [prune_callback]
 
         print(f"Running trial {trial.number}...")
@@ -148,24 +148,27 @@ if __name__ == "__main__":
 
         (
             val_loss_stps,
-            val_rmse_q_static_stps,
-            val_rmse_q_dynamic_stps,
-            val_rmse_rec_static_stps,
-            val_rmse_rec_dynamic_stps,
+            val_rmse_rec_stps,
+            val_rmse_q_stps,
+            val_rmse_q_mirror_stps,
+            val_rmse_q_d_stps,
+            val_rmse_q_dd_stps,
         ) = history.collect(
             "loss_val",
-            "rmse_q_static_val",
-            "rmse_q_dynamic_val",
-            "rmse_rec_static_val",
-            "rmse_rec_dynamic_val",
+            "rmse_rec_val",
+            "rmse_q_val",
+            "rmse_q_mirror_val",
+            "rmse_q_d_val",
+            "rmse_q_dd_val"
         )
         print(
             f"Trial {trial.number} finished after {elapsed.steps} training steps with "
-            f"validation loss: {val_loss_stps[-1]:.5f}, rmse_q_static: {val_rmse_q_static_stps[-1]:.5f}, rmse_q_dynamic: {val_rmse_q_dynamic_stps[-1]:.5f}, "
-            f"rmse_rec_static: {val_rmse_rec_static_stps[-1]:.5f}, and rmse_rec_dynamic: {val_rmse_rec_dynamic_stps[-1]:.5f}"
+            f"validation loss: {val_loss_stps[-1]:.5f}, rmse_rec: {val_rmse_rec_stps[-1]:.5f}, "
+            f"rmse_q: {val_rmse_q_stps[-1]:.5f}, rmse_q_mirror: {val_rmse_q_mirror_stps[-1]:.5f}, "
+            f"rmse_q_d: {val_rmse_q_d_stps[-1]:.5f}, and rmse_q_dd: {val_rmse_q_dd_stps[-1]:.5f}"
         )
 
-        return val_rmse_rec_dynamic_stps[-1]
+        return val_rmse_q_dd_stps[-1]
 
     # Add stream handler of stdout to show the messages
     optuna.logging.get_logger("optuna").addHandler(logging.StreamHandler(sys.stdout))
