@@ -48,8 +48,8 @@ ae_type = "None"  # "None", "beta_vae", "wae"
 base_lr = 2e-3
 loss_weights = dict(
     mse_rec=1.0,
-    mse_sindy_q_dd=1.0,
-    mse_sindy_rendering_dd=1.0,
+    mse_sindy_q_dd=0e-7,
+    mse_sindy_rendering_dd=0e-7,
 )
 
 if __name__ == "__main__":
@@ -88,6 +88,7 @@ if __name__ == "__main__":
         ts=dataset_metadata["ts"],
         x0_min=dataset_metadata["x0_min"],
         x0_max=dataset_metadata["x0_max"],
+        loss_weights=loss_weights,
     )
 
     """ For debugging purposes (to avoid jit/vmap compilation)

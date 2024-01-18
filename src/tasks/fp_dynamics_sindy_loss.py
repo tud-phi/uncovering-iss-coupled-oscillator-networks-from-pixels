@@ -263,20 +263,19 @@ def task_factory(
         # supervised MSE loss on the reconstructed image of the static predictions
         mse_rec = jnp.mean(jnp.square(preds["rendering_ts"] - batch["rendering_ts"]))
 
-        # compute the SINDy q_dd/z_dd loss
-        mse_sindy_q_dd = jnp.mean(jnp.square(preds["q_dd_ode_ts"] - preds["q_dd_ts"]))
+        loss = loss_weights["mse_rec"] * mse_rec
 
-        # compute the SINDy rendering_dd loss
-        mse_sindy_rendering_dd = jnp.mean(
-            jnp.square(preds["rendering_dd_ts"] - batch["rendering_dd_ts"])
-        )
+        if loss_weights["mse_sindy_q_dd"] > 0.0:
+            # compute the SINDy q_dd/z_dd loss
+            mse_sindy_q_dd = jnp.mean(jnp.square(preds["q_dd_ode_ts"] - preds["q_dd_ts"]))
+            loss = loss + loss_weights["mse_sindy_q_dd"] * mse_sindy_q_dd
 
-        # total loss
-        loss = (
-            loss_weights["mse_rec"] * mse_rec
-            + loss_weights["mse_sindy_q_dd"] * mse_sindy_q_dd
-            + loss_weights["mse_sindy_rendering_dd"] * mse_sindy_rendering_dd
-        )
+        if loss_weights["mse_sindy_rendering_dd"] > 0.0:
+            # compute the SINDy rendering_dd loss
+            mse_sindy_rendering_dd = jnp.mean(
+                jnp.square(preds["rendering_dd_ts"] - batch["rendering_dd_ts"])
+            )
+            loss = loss + loss_weights["mse_sindy_rendering_dd"] * mse_sindy_rendering_dd    
 
         if ae_type == "wae":
             latent_dim = preds["q_ts"].shape[-1]
