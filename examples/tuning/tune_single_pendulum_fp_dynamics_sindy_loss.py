@@ -29,9 +29,9 @@ tf.config.experimental.set_visible_devices([], "GPU")
 seed = 0
 rng = random.PRNGKey(seed=seed)
 
-ae_type = "wae"  # "None", "beta_vae", "wae"
+ae_type = "None"  # "None", "beta_vae", "wae"
 
-max_num_epochs = 50
+max_num_epochs = 40
 warmup_epochs = 5
 batch_size = 25
 
@@ -56,18 +56,21 @@ if __name__ == "__main__":
         tf.random.set_seed(seed=seed)
 
         # Sample hyperparameters
-        base_lr = trial.suggest_float("base_lr", 1e-3, 1e-2, log=True)
+        base_lr = trial.suggest_float("base_lr", 1e-4, 1e-2, log=True)
         # loss weights
         mse_rec_weight = 1.0
         mse_sindy_q_dd_weight = trial.suggest_float(
-            "mse_sindy_q_dd_weight", 1e-10, 1e-5, log=True
+            "mse_sindy_q_dd_weight", 1e-7, 1e-1, log=True
         )
+        mse_sindy_rendering_dd_weight = 0.0
+        """
         mse_sindy_rendering_dd_weight = trial.suggest_float(
             "mse_sindy_rendering_dd_weight", 1e-10, 1e-5, log=True
         )
+        """
         b1 = 0.9
         b2 = 0.999
-        weight_decay = trial.suggest_float("weight_decay", 5e-6, 2e-4, log=True)
+        weight_decay = trial.suggest_float("weight_decay", 1e-6, 5e-4, log=True)
         # initialize the loss weights
         loss_weights = dict(
             mse_rec=mse_rec_weight,
