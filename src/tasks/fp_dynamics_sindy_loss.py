@@ -275,7 +275,7 @@ def task_factory(
             mse_sindy_rendering_dd = jnp.mean(
                 jnp.square(preds["rendering_dd_ts"] - batch["rendering_dd_ts"])
             )
-            loss = loss + loss_weights["mse_sindy_rendering_dd"] * mse_sindy_rendering_dd    
+            loss = loss + loss_weights["mse_sindy_rendering_dd"] * mse_sindy_rendering_dd
 
         if ae_type == "wae":
             latent_dim = preds["q_ts"].shape[-1]
@@ -337,6 +337,12 @@ def task_factory(
                     "msq_q_d": jnp.mean(jnp.square(error_q_d_ts)),
                 }
             )
+            if system_type == "pendulum":
+                # compute the mirrored error
+                error_q_mirror_ts = normalize_joint_angles(preds["q_ts"] + jnp.pi - batch["x_ts"][..., :n_q])
+                batch_loss_dict["mse_q_mirror"] = jnp.mean(jnp.square(error_q_mirror_ts))
+
+        batch_loss_dict["mse_sindy_q_dd"] = jnp.mean(jnp.square(preds["q_dd_ode_ts"] - preds["q_dd_ts"]))
 
         return batch_loss_dict
 
@@ -356,6 +362,10 @@ def task_factory(
         else:
             rmse_q: RootAverage.from_output("mse_q")
             rmse_q_d: RootAverage.from_output("msq_q_d")
+        if system_type == "pendulum":
+            rmse_q_mirror: RootAverage.from_output("mse_q_mirror")
+
+        rmse_q_dd: RootAverage.from_output("mse_sindy_q_dd")
 
     metrics_collection_cls = MetricsCollection
     return task_callables, metrics_collection_cls
