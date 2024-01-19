@@ -485,7 +485,7 @@ def task_factory(
         else:
             rmse_q_static: RootAverage.from_output("mse_q_static")
             rmse_q_dynamic: RootAverage.from_output("mse_q_dynamic")
-            rmse_q_d_dynamic: RootAverage.from_output("msq_q_d_dynamic")
+            rmse_q_d_dynamic: RootAverage.from_output("mse_q_d_dynamic")
 
     metrics_collection_cls = MetricsCollection
     return task_callables, metrics_collection_cls
