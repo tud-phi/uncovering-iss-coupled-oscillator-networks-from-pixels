@@ -118,19 +118,19 @@ def task_factory(
             # static predictions by passing the image through the encoder
             # output will be of shape batch_dim * time_dim x latent_dim
             # if the system is a pendulum, the latent dim should be 2*n_q
-            _model_output = nn_model.apply(
-                {"params": nn_params}, _rendering_bt, method=encode_fn, **encode_kwargs
-            )
-
             if ae_type == "beta_vae":
-                _mu_bt, _logvar_bt = _model_output
+                _mu_bt, _logvar_bt = nn_model.apply(
+                    {"params": nn_params}, _rendering_bt, method=nn_model.encode_vae, **encode_kwargs
+                )
                 if training is True:
                     # reparameterize
                     _q_bt = nn_model.reparameterize(rng, _mu_bt, _logvar_bt)
                 else:
                     _q_bt = _mu_bt
             else:
-                _q_bt = _model_output
+                _q_bt = nn_model.apply(
+                    {"params": nn_params}, _rendering_bt, method=encode_fn, **encode_kwargs
+                )
                 _mu_bt = jnp.zeros_like(_q_bt)
                 _logvar_bt = jnp.zeros_like(_mu_bt)
 
