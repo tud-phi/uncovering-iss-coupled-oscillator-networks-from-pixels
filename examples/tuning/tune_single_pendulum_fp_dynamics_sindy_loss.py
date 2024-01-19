@@ -29,7 +29,7 @@ tf.config.experimental.set_visible_devices([], "GPU")
 seed = 0
 rng = random.PRNGKey(seed=seed)
 
-ae_type = "None"  # "None", "beta_vae", "wae"
+ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 
 max_num_epochs = 40
 warmup_epochs = 5
@@ -60,7 +60,7 @@ if __name__ == "__main__":
         # loss weights
         mse_rec_weight = 1.0
         mse_sindy_q_dd_weight = trial.suggest_float(
-            "mse_sindy_q_dd_weight", 1e-4, 1e1, log=True
+            "mse_sindy_q_dd_weight", 1e-4, 1e0, log=True
         )
         mse_sindy_rendering_dd_weight = 0.0
         """
