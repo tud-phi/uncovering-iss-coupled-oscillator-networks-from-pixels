@@ -53,6 +53,15 @@ if ae_type == "None":
         mse_sindy_rendering_dd=0.0,
     )
     weight_decay = 8.558104192548852e-06
+elif ae_type == "beta_vae":
+    base_lr = 0.005109259520009703
+    loss_weights = dict(
+        mse_rec=1.0,
+        mse_sindy_q_dd=0.21558263546798342,
+        mse_sindy_rendering_dd=0.0,
+        beta=0.0032051662205685805,
+    )
+    weight_decay = 2.9388758170774413e-05
 else:
     raise NotImplementedError(f"Unknown ae_type: {ae_type}")
 
