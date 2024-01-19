@@ -4,7 +4,7 @@ from flax.core import FrozenDict
 from flax.struct import dataclass
 from flax import linen as nn  # Linen API
 from functools import partial
-from jax import Array, debug, jacrev, jit, random, vmap
+from jax import Array, debug, jit, jvp, random, vmap
 import jax.numpy as jnp
 from jsrm.systems.pendulum import normalize_joint_angles
 from typing import Any, Callable, Dict, Optional, Tuple, Type
@@ -220,15 +220,15 @@ def task_factory(
                     lambda _img_ts: jnp.gradient(_img_ts, sample_dt, axis=0),
                     in_axes=(0,),
                     out_axes=0,
-                )(img_bt)
+                )(img_bt).astype(img_bt.dtype)
 
-                def encode_img_to_configuration(_img) -> Array:
+                def encode_rendering_bt_to_configuration_bt(_img_bt) -> Array:
                     _encoder_output = nn_model.apply(
                         {"params": nn_params},
-                        jnp.expand_dims(_img, axis=0),
+                        _img_bt,
                         method=encode_fn,
                         **encode_kwargs,
-                    ).squeeze(axis=0)
+                    )
 
                     if system_type == "pendulum":
                         # if the system is a pendulum, we interpret the encoder output as sin(theta) and cos(theta) for each joint
@@ -246,29 +246,13 @@ def task_factory(
                 img_init_fd_bt = img_bt[:, start_time_idx, ...]
                 img_d_init_fd_bt = img_d_fd_bt[:, start_time_idx, ...]
 
-                dq_dimg_init_bt = vmap(
-                    lambda _img: jacrev(encode_img_to_configuration)(_img),
-                    in_axes=(0,),
-                    out_axes=0,
-                )(img_init_fd_bt)
-
-                # flatten so we can do matrix multiplication
-                # establish shape (batch_dim, n_q, -1)
-                dq_dimg_init_bt_flat = dq_dimg_init_bt.reshape(
-                    (*dq_dimg_init_bt.shape[0:2], -1)
+                # computing the jacobian-vector product is more efficient
+                # than first computing the jacobian and then performing a matrix multiplication
+                _, q_d_init_bt = jvp(
+                    encode_rendering_bt_to_configuration_bt,
+                    (img_init_fd_bt,),
+                    (img_d_init_fd_bt,),
                 )
-                # establish shape (batch_dim, -1)
-                img_d_init_fd_bt_flat = img_d_init_fd_bt.reshape(
-                    (img_d_init_fd_bt.shape[0], -1)
-                )
-
-                # apply the chain rule to compute the velocity in latent space
-                q_d_init_hat_bt_flat = vmap(jnp.matmul, in_axes=0, out_axes=0)(
-                    dq_dimg_init_bt_flat, img_d_init_fd_bt_flat
-                )
-
-                # reshape the result to (batch_dim, n_q)
-                q_d_init_bt = q_d_init_hat_bt_flat.reshape(q_init_bt.shape)
             case "ground-truth":
                 # use the ground-truth velocity
                 q_d_init_bt = batch["x_ts"][:, start_time_idx, n_q:]
