@@ -41,16 +41,20 @@ logdir = (
 logdir.mkdir(parents=True, exist_ok=True)
 
 # set hyperparameters
-batch_size = 15
+batch_size = 25
 num_epochs = 50
 warmup_epochs = 5
 ae_type = "None"  # "None", "beta_vae", "wae"
-base_lr = 2e-3
-loss_weights = dict(
-    mse_rec=1.0,
-    mse_sindy_q_dd=1e-6,
-    mse_sindy_rendering_dd=0e-7,
-)
+if ae_type == "None":
+    base_lr = 0.009581015111596664
+    loss_weights = dict(
+        mse_rec=1.0,
+        mse_sindy_q_dd=0.07354321488805744,
+        mse_sindy_rendering_dd=0.0,
+    )
+    weight_decay = 8.558104192548852e-06
+else:
+    raise NotImplementedError(f"Unknown ae_type: {ae_type}")
 
 if __name__ == "__main__":
     datasets, dataset_info, dataset_metadata = load_dataset(
@@ -134,6 +138,7 @@ if __name__ == "__main__":
         nn_model=nn_model,
         base_lr=base_lr,
         warmup_epochs=warmup_epochs,
+        weight_decay=weight_decay,
         logdir=logdir,
     )
     print("Final training metrics:\n", state.metrics.compute())
