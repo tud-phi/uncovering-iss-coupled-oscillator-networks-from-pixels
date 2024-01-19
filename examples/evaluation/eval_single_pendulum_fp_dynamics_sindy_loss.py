@@ -37,7 +37,7 @@ if ae_type == "wae":
 elif ae_type == "beta_vae":
     experiment_id = "2023-09-09_22-27-44"
 else:
-    experiment_id = "2024-01-18_11-27-42"
+    experiment_id = "2024-01-19_10-26-13"
 
 sym_exp_filepath = (
     Path(jsrm.__file__).parent / "symbolic_expressions" / f"pendulum_nl-1.dill"
@@ -100,7 +100,6 @@ if __name__ == "__main__":
 
     # load the neural network dummy input
     nn_dummy_input = load_dummy_neural_network_input(test_ds, task_callables)
-    print(f"Neural network dummy input shape: {nn_dummy_input.shape}")
     # load the training state from the checkpoint directory
     state = restore_train_state(
         rng, ckpt_dir, nn_model, nn_dummy_input, metrics_collection_cls
