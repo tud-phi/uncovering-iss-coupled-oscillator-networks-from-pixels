@@ -60,7 +60,7 @@ if __name__ == "__main__":
         # loss weights
         mse_rec_weight = 1.0
         mse_sindy_q_dd_weight = trial.suggest_float(
-            "mse_sindy_q_dd_weight", 1e-7, 1e-1, log=True
+            "mse_sindy_q_dd_weight", 1e-4, 1e1, log=True
         )
         mse_sindy_rendering_dd_weight = 0.0
         """
