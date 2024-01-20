@@ -84,6 +84,12 @@ if __name__ == "__main__":
             mmd = trial.suggest_float("mmd", 1e-4, 1e1, log=True)
             loss_weights["mmd"] = mmd
 
+        # sample the nonlinearity
+        nonlinearity_type = trial.suggest_categorical(
+            "nonlinearity", ["leaky_relu", "elu", "selu", "gelu", "sigmoid", "tanh"]
+        )
+        nonlinearity = getattr(jnp, nonlinearity_type)
+
         datasets, dataset_info, dataset_metadata = load_dataset(
             "pendulum/single_pendulum_24x24px",
             seed=seed,
@@ -109,9 +115,10 @@ if __name__ == "__main__":
             nn_model = VAE(
                 latent_dim=latent_dim,
                 img_shape=img_shape,
+                nonlinearity=nonlinearity
             )
         else:
-            nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape)
+            nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape, nonlinearity=nonlinearity)
 
         # call the factory function for the task
         task_callables, metrics_collection_cls = fp_dynamics_sindy_loss.task_factory(
