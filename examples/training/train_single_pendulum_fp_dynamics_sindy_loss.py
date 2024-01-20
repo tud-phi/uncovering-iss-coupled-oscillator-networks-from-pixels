@@ -14,6 +14,7 @@ import tensorflow as tf
 # jax_config.update("jax_platform_name", "cpu")  # set default device to 'cpu'
 
 from src.autoencoders.simple_cnn import Autoencoder
+from src.autoencoders.vae import VAE
 from src.tasks import fp_dynamics_sindy_loss
 from src.training.dataset_utils import load_dataset
 from src.training.loops import run_training
@@ -44,7 +45,7 @@ logdir.mkdir(parents=True, exist_ok=True)
 batch_size = 25
 num_epochs = 50
 warmup_epochs = 5
-ae_type = "None"  # "None", "beta_vae", "wae"
+ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 if ae_type == "None":
     base_lr = 0.009581015111596664
     loss_weights = dict(
@@ -89,9 +90,13 @@ if __name__ == "__main__":
     forward_kinematics_fn, dynamical_matrices_fn = pendulum.factory(sym_exp_filepath)
 
     # initialize the model
-    nn_model = Autoencoder(
-        latent_dim=latent_dim, img_shape=img_shape, norm_layer=nn.LayerNorm
-    )
+    if ae_type == "beta_vae":
+        nn_model = VAE(
+            latent_dim=latent_dim,
+            img_shape=img_shape,
+        )
+    else:
+        nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape)
 
     # call the factory function for the sensing task
     task_callables, metrics_collection_cls = fp_dynamics_sindy_loss.task_factory(
