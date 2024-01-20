@@ -1,5 +1,6 @@
 from datetime import datetime
 import dill
+import flax.linen as nn
 from jax import random
 from jax import config as jax_config
 
@@ -88,7 +89,7 @@ if __name__ == "__main__":
         nonlinearity_type = trial.suggest_categorical(
             "nonlinearity", ["leaky_relu", "elu", "selu", "gelu", "sigmoid", "tanh"]
         )
-        nonlinearity = getattr(jnp, nonlinearity_type)
+        nonlinearity = getattr(nn, nonlinearity_type)
 
         datasets, dataset_info, dataset_metadata = load_dataset(
             "pendulum/single_pendulum_24x24px",
