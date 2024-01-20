@@ -29,13 +29,13 @@ rng = random.PRNGKey(seed=seed)
 tf.random.set_seed(seed=seed)
 
 batch_size = 10
-ae_type = "None"  # "None", "beta_vae", "wae"
+ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 norm_layer = None
 
 if ae_type == "wae":
     experiment_id = "2023-09-06_23-53-44"
 elif ae_type == "beta_vae":
-    experiment_id = "2023-09-09_22-27-44"
+    experiment_id = "2024-01-20_17-35-42"
 else:
     experiment_id = "2024-01-19_10-26-13"
 
@@ -72,11 +72,11 @@ if __name__ == "__main__":
     # initialize the model
     if ae_type == "beta_vae":
         nn_model = VAE(
-            latent_dim=latent_dim, img_shape=img_shape, norm_layer=nn.LayerNorm
+            latent_dim=latent_dim, img_shape=img_shape
         )
     else:
         nn_model = Autoencoder(
-            latent_dim=latent_dim, img_shape=img_shape, norm_layer=nn.LayerNorm
+            latent_dim=latent_dim, img_shape=img_shape
         )
 
     # import solver class from diffrax
