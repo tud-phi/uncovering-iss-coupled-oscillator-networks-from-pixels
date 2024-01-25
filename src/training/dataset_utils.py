@@ -1,4 +1,5 @@
 import dill
+from jax import Array
 from jax import random
 import jax.numpy as jnp
 from pathlib import Path
@@ -120,7 +121,7 @@ def load_dataset(
 def load_dummy_neural_network_input(
     ds: tf.data.Dataset,
     task_callables: TaskCallables,
-) -> tf.Tensor:
+) -> Array:
     # extract dummy batch from dataset
     nn_dummy_batch = next(ds.as_numpy_iterator())
 
