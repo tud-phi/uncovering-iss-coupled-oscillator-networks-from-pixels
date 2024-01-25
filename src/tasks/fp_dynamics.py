@@ -461,7 +461,7 @@ def task_factory(
                 {
                     "mse_q_static": jnp.mean(jnp.square(error_q_static)),
                     "mse_q_dynamic": jnp.mean(jnp.square(error_q_dynamic)),
-                    "msq_q_d_dynamic": jnp.mean(jnp.square(error_q_d_dynamic)),
+                    "mse_q_d_dynamic": jnp.mean(jnp.square(error_q_d_dynamic)),
                 }
             )
 
