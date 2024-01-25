@@ -80,9 +80,9 @@ class OrbaxCheckpointerCallback(LoopCallbackBase[S]):
 
         if save_checkpoint:
             save_kwargs = None
-            # if self.use_orbax_save_args:
-            #     save_args = orbax_utils.save_args_from_target(state)
-            #     save_kwargs = {"save_args": save_args}
+            if self.use_orbax_save_args:
+                save_args = orbax_utils.save_args_from_target(state.params)
+                save_kwargs = {"save_args": save_args}
 
             self.mngr.save(
                 elapsed.steps,
