@@ -16,14 +16,14 @@ from src.metrics import RootAverage
 from src.structs import TaskCallables
 
 
-def assemble_input(batch) -> Array:
+def assemble_input(batch) -> Tuple[Array]:
     # batch of images
     img_bt = batch["rendering_ts"]
 
     # flatten to the shape batch_dim * time_dim x img_width x img_height x img_channels
     img_bt = img_bt.reshape((-1, *img_bt.shape[2:]))
 
-    return img_bt
+    return (img_bt,)
 
 
 def task_factory(
@@ -117,7 +117,7 @@ def task_factory(
         rng: Optional[random.KeyArray] = None,
         training: bool = False,
     ) -> Dict[str, Array]:
-        img_bt = assemble_input(batch)
+        (img_bt,) = assemble_input(batch)
         batch_size = batch["rendering_ts"].shape[0]
         n_q = batch["x_ts"].shape[-1] // 2  # number of generalized coordinates
 
@@ -234,7 +234,7 @@ def task_factory(
         if ae_type == "wae":
             latent_dim = preds["q_ts"].shape[-1]
 
-            img_target_bt = assemble_input(batch)
+            (img_target_bt,) = assemble_input(batch)
             img_pred_bt = preds["rendering_ts"].reshape(
                 (-1, *preds["rendering_ts"].shape[2:])
             )

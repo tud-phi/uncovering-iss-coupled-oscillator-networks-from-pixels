@@ -7,9 +7,9 @@ from jsrm.systems.pendulum import normalize_joint_angles
 from pathlib import Path
 import tensorflow as tf
 
-from src.autoencoders.convnext import ConvNeXtAutoencoder
-from src.autoencoders.simple_cnn import Autoencoder
-from src.autoencoders.vae import VAE
+from src.models.autoencoders.convnext import ConvNeXtAutoencoder
+from src.models.autoencoders.simple_cnn import Autoencoder
+from src.models.autoencoders.vae import VAE
 from src.tasks import autoencoding
 from src.training.dataset_utils import load_dataset
 from src.training.loops import run_training, run_eval

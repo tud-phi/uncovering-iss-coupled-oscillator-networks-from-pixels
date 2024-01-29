@@ -1,5 +1,6 @@
 from datetime import datetime
 import dill
+import flax.linen as nn
 from jax import random
 from jax import config as jax_config
 
@@ -13,10 +14,11 @@ from pathlib import Path
 import optuna
 from optuna.samplers import TPESampler
 import tensorflow as tf
-
-from src.models.autoencoders.simple_cnn import Autoencoder
-from src.models.autoencoders.vae import VAE
-from src.tasks import fp_dynamics_autoencoder
+from src.models.autoencoders import Autoencoder, VAE
+from src.models.discrete_forward_dynamics import DiscreteMlpDynamics
+from src.models.neural_odes import ConOde, CornnOde, LnnOde, MlpOde
+from src.models.dynamics_autoencoder import DynamicsAutoencoder
+from src.tasks import dynamics_autoencoder
 from src.training.callbacks import OptunaPruneCallback
 from src.training.dataset_utils import load_dataset
 from src.training.loops import run_training
@@ -29,14 +31,21 @@ tf.config.experimental.set_visible_devices([], "GPU")
 seed = 0
 rng = random.PRNGKey(seed=seed)
 
-ae_type = "wae"  # "None", "beta_vae", "wae"
+ae_type = "beta_vae"  # "None", "beta_vae", "wae"
+dynamics_model_name = "node-con"  # "node-general-mlp", "node-mechanical-mlp", "discrete-mlp" "node-cornn", "node-con"
+# latent space shape
+n_z = 3
+
+# identify the dynamics_type
+dynamics_type = dynamics_model_name.split("-")[0]
+assert dynamics_type in ["node", "discrete"], f"Unknown dynamics_type: {dynamics_type}"
 
 max_num_epochs = 50
 warmup_epochs = 5
 batch_size = 100
 
 now = datetime.now()
-experiment_name = "single_pendulum_fp_dynamics"
+experiment_name = "single_pendulum_dynamics_autoencoder"
 datetime_str = f"{now:%Y-%m-%d_%H-%M-%S}"
 study_id = f"study-{experiment_name}-{datetime_str}"  # Unique identifier of the study.
 logdir = Path("logs").resolve() / experiment_name / datetime_str
@@ -58,7 +67,7 @@ if __name__ == "__main__":
         # Sample hyperparameters
         base_lr = trial.suggest_float("base_lr", 1e-3, 1e-2, log=True)
         # loss weights
-        mse_q_weight = trial.suggest_float("mse_q_weight", 1e-2, 5e-1, log=True)
+        mse_z_weight = trial.suggest_float("mse_z_weight", 1e-2, 5e-1, log=True)
         mse_rec_static_weight = 1.0
         mse_rec_dynamic_weight = trial.suggest_float(
             "mse_rec_dynamic_weight", 1e0, 5e2, log=True
@@ -66,22 +75,22 @@ if __name__ == "__main__":
         b1 = 0.9
         b2 = 0.999
         weight_decay = trial.suggest_float("weight_decay", 5e-6, 2e-4, log=True)
-        # fp dynamics settings
-        # configuration_velocity_source = trial.suggest_categorical(
-        #     "configuration_velocity_source",
-        #     ["direct-finite-differences", "image-space-finite-differences"],
+        # latent_velocity_source = trial.suggest_categorical(
+        #     "latent_velocity_source",
+        #     ["latent-space-finite-differences", "image-space-finite-differences"],
         # )
-        configuration_velocity_source = (
-            "direct-finite-differences"  # works generally better
-        )
+        latent_velocity_source = "image-space-finite-differences"
         # initialize the loss weights
         loss_weights = dict(
-            mse_q=mse_q_weight,
+            mse_z=mse_z_weight,
             mse_rec_static=mse_rec_static_weight,
             mse_rec_dynamic=mse_rec_dynamic_weight,
         )
+
         # start_time_idx = trial.suggest_int("start_time_idx", 1, 7)
         start_time_idx = 1
+        num_past_timesteps = 2
+
         if ae_type == "beta_vae":
             beta = trial.suggest_float("beta", 1e-4, 1e1, log=True)
             loss_weights["beta"] = beta
@@ -90,7 +99,7 @@ if __name__ == "__main__":
             loss_weights["mmd"] = mmd
 
         datasets, dataset_info, dataset_metadata = load_dataset(
-            "pendulum/single_pendulum_64x64px",
+            "pendulum/single_pendulum_32x32px",
             seed=seed,
             batch_size=batch_size,
             normalize=True,
@@ -102,21 +111,80 @@ if __name__ == "__main__":
         robot_params = dataset_metadata["system_params"]
         print(f"Robot parameters: {robot_params}")
 
-        # number of generalized coordinates
-        n_q = train_ds.element_spec["x_ts"].shape[-1] // 2
-        # latent space shape
-        latent_dim = 2 * n_q
+        # size of torques
+        n_tau = train_ds.element_spec["tau"].shape[-1]  # dimension of the control input
+        print(f"Control input dimension: {n_tau}")
         # image shape
         img_shape = train_ds.element_spec["rendering_ts"].shape[-3:]
 
-        # initialize the model
+        # initialize the neural networks
         if ae_type == "beta_vae":
-            nn_model = VAE(
-                latent_dim=latent_dim,
-                img_shape=img_shape,
+            autoencoder_model = VAE(
+                latent_dim=n_z, img_shape=img_shape, norm_layer=nn.LayerNorm
             )
         else:
-            nn_model = Autoencoder(latent_dim=latent_dim, img_shape=img_shape)
+            autoencoder_model = Autoencoder(
+                latent_dim=n_z, img_shape=img_shape, norm_layer=nn.LayerNorm
+            )
+        if dynamics_model_name in ["node-general-mlp", "node-mechanical-mlp"]:
+            num_mlp_layers = trial.suggest_int("num_mlp_layers", 2, 6)
+            mlp_hidden_dim = trial.suggest_int("mlp_hidden_dim", 4, 96)
+            mlp_nonlinearity_name = trial.suggest_categorical(
+                "mlp_nonlinearity",
+                ["leaky_relu", "relu", "tanh", "sigmoid", "elu", "selu"],
+            )
+            mlp_nonlinearity = getattr(nn, mlp_nonlinearity_name)
+
+            dynamics_model = MlpOde(
+                latent_dim=n_z,
+                input_dim=n_tau,
+                num_layers=num_mlp_layers,
+                hidden_dim=mlp_hidden_dim,
+                nonlinearity=mlp_nonlinearity,
+                mechanical_system=True
+                if dynamics_model_name == "node-mechanical-mlp"
+                else False,
+            )
+        elif dynamics_model_name == "node-cornn":
+            cornn_gamma = trial.suggest_float("cornn_gamma", 1e-2, 1e2, log=True)
+            cornn_epsilon = trial.suggest_float("cornn_epsilon", 1e-2, 1e2, log=True)
+            dynamics_model = CornnOde(
+                latent_dim=n_z,
+                input_dim=n_tau,
+                gamma=cornn_gamma,
+                epsilon=cornn_epsilon,
+            )
+        elif dynamics_model_name == "node-con":
+            dynamics_model = ConOde(
+                latent_dim=n_z,
+                input_dim=n_tau,
+            )
+        elif dynamics_model_name == "discrete-mlp":
+            num_mlp_layers = trial.suggest_int("num_mlp_layers", 2, 6)
+            mlp_hidden_dim = trial.suggest_int("mlp_hidden_dim", 4, 96)
+            mlp_nonlinearity_name = trial.suggest_categorical(
+                "mlp_nonlinearity",
+                ["leaky_relu", "relu", "tanh", "sigmoid", "elu", "selu"],
+            )
+            mlp_nonlinearity = getattr(nn, mlp_nonlinearity_name)
+
+            dynamics_model = DiscreteMlpDynamics(
+                latent_dim=n_z,
+                input_dim=n_tau,
+                output_dim=n_z,
+                dt=dataset_metadata["dt"],
+                num_past_timesteps=num_past_timesteps,
+                num_layers=num_mlp_layers,
+                hidden_dim=mlp_hidden_dim,
+                nonlinearity=mlp_nonlinearity,
+            )
+        else:
+            raise ValueError(f"Unknown dynamics_model_name: {dynamics_model_name}")
+        nn_model = DynamicsAutoencoder(
+            autoencoder=autoencoder_model,
+            dynamics=dynamics_model,
+            dynamics_type=dynamics_type,
+        )
 
         # import solver class from diffrax
         # https://stackoverflow.com/questions/6677424/how-do-i-import-variable-packages-in-python-like-using-variable-variables-i
@@ -126,17 +194,18 @@ if __name__ == "__main__":
         )
 
         # call the factory function for the task
-        task_callables, metrics_collection_cls = fp_dynamics_autoencoder.task_factory(
+        task_callables, metrics_collection_cls = dynamics_autoencoder.task_factory(
             "pendulum",
             nn_model,
             ts=dataset_metadata["ts"],
             sim_dt=dataset_metadata["sim_dt"],
-            ode_fn=ode_with_forcing_factory(dynamical_matrices_fn, robot_params),
             loss_weights=loss_weights,
             ae_type=ae_type,
-            solver=solver_class(),
-            configuration_velocity_source=configuration_velocity_source,
+            dynamics_type=dynamics_type,
             start_time_idx=start_time_idx,
+            solver=solver_class(),
+            latent_velocity_source=latent_velocity_source,
+            num_past_timesteps=num_past_timesteps,
         )
 
         # add the optuna prune callback
@@ -152,6 +221,7 @@ if __name__ == "__main__":
             metrics_collection_cls=metrics_collection_cls,
             num_epochs=max_num_epochs,
             nn_model=nn_model,
+            init_fn=nn_model.initialize_all_weights,
             base_lr=base_lr,
             warmup_epochs=warmup_epochs,
             b1=b1,
@@ -164,20 +234,16 @@ if __name__ == "__main__":
 
         (
             val_loss_stps,
-            val_rmse_q_static_stps,
-            val_rmse_q_dynamic_stps,
             val_rmse_rec_static_stps,
             val_rmse_rec_dynamic_stps,
         ) = history.collect(
             "loss_val",
-            "rmse_q_static_val",
-            "rmse_q_dynamic_val",
             "rmse_rec_static_val",
             "rmse_rec_dynamic_val",
         )
         print(
             f"Trial {trial.number} finished after {elapsed.steps} training steps with "
-            f"validation loss: {val_loss_stps[-1]:.5f}, rmse_q_static: {val_rmse_q_static_stps[-1]:.5f}, rmse_q_dynamic: {val_rmse_q_dynamic_stps[-1]:.5f}, "
+            f"validation loss: {val_loss_stps[-1]:.5f}, "
             f"rmse_rec_static: {val_rmse_rec_static_stps[-1]:.5f}, and rmse_rec_dynamic: {val_rmse_rec_dynamic_stps[-1]:.5f}"
         )
 

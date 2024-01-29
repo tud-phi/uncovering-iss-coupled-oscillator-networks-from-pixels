@@ -14,9 +14,9 @@ import optuna
 from optuna.samplers import TPESampler
 import tensorflow as tf
 
-from src.autoencoders.simple_cnn import Autoencoder
-from src.autoencoders.vae import VAE
-from src.tasks import fp_dynamics
+from src.models.autoencoders.simple_cnn import Autoencoder
+from src.models.autoencoders.vae import VAE
+from src.tasks import fp_dynamics_autoencoder
 from src.training.callbacks import OptunaPruneCallback
 from src.training.dataset_utils import load_dataset
 from src.training.loops import run_training, run_eval
@@ -133,7 +133,7 @@ if __name__ == "__main__":
         )
 
         # call the factory function for the task
-        task_callables, metrics_collection_cls = fp_dynamics.task_factory(
+        task_callables, metrics_collection_cls = fp_dynamics_autoencoder.task_factory(
             system_type,
             nn_model,
             ode_fn=ode_with_forcing_factory(dynamical_matrices_fn, robot_params),

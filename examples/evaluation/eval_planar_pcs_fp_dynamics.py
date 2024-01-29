@@ -11,11 +11,11 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import tensorflow as tf
 
-from src.autoencoders.simple_cnn import Autoencoder
-from src.autoencoders.vae import VAE
+from src.models.autoencoders.simple_cnn import Autoencoder
+from src.models.autoencoders.vae import VAE
 from src.training.dataset_utils import load_dataset, load_dummy_neural_network_input
 from src.training.loops import run_eval
-from src.tasks import fp_dynamics
+from src.tasks import fp_dynamics_autoencoder
 from src.training.train_state_utils import restore_train_state
 from src.visualization.latent_space import (
     visualize_mapping_from_configuration_to_latent_space,
@@ -96,7 +96,7 @@ if __name__ == "__main__":
     )
 
     # call the factory function for the fp dynamics task
-    task_callables, metrics_collection_cls = fp_dynamics.task_factory(
+    task_callables, metrics_collection_cls = fp_dynamics_autoencoder.task_factory(
         system_type,
         nn_model,
         ts=dataset_metadata["ts"],

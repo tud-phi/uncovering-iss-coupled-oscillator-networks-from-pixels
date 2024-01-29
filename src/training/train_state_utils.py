@@ -49,7 +49,7 @@ def initialize_train_state(
     # use float32 for initialization of neural network parameters
     with enable_x64(False):
         # initialize parameters of the neural networks by passing a dummy input through the network
-        nn_params = nn_model.init(rng, nn_dummy_input, method=init_fn, **init_kwargs)[
+        nn_params = nn_model.init(rng, *nn_dummy_input, method=init_fn, **init_kwargs)[
             "params"
         ]
 
@@ -91,7 +91,7 @@ def restore_train_state(
     with enable_x64(False):
         # initialize parameters of the neural networks by passing a dummy input through the network
         nn_dummy_params = nn_model.init(
-            rng, nn_dummy_input, method=init_fn, **init_kwargs
+            rng, *nn_dummy_input, method=init_fn, **init_kwargs
         )["params"]
 
     # load the nn_params from the checkpoint

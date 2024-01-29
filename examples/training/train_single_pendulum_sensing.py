@@ -3,8 +3,8 @@ from jax import random
 from pathlib import Path
 import tensorflow as tf
 
-from src.autoencoders.simple_cnn import Encoder
-from src.autoencoders.convnext import ConvNeXtEncoder
+from src.models.autoencoders.simple_cnn import Encoder
+from src.models.autoencoders.convnext import ConvNeXtEncoder
 from src.tasks import sensing
 from src.training.dataset_utils import load_dataset
 from src.training.loops import run_training, run_eval

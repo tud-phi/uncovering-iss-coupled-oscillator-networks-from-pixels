@@ -10,11 +10,11 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import tensorflow as tf
 
-from src.autoencoders.simple_cnn import Autoencoder
-from src.autoencoders.staged_autoencoder import StagedAutoencoder
+from src.models.autoencoders.simple_cnn import Autoencoder
+from src.models.autoencoders.staged_autoencoder import StagedAutoencoder
 from src.training.dataset_utils import load_dataset, load_dummy_neural_network_input
 from src.training.loops import run_eval
-from src.tasks import fp_dynamics
+from src.tasks import fp_dynamics_autoencoder
 from src.training.train_state_utils import restore_train_state
 
 # prevent tensorflow from loading everything onto the GPU, as we don't have enough memory for that
@@ -70,7 +70,7 @@ if __name__ == "__main__":
     )
 
     # call the factory function for the first-principle dynamics task
-    task_callables, metrics_collection_cls = fp_dynamics.task_factory(
+    task_callables, metrics_collection_cls = fp_dynamics_autoencoder.task_factory(
         "pendulum",
         nn_model,
         ts=dataset_metadata["ts"],

@@ -13,8 +13,8 @@ import tensorflow as tf
 
 # jax_config.update("jax_platform_name", "cpu")  # set default device to 'cpu'
 
-from src.autoencoders.simple_cnn import Autoencoder
-from src.tasks import fp_dynamics_wo_vel
+from src.models.autoencoders.simple_cnn import Autoencoder
+from src.tasks import fp_dynamics_wo_vel_autoencoder
 from src.training.dataset_utils import load_dataset
 from src.training.loops import run_training
 
@@ -74,7 +74,10 @@ if __name__ == "__main__":
     )
 
     # call the factory function for the sensing task
-    task_callables, metrics_collection_cls = fp_dynamics_wo_vel.task_factory(
+    (
+        task_callables,
+        metrics_collection_cls,
+    ) = fp_dynamics_wo_vel_autoencoder.task_factory(
         "pendulum",
         nn_model,
         ts=dataset_metadata["ts"],

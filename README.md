@@ -1,4 +1,4 @@
-# Learning Representations from first-principle Dynamics
+# Uncovering Archetype Networks
 
 ## Installation
 
