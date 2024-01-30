@@ -39,9 +39,9 @@ class MassMatrixNN(nn.Module):
             tmp = self.nonlinearity(tmp)
 
         # vector of parameters for triangular matrix
-        l_params = nn.Dense(features=int((latent_dim**2 + latent_dim) / 2))(tmp)
+        m = nn.Dense(features=int((latent_dim**2 + latent_dim) / 2))(tmp)
         M = generate_positive_definite_matrix_from_params(
-            latent_dim, l_params, diag_shift=self.diag_shift, diag_eps=self.diag_eps
+            latent_dim, m, diag_shift=self.diag_shift, diag_eps=self.diag_eps
         )
         return M
 
@@ -71,6 +71,40 @@ class PotentialEnergyNN(nn.Module):
         U = nn.Dense(features=1)(tmp)
 
         return U
+    
+
+class DampingMatrixNN(nn.Module):
+    """
+    A neural network that outputs a positive definite damping matrix.
+    """
+
+    num_layers: int = 5
+    hidden_dim: int = 32
+    nonlinearity: Callable = nn.softplus
+    diag_shift: float = 1e-6
+    diag_eps: float = 2e-6
+
+    @nn.compact
+    def __call__(self, z: Array) -> Array:
+        """
+        Args:
+            x: latent state of shape (latent_dim, )
+        Returns:
+            A: positive definite matrix of shape (latent_dim, latent_dim)
+        """
+        latent_dim = z.shape[-1]
+
+        tmp = z
+        for _ in range(self.num_layers - 1):
+            tmp = nn.Dense(features=self.hidden_dim)(tmp)
+            tmp = self.nonlinearity(tmp)
+
+        # vector of parameters for triangular matrix
+        d = nn.Dense(features=int((latent_dim**2 + latent_dim) / 2))(tmp)
+        D = generate_positive_definite_matrix_from_params(
+            latent_dim, d, diag_shift=self.diag_shift, diag_eps=self.diag_eps
+        )
+        return D
 
 
 class LnnOde(NeuralOdeBase):
@@ -81,6 +115,8 @@ class LnnOde(NeuralOdeBase):
 
     latent_dim: int
     input_dim: int
+
+    learn_dissipation: bool = True
 
     num_layers: int = 5
     hidden_dim: int = 32
@@ -148,7 +184,19 @@ class LnnOde(NeuralOdeBase):
             has_aux=True,
         )
 
-        z_dd = jnp.linalg.inv(M) @ (tau - tau_corioli - tau_pot)
+        # evaluate the damping matrix
+        if self.learn_dissipation:
+            D = DampingMatrixNN(
+                num_layers=self.num_layers,
+                hidden_dim=self.hidden_dim,
+                diag_shift=self.diag_shift,
+                diag_eps=self.diag_eps,
+            )(z)
+            tau_d = D @ z_d
+        else:
+            tau_d = jnp.zeros_like(z)
+
+        z_dd = jnp.linalg.inv(M) @ (tau - tau_corioli - tau_pot - tau_d)
 
         # concatenate the velocity and acceleration of the latent variables
         x_d = jnp.concatenate([z_d, z_dd], axis=-1)

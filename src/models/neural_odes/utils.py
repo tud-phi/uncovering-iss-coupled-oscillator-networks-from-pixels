@@ -5,7 +5,7 @@ import numpy as onp
 
 
 def generate_positive_definite_matrix_from_params(
-    n: int, params: Array, diag_shift: float = 1e-6, diag_eps: float = 2e-6
+    n: int, a: Array, diag_shift: float = 1e-6, diag_eps: float = 2e-6
 ) -> Array:
     """
     Generate a positive definite matrix of shape (n, n) from a vector of parameters.
@@ -21,7 +21,7 @@ def generate_positive_definite_matrix_from_params(
     # (i, j) indices of lower triangular matrix
     tril_indices = onp.tril_indices(n)
     # populate triangular matrix from vector
-    tril_mat = tril_mat.at[tril_indices].set(params)
+    tril_mat = tril_mat.at[tril_indices].set(a)
 
     # make sure that the diagonal entries are positive
     diag_indices = onp.diag_indices(n)

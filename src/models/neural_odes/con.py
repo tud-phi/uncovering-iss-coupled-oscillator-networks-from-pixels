@@ -44,11 +44,11 @@ class ConOde(NeuralOdeBase):
         # constructing Bw as a positive definite matrix
         num_B_w_params = int((self.latent_dim**2 + self.latent_dim) / 2)
         # vector of parameters for triangular matrix
-        l_B_w = self.param(
-            "l_B_w", tri_params_init, (num_B_w_params,), self.param_dtype
+        b_w = self.param(
+            "b_w", tri_params_init, (num_B_w_params,), self.param_dtype
         )
         B_w = generate_positive_definite_matrix_from_params(
-            self.latent_dim, l_B_w, diag_shift=self.diag_shift, diag_eps=self.diag_eps
+            self.latent_dim, b_w, diag_shift=self.diag_shift, diag_eps=self.diag_eps
         )
 
         """
@@ -61,12 +61,12 @@ class ConOde(NeuralOdeBase):
         # constructing Lambda_w as a positive definite matrix
         num_Lambda_w_params = int((self.latent_dim**2 + self.latent_dim) / 2)
         # vector of parameters for triangular matrix
-        l_Lambda_w = self.param(
+        lambda_w = self.param(
             "l_Lambda_w", tri_params_init, (num_Lambda_w_params,), self.param_dtype
         )
         Lambda_w = generate_positive_definite_matrix_from_params(
             self.latent_dim,
-            l_Lambda_w,
+            lambda_w,
             diag_shift=self.diag_shift,
             diag_eps=self.diag_eps,
         )
@@ -74,11 +74,11 @@ class ConOde(NeuralOdeBase):
         # constructing E_w as a positive definite matrix
         num_E_w_params = int((self.latent_dim**2 + self.latent_dim) / 2)
         # vector of parameters for triangular matrix
-        l_E_w = self.param(
+        e_w = self.param(
             "l_E_w", tri_params_init, (num_E_w_params,), self.param_dtype
         )
         E_w = generate_positive_definite_matrix_from_params(
-            self.latent_dim, l_E_w, diag_shift=self.diag_shift, diag_eps=self.diag_eps
+            self.latent_dim, e_w, diag_shift=self.diag_shift, diag_eps=self.diag_eps
         )
 
         # compute everything in the orginal coordinates
