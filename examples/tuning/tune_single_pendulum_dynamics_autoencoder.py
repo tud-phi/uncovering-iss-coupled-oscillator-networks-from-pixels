@@ -32,7 +32,8 @@ seed = 0
 rng = random.PRNGKey(seed=seed)
 
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
-dynamics_model_name = "node-con"  # "node-general-mlp", "node-mechanical-mlp", "discrete-mlp" "node-cornn", "node-con"
+# dynamics_model_name in ["node-general-mlp", "node-mechanical-mlp", "node-cornn", "node-con", "node-lnn", "discrete-mlp"]
+dynamics_model_name = "node-lnn"
 # latent space shape
 n_z = 3
 
@@ -158,6 +159,28 @@ if __name__ == "__main__":
             dynamics_model = ConOde(
                 latent_dim=n_z,
                 input_dim=n_tau,
+            )
+        elif dynamics_model_name == "node-lnn":
+            learn_dissipation = trial.suggest_categorical(
+                "learn_dissipation", [True, False]
+            )
+            num_mlp_layers = trial.suggest_int("num_mlp_layers", 2, 6)
+            mlp_hidden_dim = trial.suggest_int("mlp_hidden_dim", 4, 72)
+            mlp_nonlinearity_name = trial.suggest_categorical(
+                "mlp_nonlinearity",
+                ["leaky_relu", "relu", "tanh", "sigmoid", "elu", "selu", "softplus"],
+            )
+            diag_shift = trial.suggest_float("diag_shift", 1e-6, 1e-2, log=True)
+            diag_eps = trial.suggest_float("diag_eps", 1e-6, 1e-2, log=True)
+            dynamics_model = LnnOde(
+                latent_dim=n_z,
+                input_dim=n_tau,
+                learn_dissipation=learn_dissipation,
+                num_layers=num_mlp_layers,
+                hidden_dim=mlp_hidden_dim,
+                nonlinearity=getattr(nn, mlp_nonlinearity_name),
+                diag_shift=diag_shift,
+                diag_eps=diag_eps,
             )
         elif dynamics_model_name == "discrete-mlp":
             num_mlp_layers = trial.suggest_int("num_mlp_layers", 2, 6)
