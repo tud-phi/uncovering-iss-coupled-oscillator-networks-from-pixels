@@ -13,7 +13,7 @@ import tensorflow as tf
 # jax_config.update("jax_platform_name", "cpu")  # set default device to 'cpu'
 
 from src.models.discrete_forward_dynamics import DiscreteMlpDynamics
-from src.models.neural_odes import ConOde, CornnOde, LnnOde, MlpOde
+from src.models.neural_odes import ConOde, CornnOde, LnnOde, LinearStateSpaceOde, MlpOde
 from src.tasks import state_space_dynamics
 from src.training.dataset_utils import load_dataset
 from src.training.loops import run_training
@@ -26,8 +26,8 @@ seed = 0
 rng = random.PRNGKey(seed=seed)
 tf.random.set_seed(seed=seed)
 
-# dynamics_model_name in ["node-general-mlp", "node-mechanical-mlp", "node-cornn", "node-con", "node-lnn", "discrete-mlp"]
-dynamics_model_name = "node-mechanical-mlp"
+# dynamics_model_name in ["node-general-mlp", "node-mechanical-mlp", "node-cornn", "node-con", "node-lnn", "node-lss", "discrete-mlp"]
+dynamics_model_name = "node-lss"
 
 batch_size = 100
 num_epochs = 50
@@ -113,11 +113,17 @@ if __name__ == "__main__":
             latent_dim=n_q,
             input_dim=n_tau,
         )
+    elif dynamics_model_name == "node-lss":
+        nn_model = LinearStateSpaceOde(
+            latent_dim=n_q,
+            input_dim=n_tau,
+            mechanical_system=True,
+        )
     elif dynamics_model_name == "discrete-mlp":
         nn_model = DiscreteMlpDynamics(
             latent_dim=n_q,
             input_dim=n_tau,
-            output_dim=n_z,
+            output_dim=n_q,
             dt=dataset_metadata["dt"],
             num_past_timesteps=num_past_timesteps,
             num_layers=num_mlp_layers,
