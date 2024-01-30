@@ -139,5 +139,5 @@ def print_number_of_trainable_params(state: TrainState):
 
     # print the number of trainable parameters
     print(
-        f"Number of trainable parameters\n:{params_count}"
+        f"Number of trainable parameters: {params_count}"
     )
