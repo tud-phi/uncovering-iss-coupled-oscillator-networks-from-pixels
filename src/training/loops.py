@@ -13,7 +13,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Type
 
 from src.structs import TaskCallables, TrainState
 from src.training.checkpointing import OrbaxCheckpointerCallback
-from src.training.train_state_utils import initialize_train_state
+from src.training.train_state_utils import initialize_train_state, print_number_of_trainable_params
 from src.training.optim import create_learning_rate_fn
 
 
@@ -218,6 +218,9 @@ def run_training(
             # initialize the Adam with weight decay optimizer for both neural networks
             tx = optax.adamw(learning_rate_fn, b1=b1, b2=b2, weight_decay=weight_decay)
         state = state.replace(tx=tx, opt_state=tx.init(state.params))
+
+    # print number of trainable parameters
+    print_number_of_trainable_params(state)
 
     if callbacks is None:
         callbacks = []
