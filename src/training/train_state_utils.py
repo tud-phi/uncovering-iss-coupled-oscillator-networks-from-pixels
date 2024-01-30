@@ -129,15 +129,11 @@ def print_number_of_trainable_params(state: TrainState):
     Args:
         state: TrainState object for the neural network.
     """
-    params_count = dict(
-        total=sum(x.size for x in tree_leaves(state.params))
-    )
+    params_count = dict(total=sum(x.size for x in tree_leaves(state.params)))
 
     if hasattr(state.params, "keys") and len(state.params.keys()) > 1:
         for k, v in state.params.items():
             params_count[k] = sum(x.size for x in tree_leaves(v))
 
     # print the number of trainable parameters
-    print(
-        f"Number of trainable parameters: {params_count}"
-    )
+    print(f"Number of trainable parameters: {params_count}")

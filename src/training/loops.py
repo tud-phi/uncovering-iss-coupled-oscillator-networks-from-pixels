@@ -13,7 +13,10 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Type
 
 from src.structs import TaskCallables, TrainState
 from src.training.checkpointing import OrbaxCheckpointerCallback
-from src.training.train_state_utils import initialize_train_state, print_number_of_trainable_params
+from src.training.train_state_utils import (
+    initialize_train_state,
+    print_number_of_trainable_params,
+)
 from src.training.optim import create_learning_rate_fn
 
 
