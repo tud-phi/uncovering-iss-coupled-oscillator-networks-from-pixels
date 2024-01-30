@@ -71,7 +71,7 @@ class PotentialEnergyNN(nn.Module):
         U = nn.Dense(features=1)(tmp)
 
         return U
-    
+
 
 class DampingMatrixNN(nn.Module):
     """
@@ -138,15 +138,60 @@ class LnnOde(NeuralOdeBase):
         # the velocity of the latent variables is given in the input
         z_d = x[..., self.latent_dim :]
 
-        def lagrangian_fn(_z: Array, _z_d: Array) -> Tuple[Array, Array]:
+        def kinetic_energy_fn(_z: Array, _z_d: Array) -> Array:
             """
+            Compute the kinetic energy.
+            Args:
+                _z: latent state of shape (latent_dim, )
+                _z_d: latent state derivative of shape (latent_dim, )
+            Returns:
+                _T: Kinetic energy of shape ()
+            """
+            # compute the mass matrix
+            _M = MassMatrixNN(
+                num_layers=self.num_layers,
+                hidden_dim=self.hidden_dim,
+                diag_shift=self.diag_shift,
+                diag_eps=self.diag_eps,
+            )(_z)
+
+            # compute the kinetic energy
+            _T = (0.5 * _z_d.transpose() @ _M @ _z_d).squeeze()
+            return _T
+
+        def potential_energy_fn(_z: Array) -> Array:
+            """
+            Compute the potential energy.
+            Args:
+                _z: latent state of shape (latent_dim, )
+            Returns:
+                _U: potential energy of shape ()
+            """
+            # compute the potential energy
+            _U = PotentialEnergyNN(
+                num_layers=self.num_layers, hidden_dim=self.hidden_dim
+            )(_z).squeeze()
+            return _U
+
+        # the potential force is the gradient of the potential energy
+        tau_pot = grad(potential_energy_fn)(z)
+
+        # compute Hessian of the kinetic energy
+        kinetic_energy_hessian_fn = hessian(kinetic_energy_fn, argnums=(0, 1))
+        _, (d2L_dth_dthd, d2L_d2thd) = kinetic_energy_hessian_fn(z, z_d)
+        M, C = d2L_d2thd, d2L_dth_dthd
+        tau_corioli = C @ z_d
+
+        """ Slighly slower implementation
+        def lagrangian_fn(_z: Array, _z_d: Array) -> Tuple[Array, Array]:
+            \"""
             Args:
                 _z: latent state of shape (latent_dim, )
                 _z_d: latent state derivative of shape (latent_dim, )
             Returns:
                 _L: Lagrangian of shape ()
                 _M: mass matrix of shape (latent_dim, latent_dim)
-            """
+            \"""
             # compute the mass matrix
             _M = MassMatrixNN(
                 num_layers=self.num_layers,
@@ -167,11 +212,9 @@ class LnnOde(NeuralOdeBase):
 
         # compute the gradient of the Lagrangian with respect to the latent state
         # which is equal to the negative of the potential force
-        # grad_fn = grad(lagrangian_fn, argnums=(0,), has_aux=True)
-        # tau_pot, M = -grad_fn(z, z_d)
         dL_dz, M = grad(lagrangian_fn, argnums=0, has_aux=True)(z, z_d)
         tau_pot = -dL_dz
-
+        
         # compute the corioli forces
         _, tau_corioli, _ = jvp(
             lambda _z: grad(lagrangian_fn, argnums=1, has_aux=True)(
@@ -183,6 +226,7 @@ class LnnOde(NeuralOdeBase):
             tangents=(z_d,),
             has_aux=True,
         )
+        """
 
         # evaluate the damping matrix
         if self.learn_dissipation:
