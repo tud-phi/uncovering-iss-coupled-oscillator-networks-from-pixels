@@ -135,8 +135,6 @@ def print_number_of_trainable_params(state: TrainState):
 
     if hasattr(state.params, "keys") and len(state.params.keys()) > 1:
         for k, v in state.params.items():
-            print("k:", k)
-            print("v:\n", v)
             params_count[k] = sum(x.size for x in tree_leaves(v))
 
     # print the number of trainable parameters
