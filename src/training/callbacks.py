@@ -1,4 +1,3 @@
-from typing import Any
 from ciclo.logging import Logs
 from ciclo.loops.loop import (
     CallbackOutput,
@@ -7,7 +6,9 @@ from ciclo.loops.loop import (
     LoopState,
 )
 from ciclo.types import Batch, S
+import jax.numpy as jnp
 import optuna
+from typing import Any
 
 
 class OptunaPruneCallback(LoopCallbackBase[S]):
@@ -31,7 +32,8 @@ class OptunaPruneCallback(LoopCallbackBase[S]):
                 raise optuna.TrialPruned()
 
             # also prune if the loss is too high
-            if loop_state.logs["stateful_metrics"]["loss_val"] > 1e6:
+            loss_val = loop_state.logs["stateful_metrics"]["loss_val"]
+            if jnp.isnan(loss_val) or loss_val > 1e6:
                 raise optuna.TrialPruned()
 
         return Logs(), loop_state.state
