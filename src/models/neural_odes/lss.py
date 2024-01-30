@@ -7,7 +7,13 @@ from .neural_ode_base import NeuralOdeBase
 
 
 class LinearStateSpaceOde(NeuralOdeBase):
-    """An ODE based on a linear state space model."""
+    """
+    An ODE based on a linear state space model.
+        x_d = A @ x + B @ tau
+    In modern literature, this is also known as SSM or S4.
+        https://arxiv.org/abs/2111.00396
+        https://github.com/state-spaces/s4
+    """
 
     latent_dim: int
     input_dim: int
