@@ -16,7 +16,7 @@ from optuna.samplers import TPESampler
 import tensorflow as tf
 from src.models.autoencoders import Autoencoder, VAE
 from src.models.discrete_forward_dynamics import DiscreteMlpDynamics
-from src.models.neural_odes import ConOde, CornnOde, LnnOde, MlpOde
+from src.models.neural_odes import ConOde, CornnOde, LinearStateSpaceOde, LnnOde, MlpOde
 from src.models.dynamics_autoencoder import DynamicsAutoencoder
 from src.tasks import dynamics_autoencoder
 from src.training.callbacks import OptunaPruneCallback
@@ -32,8 +32,9 @@ seed = 0
 rng = random.PRNGKey(seed=seed)
 
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
-# dynamics_model_name in ["node-general-mlp", "node-mechanical-mlp", "node-cornn", "node-con", "node-lnn", "discrete-mlp"]
-dynamics_model_name = "node-lnn"
+# dynamics_model_name in ["node-general-mlp", "node-mechanical-mlp", "node-cornn", "node-con",
+# "node-lnn", "node-general-lss", "node-mechanical-lss", "discrete-mlp"]
+dynamics_model_name = "node-lss"
 # latent space shape
 n_z = 3
 
@@ -181,6 +182,12 @@ if __name__ == "__main__":
                 nonlinearity=getattr(nn, mlp_nonlinearity_name),
                 diag_shift=diag_shift,
                 diag_eps=diag_eps,
+            )
+        elif dynamics_model_name in ["node-general-lss", "node-mechanical-lss"]:
+            dynamics_model = LinearStateSpaceOde(
+                latent_dim=n_z,
+                input_dim=n_tau,
+                mechanical_system=True if dynamics_model_name == "node-mechanical-lss" else False,
             )
         elif dynamics_model_name == "discrete-mlp":
             num_mlp_layers = trial.suggest_int("num_mlp_layers", 2, 6)
