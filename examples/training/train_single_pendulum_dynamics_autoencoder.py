@@ -30,7 +30,7 @@ tf.random.set_seed(seed=seed)
 
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 # dynamics_model_name in ["node-general-mlp", "node-mechanical-mlp", "node-cornn", "node-con", "node-lnn", "discrete-mlp"]
-dynamics_model_name = "discrete-mlp"
+dynamics_model_name = "node-lnn"
 # size of latent space
 n_z = 2
 
@@ -43,6 +43,8 @@ num_past_timesteps = 2
 latent_velocity_source = "image-space-finite-differences"
 num_mlp_layers, mlp_hidden_dim, mlp_nonlinearity_name = 4, 20, "leaky_relu"
 cornn_gamma, cornn_epsilon = 1.0, 1.0
+lnn_learn_dissipation = True
+diag_shift, diag_eps = 1e-6, 2e-6
 if ae_type == "wae":
     raise NotImplementedError(f"ae_type '{ae_type}' not implemented yet.")
 elif ae_type == "beta_vae":
@@ -93,15 +95,18 @@ elif ae_type == "beta_vae":
         weight_decay = 0.00019609847803674207
         latent_velocity_source = "image-space-finite-differences"
     elif dynamics_model_name == "node-lnn":
-        base_lr = 1e-4
+        base_lr = 0.0015553597576502523
         loss_weights = dict(
-            mse_z=1e-1,
+            mse_z=0.24740396032120054,
             mse_rec_static=1.0,
-            mse_rec_dynamic=5.0,
-            beta=1e-3,
+            mse_rec_dynamic=19.997472562384235,
+            beta=0.000148761017920335,
         )
-        weight_decay = 0.0
+        weight_decay = 1.367664507404463e-05
         latent_velocity_source = "image-space-finite-differences"
+        lnn_learn_dissipation = True
+        num_mlp_layers, mlp_hidden_dim, mlp_nonlinearity_name = 4, 13, "relu"
+        diag_shift, diag_eps = 1.3009374296641844e-06, 1.4901550009073945e-05
     elif dynamics_model_name == "discrete-mlp":
         base_lr = 0.006092601805515173
         loss_weights = dict(
@@ -196,6 +201,12 @@ if __name__ == "__main__":
         dynamics_model = LnnOde(
             latent_dim=n_z,
             input_dim=n_tau,
+            learn_dissipation=lnn_learn_dissipation,
+            num_layers=num_mlp_layers,
+            hidden_dim=mlp_hidden_dim,
+            nonlinearity=getattr(nn, mlp_nonlinearity_name),
+            diag_shift=diag_shift,
+            diag_eps=diag_eps,
         )
     elif dynamics_model_name == "discrete-mlp":
         dynamics_model = DiscreteMlpDynamics(

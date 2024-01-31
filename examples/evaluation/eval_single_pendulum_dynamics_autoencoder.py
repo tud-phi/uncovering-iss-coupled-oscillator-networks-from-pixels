@@ -31,7 +31,8 @@ rng = random.PRNGKey(seed=seed)
 tf.random.set_seed(seed=seed)
 
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
-dynamics_model_name = "discrete-mlp"  # "node-general-mlp", "node-mechanical-mlp", "node-cornn", "node-con", "discrete-mlp"
+# dynamics_model_name in ["node-general-mlp", "node-mechanical-mlp", "node-cornn", "node-con", "node-lnn", "discrete-mlp"]
+dynamics_model_name = "node-lnn"
 # latent space shape
 n_z = 2
 
@@ -43,6 +44,8 @@ num_past_timesteps = 2
 norm_layer = nn.LayerNorm
 num_mlp_layers, mlp_hidden_dim, mlp_nonlinearity_name = 4, 20, "leaky_relu"
 cornn_gamma, cornn_epsilon = 1.0, 1.0
+lnn_learn_dissipation = True
+diag_shift, diag_eps = 1e-6, 2e-6
 if ae_type == "wae":
     raise NotImplementedError
 elif ae_type == "beta_vae":
@@ -51,14 +54,19 @@ elif ae_type == "beta_vae":
         num_mlp_layers = 4
         mlp_hidden_dim = 40
     elif dynamics_model_name == "node-mechanical-mlp":
-        experiment_id = "2024-01-26_17-31-03"
-        num_mlp_layers = 4
-        mlp_hidden_dim = 46
+        experiment_id = "2024-01-30_16-14-20"
+        num_mlp_layers = 2
+        mlp_hidden_dim = 2
     elif dynamics_model_name == "node-cornn":
         experiment_id = "2024-01-27_10-30-52"
         cornn_gamma, cornn_epsilon = 14.699222042132245, 1.122193753584045
     elif dynamics_model_name == "node-con":
         experiment_id = "2024-01-28_22-19-27"
+    elif dynamics_model_name == "node-lnn":
+        experiment_id = "2024-01-31_10-39-39"
+        lnn_learn_dissipation = True
+        num_mlp_layers, mlp_hidden_dim, mlp_nonlinearity_name = 4, 13, "relu"
+        diag_shift, diag_eps = 1.3009374296641844e-06, 1.4901550009073945e-05
     elif dynamics_model_name == "discrete-mlp":
         experiment_id = "2024-01-29_19-31-02"
         num_mlp_layers = 4
@@ -135,6 +143,17 @@ if __name__ == "__main__":
         dynamics_model = ConOde(
             latent_dim=n_z,
             input_dim=n_tau,
+        )
+    elif dynamics_model_name == "node-lnn":
+        dynamics_model = LnnOde(
+            latent_dim=n_z,
+            input_dim=n_tau,
+            learn_dissipation=lnn_learn_dissipation,
+            num_layers=num_mlp_layers,
+            hidden_dim=mlp_hidden_dim,
+            nonlinearity=getattr(nn, mlp_nonlinearity_name),
+            diag_shift=diag_shift,
+            diag_eps=diag_eps,
         )
     elif dynamics_model_name == "discrete-mlp":
         dynamics_model = DiscreteMlpDynamics(
