@@ -298,6 +298,9 @@ def run_eval(
         state: final TrainState object
         history: History object containing the test metrics.
     """
+    # print number of trainable parameters
+    print_number_of_trainable_params(state)
+
     callbacks = []
     if show_pbar:
         kbar = ciclo.keras_bar(total=len(eval_ds))
