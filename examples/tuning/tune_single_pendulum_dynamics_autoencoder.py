@@ -34,7 +34,7 @@ rng = random.PRNGKey(seed=seed)
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 # dynamics_model_name in ["node-general-mlp", "node-mechanical-mlp", "node-cornn", "node-con",
 # "node-lnn", "node-general-lss", "node-mechanical-lss", "discrete-mlp"]
-dynamics_model_name = "node-lss"
+dynamics_model_name = "node-mechanical-lss"
 # latent space shape
 n_z = 3
 

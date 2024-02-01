@@ -14,7 +14,7 @@ import tensorflow as tf
 
 from src.models.autoencoders import Autoencoder, VAE
 from src.models.discrete_forward_dynamics import DiscreteMlpDynamics
-from src.models.neural_odes import ConOde, CornnOde, LnnOde, MlpOde
+from src.models.neural_odes import ConOde, CornnOde, LinearStateSpaceOde, LnnOde, MlpOde
 from src.models.dynamics_autoencoder import DynamicsAutoencoder
 from src.tasks import dynamics_autoencoder
 from src.training.dataset_utils import load_dataset
@@ -29,8 +29,9 @@ rng = random.PRNGKey(seed=seed)
 tf.random.set_seed(seed=seed)
 
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
-# dynamics_model_name in ["node-general-mlp", "node-mechanical-mlp", "node-cornn", "node-con", "node-lnn", "discrete-mlp"]
-dynamics_model_name = "node-lnn"
+# dynamics_model_name in ["node-general-mlp", "node-mechanical-mlp", "node-cornn", "node-con",
+# "node-lnn", "node-general-lss", "node-mechanical-lss", "discrete-mlp"]
+dynamics_model_name = "node-general-lss"
 # size of latent space
 n_z = 2
 
@@ -107,6 +108,16 @@ elif ae_type == "beta_vae":
         lnn_learn_dissipation = True
         num_mlp_layers, mlp_hidden_dim, mlp_nonlinearity_name = 4, 13, "relu"
         diag_shift, diag_eps = 1.3009374296641844e-06, 1.4901550009073945e-05
+    elif dynamics_model_name in ["node-general-lss", "node-mechanical-lss"]:
+        base_lr = 0.009140398915788182
+        loss_weights = dict(
+            mse_z=0.3540013026659153,
+            mse_rec_static=1.0,
+            mse_rec_dynamic=3.8239959063309903,
+            beta=0.0004775274363009053,
+        )
+        weight_decay = 5.409956968011885e-06
+        latent_velocity_source = "image-space-finite-differences"
     elif dynamics_model_name == "discrete-mlp":
         base_lr = 0.006092601805515173
         loss_weights = dict(
@@ -207,6 +218,12 @@ if __name__ == "__main__":
             nonlinearity=getattr(nn, mlp_nonlinearity_name),
             diag_shift=diag_shift,
             diag_eps=diag_eps,
+        )
+    elif dynamics_model_name in ["node-general-lss", "node-mechanical-lss"]:
+        dynamics_model = LinearStateSpaceOde(
+            latent_dim=n_z,
+            input_dim=n_tau,
+            mechanical_system=True if dynamics_model_name == "node-mechanical-lss" else False,
         )
     elif dynamics_model_name == "discrete-mlp":
         dynamics_model = DiscreteMlpDynamics(
