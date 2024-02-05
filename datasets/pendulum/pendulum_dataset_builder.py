@@ -173,7 +173,7 @@ class Pendulum(tfds.core.GeneratorBasedBuilder):
             line_thickness=2,
         )
 
-        sample_q = jnp.array([36 / 180 * jnp.pi])
+        sample_q = 36 / 180 * jnp.pi * jnp.linspace(0.0, 1.0, num_links)
         # sample_q = jnp.array([0.0])
         sample_img = rendering_fn(sample_q)
         plt.figure(num="Sample rendering")
