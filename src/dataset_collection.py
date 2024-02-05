@@ -160,6 +160,10 @@ def collect_dataset(
             # states along the simulation
             x_ts = sol.ys
 
+            if jnp.isnan(x_ts).any():
+                print("NaNs in the simulation data. Skipping this simulation.")
+                continue
+
             # define labels dict
             labels = dict(t_ts=ts, x_ts=x_ts, tau=tau)
 
