@@ -42,10 +42,31 @@ class DiscreteLssDynamics(DiscreteForwardDynamicsBase):
             tmp = z_ts
         tmp = jnp.concatenate([tmp, tau_ts], axis=-1).reshape((-1,))
 
-        # pass through MLP
-        for _ in range(self.num_layers - 1):
-            tmp = nn.Dense(features=self.hidden_dim)(tmp)
-            tmp = self.nonlinearity(tmp)
+        if self.transition_matrix_init == "mechanical":
+            # the velocity of the latent variables is given in the input
+            z_d = x[..., self.latent_dim:]
+            # compute z_dd = A @ x + B @ tau where A and B are learned matrices
+            z_dd = nn.Dense(features=self.latent_dim, use_bias=False)(x) + nn.Dense(
+                features=self.latent_dim, use_bias=False
+            )(tau)
+            # concatenate the velocity and acceleration of the latent variables
+            x_d = jnp.concatenate([z_d, z_dd], axis=-1)
+
+        elif self.transition_matrix_init == "hippo":
+            hippo_params = Hippo(state_size=2 * self.latent_dim, basis_measure=self.hippo_measure, diagonalize=False)()
+            A = hippo_params.state_matrix
+            # Structure State Space Models usually assume a 1D input
+            # but we have self.input_dim inputs. We can repeat the input matrix B self.input_dim times
+            # to make it compatible with the input
+            B = jnp.repeat(hippo_params.input_matrix[:, None], self.input_dim, axis=1)
+            # compute x_d = A @ x + B @ tau
+            x_d = A @ x + B @ tau
+
+        else:
+            # compute x_d = A @ x + B @ tau where A and B are learned matrices
+            x_d = nn.Dense(features=2 * self.latent_dim, use_bias=False)(x) + nn.Dense(
+                features=2 * self.latent_dim, use_bias=False
+            )(tau)
 
         # return the next latent state
         z_next = z_ts[-1] + self.dt * nn.Dense(features=self.latent_dim)(tmp)
