@@ -191,6 +191,9 @@ class Pendulum(tfds.core.GeneratorBasedBuilder):
         state_init_min = state_init_min.at[num_links:].set(-max_q_d_0)
         state_init_max = state_init_max.at[num_links:].set(max_q_d_0)
 
+        # define maximum external torque
+        tau_max = 2 * jnp.cumsum(jnp.max(robot_params["g"]) * robot_params["m"] * robot_params["lc"])
+
         # collect the dataset
         yield from collect_dataset(
             ode_fn=jsrm.integration.ode_with_forcing_factory(
@@ -208,4 +211,5 @@ class Pendulum(tfds.core.GeneratorBasedBuilder):
             sim_dt=jnp.array(self.builder_config.sim_dt),
             system_params=robot_params,
             metadata=metadata,
+            tau_max=tau_max,
         )
