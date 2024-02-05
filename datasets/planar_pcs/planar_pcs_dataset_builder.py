@@ -60,6 +60,7 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             strain_selector=(True, False, False, True, False, False),
             q_max=(5 * jnp.pi, 5 * jnp.pi),
             q_d_max=(5 * jnp.pi, 5 * jnp.pi),
+            sim_dt=1e-4,
         ),
         PlanarPcsDatasetConfig(
             name="pcc_ns-2_64x64px",
@@ -270,4 +271,5 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             metadata=metadata,
             x0_sampling_dist="uniform",
             tau_max=tau_max,
+            save_raw_data=True
         )
