@@ -4,6 +4,7 @@ clu
 diffrax
 dill
 flax
+hippox
 jax
 jax-models
 jsrm>=0.3

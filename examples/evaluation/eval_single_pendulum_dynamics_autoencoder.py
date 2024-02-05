@@ -160,11 +160,11 @@ if __name__ == "__main__":
             diag_shift=diag_shift,
             diag_eps=diag_eps,
         )
-    elif dynamics_model_name in ["node-general-lss", "node-mechanical-lss"]:
+    elif dynamics_model_name in ["node-general-lss", "node-mechanical-lss", "node-hippo-lss"]:
         dynamics_model = LinearStateSpaceOde(
             latent_dim=n_z,
             input_dim=n_tau,
-            mechanical_system=True if dynamics_model_name == "node-mechanical-lss" else False,
+            transition_matrix_init=dynamics_model_name.split("-")[1],  # "general", "mechanical", or "hippo"
         )
     elif dynamics_model_name == "discrete-mlp":
         dynamics_model = DiscreteMlpDynamics(

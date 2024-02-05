@@ -31,7 +31,7 @@ tf.random.set_seed(seed=seed)
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 # dynamics_model_name in ["node-general-mlp", "node-mechanical-mlp", "node-cornn", "node-con",
 # "node-lnn", "node-general-lss", "node-mechanical-lss", "discrete-mlp"]
-dynamics_model_name = "node-general-lss"
+dynamics_model_name = "node-hippo-lss"
 # size of latent space
 n_z = 2
 
@@ -108,7 +108,7 @@ elif ae_type == "beta_vae":
         lnn_learn_dissipation = True
         num_mlp_layers, mlp_hidden_dim, mlp_nonlinearity_name = 4, 13, "relu"
         diag_shift, diag_eps = 1.3009374296641844e-06, 1.4901550009073945e-05
-    elif dynamics_model_name in ["node-general-lss", "node-mechanical-lss"]:
+    elif dynamics_model_name in ["node-general-lss", "node-mechanical-lss", "node-hippo-lss"]:
         base_lr = 0.009140398915788182
         loss_weights = dict(
             mse_z=0.3540013026659153,
@@ -219,11 +219,11 @@ if __name__ == "__main__":
             diag_shift=diag_shift,
             diag_eps=diag_eps,
         )
-    elif dynamics_model_name in ["node-general-lss", "node-mechanical-lss"]:
+    elif dynamics_model_name in ["node-general-lss", "node-mechanical-lss", "node-hippo-lss"]:
         dynamics_model = LinearStateSpaceOde(
             latent_dim=n_z,
             input_dim=n_tau,
-            mechanical_system=True if dynamics_model_name == "node-mechanical-lss" else False,
+            transition_matrix_init=dynamics_model_name.split("-")[1],  # "general", "mechanical", or "hippo"
         )
     elif dynamics_model_name == "discrete-mlp":
         dynamics_model = DiscreteMlpDynamics(

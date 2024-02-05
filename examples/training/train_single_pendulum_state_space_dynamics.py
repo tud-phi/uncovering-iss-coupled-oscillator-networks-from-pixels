@@ -26,8 +26,8 @@ seed = 0
 rng = random.PRNGKey(seed=seed)
 tf.random.set_seed(seed=seed)
 
-# dynamics_model_name in ["node-general-mlp", "node-mechanical-mlp", "node-cornn", "node-con", "node-lnn", "node-lss", "discrete-mlp"]
-dynamics_model_name = "node-lss"
+# dynamics_model_name in ["node-general-mlp", "node-mechanical-mlp", "node-cornn", "node-con", "node-lnn", "node-hippo-lss", "discrete-mlp"]
+dynamics_model_name = "node-mechanical-lss"
 
 batch_size = 100
 num_epochs = 50
@@ -113,11 +113,11 @@ if __name__ == "__main__":
             latent_dim=n_q,
             input_dim=n_tau,
         )
-    elif dynamics_model_name == "node-lss":
+    elif dynamics_model_name in ["node-general-lss", "node-mechanical-lss", "node-hippo-lss"]:
         nn_model = LinearStateSpaceOde(
             latent_dim=n_q,
             input_dim=n_tau,
-            mechanical_system=True,
+            transition_matrix_init=dynamics_model_name.split("-")[1],  # "general", "mechanical", or "hippo"
         )
     elif dynamics_model_name == "discrete-mlp":
         nn_model = DiscreteMlpDynamics(

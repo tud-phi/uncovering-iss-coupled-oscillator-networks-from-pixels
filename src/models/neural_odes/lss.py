@@ -1,4 +1,5 @@
 from flax import linen as nn  # Linen API
+from hippox.main import Hippo
 from jax import Array
 import jax.numpy as jnp
 from typing import Callable
@@ -17,11 +18,11 @@ class LinearStateSpaceOde(NeuralOdeBase):
 
     latent_dim: int
     input_dim: int
-    mechanical_system: bool = True
+    transition_matrix_init: str = "general"  # in ["general", "mechanical", "hippo"]
 
     @nn.compact
     def __call__(self, x: Array, tau: Array) -> Array:
-        if self.mechanical_system:
+        if self.transition_matrix_init == "mechanical":
             # the velocity of the latent variables is given in the input
             z_d = x[..., self.latent_dim :]
             # compute z_dd = A @ x + B @ tau where A and B are learned matrices
@@ -30,6 +31,15 @@ class LinearStateSpaceOde(NeuralOdeBase):
             )(tau)
             # concatenate the velocity and acceleration of the latent variables
             x_d = jnp.concatenate([z_d, z_dd], axis=-1)
+        elif self.transition_matrix_init == "hippo":
+            hippo_params = Hippo(state_size=2 * self.latent_dim, basis_measure="legs", diagonalize=False)()
+            A = hippo_params.state_matrix
+            # Structure State Space Models usually assume a 1D input
+            # but we have self.input_dim inputs. We can repeat the input matrix B self.input_dim times
+            # to make it compatible with the input
+            B = jnp.repeat(hippo_params.input_matrix[:, None], self.input_dim, axis=1)
+            # compute x_d = A @ x + B @ tau
+            x_d = A @ x + B @ tau
         else:
             # compute x_d = A @ x + B @ tau where A and B are learned matrices
             x_d = nn.Dense(features=2 * self.latent_dim, use_bias=False)(x) + nn.Dense(
