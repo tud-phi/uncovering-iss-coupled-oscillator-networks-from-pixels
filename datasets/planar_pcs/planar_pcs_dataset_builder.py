@@ -51,6 +51,17 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             num_segments=1,
         ),
         PlanarPcsDatasetConfig(
+            name="pcc_ns-2_32x32px",
+            description="Planar two segment piecewise constant curvature continuum robot with images of size 32x32px.",
+            state_dim=4,
+            img_size=(32, 32),
+            origin_uv=(16, 4),
+            num_segments=2,
+            strain_selector=(True, False, False, True, False, False),
+            q_max=(5 * jnp.pi, 5 * jnp.pi),
+            q_d_max=(5 * jnp.pi, 5 * jnp.pi),
+        ),
+        PlanarPcsDatasetConfig(
             name="pcc_ns-2_64x64px",
             description="Planar two segment piecewise constant curvature continuum robot with images of size 64x64px.",
             state_dim=4,
@@ -207,6 +218,8 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
         ), "Provided state dimension does not match the number of provided q_d_max values!"
 
         # initialize the rendering function
+        # the line thickness is calibrated for 64x64px images
+        lw = int(6 / 64 * jnp.mean(jnp.array(self.builder_config.img_size)))
         rendering_fn = partial(
             render_planar_pcs,
             forward_kinematics_fn,
@@ -214,7 +227,7 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             width=self.builder_config.img_size[0],
             height=self.builder_config.img_size[1],
             origin_uv=self.builder_config.origin_uv,
-            line_thickness=6,
+            line_thickness=lw
         )
 
         sample_q = jnp.array(self.builder_config.q_max)
