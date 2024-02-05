@@ -6,8 +6,10 @@ from typing import Callable
 from .discrete_forward_dynamics_base import DiscreteForwardDynamicsBase
 
 
-class DiscreteMlpDynamics(DiscreteForwardDynamicsBase):
-    """A simple MLP ODE."""
+class DiscreteLssDynamics(DiscreteForwardDynamicsBase):
+    """
+    A simple MLP ODE.
+    """
 
     latent_dim: int
     input_dim: int
