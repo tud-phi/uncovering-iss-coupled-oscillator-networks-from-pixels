@@ -20,6 +20,10 @@ class LinearStateSpaceOde(NeuralOdeBase):
     input_dim: int
     transition_matrix_init: str = "general"  # in ["general", "mechanical", "hippo"]
 
+    # HiPPO parameters
+    # in ["legs", "legt", "lmu", "lagt", "glagt", "fout", "foud", "fourier_decay", "fourier_double", "linear", "inverse"]
+    hippo_measure: str = "legs"
+
     @nn.compact
     def __call__(self, x: Array, tau: Array) -> Array:
         if self.transition_matrix_init == "mechanical":
@@ -32,7 +36,7 @@ class LinearStateSpaceOde(NeuralOdeBase):
             # concatenate the velocity and acceleration of the latent variables
             x_d = jnp.concatenate([z_d, z_dd], axis=-1)
         elif self.transition_matrix_init == "hippo":
-            hippo_params = Hippo(state_size=2 * self.latent_dim, basis_measure="legs", diagonalize=False)()
+            hippo_params = Hippo(state_size=2 * self.latent_dim, basis_measure=self.hippo_measure, diagonalize=False)()
             A = hippo_params.state_matrix
             # Structure State Space Models usually assume a 1D input
             # but we have self.input_dim inputs. We can repeat the input matrix B self.input_dim times
