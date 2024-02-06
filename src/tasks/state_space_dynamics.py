@@ -20,10 +20,13 @@ def task_factory(
     nn_model: nn.Module,
     ts: Array,
     sim_dt: float,
+    x0_min: Optional[Array] = None,
+    x0_max: Optional[Array] = None,
     loss_weights: Optional[Dict[str, float]] = None,
     dynamics_type: str = "node",  # node or discrete
-    start_time_idx: int = 1,
+    normalize_loss: bool = False,
     solver: AbstractSolver = Dopri5(),
+    start_time_idx: int = 1,
     num_past_timesteps: int = 2,
 ) -> Tuple[TaskCallables, Type[clu_metrics.Collection]]:
     """
@@ -35,20 +38,21 @@ def task_factory(
         nn_model: the neural network model of the dynamics autoencoder. Should contain both the autoencoder and the neural ODE.
         ts: time steps of the samples
         sim_dt: Time step used for simulation [s].
+        x0_min: the minimal value for the initial state of the simulation
+        x0_max: the maximal value for the initial state of the simulation
         loss_weights: the weights for the different loss terms
         dynamics_type: Dynamics type. One of ["node", "discrete"]
             node: Neural ODE dynamics map a state consisting of latent and their velocity to the state derivative.
             discrete: Discrete forward dynamics map the latents at the num_past_timesteps to the next latent.
+        normalize_loss: whether to normalize the loss by the state bounds (i.e., x0_min and x0_max)
+        solver: Diffrax solver to use for the simulation. Only use for the neural ODE.
         start_time_idx: the index of the time step to start the simulation at. Needs to be >=1 to enable the application
             of finite differences for the latent-space velocity.
-        solver: Diffrax solver to use for the simulation. Only use for the neural ODE.
         num_past_timesteps: the number of past timesteps to use for the discrete forward dynamics.
     Returns:
         task_callables: struct containing the functions for the learning task
         metrics_collection_cls: contains class for collecting metrics
     """
-    # time step between samples
-    sample_dt = (ts[1:] - ts[:-1]).mean()
     # compute the dynamic rollout of the latent representation
     t0 = ts[start_time_idx]  # start time
     tf = ts[-1]  # end time
@@ -63,6 +67,11 @@ def task_factory(
         assert (
             start_time_idx >= num_past_timesteps - 1
         ), "The start time idx needs to be >= num_past_timesteps - 1 to enable the passing of a sufficient number of inputs to the model."
+
+    if normalize_loss is True:
+        assert (
+            x0_min is not None and x0_max is not None
+        ), "x0_min and x0_max must be provided for normalizing the configuration loss"
 
     def assemble_input_fn(batch) -> Tuple[Array, Array]:
         # batch of images of shape batch_dim x time_dim x 2 * n_q
@@ -242,6 +251,9 @@ def task_factory(
         # if necessary, normalize the joint angle error
         if system_type == "pendulum":
             error_q = normalize_joint_angles(error_q)
+        # normalize the configuration error
+        if normalize_loss:
+            error_q = error_q / (x0_max[:n_q] - x0_min[:n_q])
         # compute the configuration MSE
         mse_q = jnp.mean(jnp.square(error_q))
 
@@ -269,10 +281,18 @@ def task_factory(
         # compute the configuration velocity error
         error_q_d = preds["x_ts"][..., n_q:] - batch["x_ts"][:, start_time_idx:, n_q:]
 
-        batch_loss_dict = {
-            "mse_q": jnp.mean(jnp.square(error_q)),
-            "mse_q_d": jnp.mean(jnp.square(error_q_d)),
-        }
+        if normalize_loss:
+            error_q_norm = error_q / (x0_max[:n_q] - x0_min[:n_q])
+            error_q_d_norm = error_q_d / (x0_max[n_q:] - x0_min[n_q:])
+            batch_loss_dict = {
+                "mse_q_norm": jnp.mean(jnp.square(error_q_norm)),
+                "mse_q_d_norm": jnp.mean(jnp.square(error_q_d_norm)),
+            }
+        else:
+            batch_loss_dict = {
+                "mse_q": jnp.mean(jnp.square(error_q)),
+                "mse_q_d": jnp.mean(jnp.square(error_q_d)),
+            }
 
         return batch_loss_dict
 
@@ -284,8 +304,13 @@ def task_factory(
     class MetricsCollection(clu_metrics.Collection):
         loss: clu_metrics.Average.from_output("loss")
         lr: clu_metrics.LastValue.from_output("lr")
-        rmse_q: RootAverage.from_output("mse_q")
-        rmse_q_d: RootAverage.from_output("mse_q_d")
+
+        if normalize_loss:
+            rmse_q_norm: RootAverage.from_output("mse_q_norm")
+            rmse_q_d_norm: RootAverage.from_output("mse_q_d_norm")
+        else:
+            rmse_q: RootAverage.from_output("mse_q")
+            rmse_q_d: RootAverage.from_output("mse_q_d")
 
     metrics_collection_cls = MetricsCollection
     return task_callables, metrics_collection_cls

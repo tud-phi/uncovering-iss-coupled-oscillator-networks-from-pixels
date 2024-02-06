@@ -159,10 +159,13 @@ if __name__ == "__main__":
         nn_model,
         ts=dataset_metadata["ts"],
         sim_dt=jnp.min(jnp.diff(dataset_metadata["ts"])).item() / 4,
+        x0_min=dataset_metadata["x0_min"],
+        x0_max=dataset_metadata["x0_max"],
         loss_weights=loss_weights,
         dynamics_type=dynamics_type,
-        start_time_idx=start_time_idx,
+        normalize_loss=True,
         solver=solver_class(),
+        start_time_idx=start_time_idx,
         num_past_timesteps=num_past_timesteps,
     )
 
