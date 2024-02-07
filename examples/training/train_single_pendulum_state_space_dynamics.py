@@ -42,7 +42,6 @@ base_lr = 1e-3
 loss_weights = dict(
     mse_q=1.0,
     mse_q_d=1.0,
-    beta=1e-4,
 )
 weight_decay = 0.0
 num_mlp_layers = 4

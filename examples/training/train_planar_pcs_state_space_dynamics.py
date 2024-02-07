@@ -43,7 +43,6 @@ base_lr = 1e-3
 loss_weights = dict(
     mse_q=1.0,
     mse_q_d=1.0,
-    beta=1e-4,
 )
 weight_decay = 0.0
 num_mlp_layers = 4
@@ -88,10 +87,10 @@ if __name__ == "__main__":
     robot_params = dataset_metadata["system_params"]
     print(f"Robot parameters: {robot_params}")
     print("Strain selector:", dataset_metadata["strain_selector"])
-    n_tau = train_ds.element_spec["tau"].shape[-1]  # dimension of the control input
-    n_q = (
-        train_ds.element_spec["x_ts"].shape[-1] // 2
-    )  # dimension of the configuration space
+    # dimension of the configuration space
+    n_q = train_ds.element_spec["x_ts"].shape[-1] // 2
+    # dimension of the control input
+    n_tau = train_ds.element_spec["tau"].shape[-1]
 
     # get the dynamics function
     strain_basis, forward_kinematics_fn, dynamical_matrices_fn = planar_pcs.factory(
