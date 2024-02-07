@@ -36,17 +36,27 @@ warmup_epochs = 5
 start_time_idx = 1
 num_past_timesteps = 2
 
-num_mlp_layers, mlp_hidden_dim, mlp_nonlinearity_name = 4, 20, "leaky_relu"
-cornn_gamma, cornn_epsilon = 1.0, 1.0
-
-base_lr = 1e-3
+base_lr = 0.0
 loss_weights = dict(
-    mse_q=1.0,
+    mse_q=0.0,
     mse_q_d=1.0,
 )
 weight_decay = 0.0
-num_mlp_layers = 4
-mlp_hidden_dim = 40
+num_mlp_layers, mlp_hidden_dim, mlp_nonlinearity_name = 4, 20, "leaky_relu"
+cornn_gamma, cornn_epsilon = 1.0, 1.0
+
+if dynamics_model_name in ["node-mechanical-mlp"]:
+    base_lr = 0.03323371435041385
+    loss_weights = dict(
+        mse_q=0.0003462995467520171,
+        mse_q_d=1.0,
+    )
+    weight_decay = 1.8252275472841628e-05
+    num_mlp_layers = 3
+    mlp_hidden_dim = 81
+    mlp_nonlinearity_name = "selu"
+else:
+    raise NotImplementedError(f"Unknown dynamics_model_name: {dynamics_model_name}")
 
 # identify the number of segments
 if system_type == "cc":
