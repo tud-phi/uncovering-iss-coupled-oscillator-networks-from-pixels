@@ -32,7 +32,7 @@ rng = random.PRNGKey(seed=seed)
 system_type = "pcc_ns-2"
 # dynamics_model_name in ["node-general-mlp", "node-mechanical-mlp", "node-cornn", "node-con",
 # "node-lnn", "node-general-lss", "node-mechanical-lss", "discrete-mlp"]
-dynamics_model_name = "node-mechanical-mlp"
+dynamics_model_name = "node-lnn"
 
 # identify the number of segments
 if system_type == "cc":
@@ -142,9 +142,10 @@ if __name__ == "__main__":
                 input_dim=n_tau,
             )
         elif dynamics_model_name == "node-lnn":
-            learn_dissipation = trial.suggest_categorical(
-                "learn_dissipation", [True, False]
-            )
+            # learn_dissipation = trial.suggest_categorical(
+            #     "learn_dissipation", [True, False]
+            # )
+            learn_dissipation = True
             num_mlp_layers = trial.suggest_int("num_mlp_layers", 2, 6)
             mlp_hidden_dim = trial.suggest_int("mlp_hidden_dim", 4, 72)
             mlp_nonlinearity_name = trial.suggest_categorical(
