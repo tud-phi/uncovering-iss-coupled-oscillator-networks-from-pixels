@@ -32,7 +32,7 @@ rng = random.PRNGKey(seed=seed)
 system_type = "pcc_ns-2"
 # dynamics_model_name in ["node-general-mlp", "node-mechanical-mlp", "node-cornn", "node-con",
 # "node-lnn", "node-general-lss", "node-mechanical-lss", "discrete-mlp"]
-dynamics_model_name = "node-lnn"
+dynamics_model_name = "node-con"
 
 # identify the number of segments
 if system_type == "cc":
@@ -137,9 +137,18 @@ if __name__ == "__main__":
                 epsilon=cornn_epsilon,
             )
         elif dynamics_model_name == "node-con":
+            nonlinearity_name = trial.suggest_categorical(
+                "nonlinearity",
+                ["leaky_relu", "relu", "tanh", "sigmoid", "elu", "selu", "softplus"],
+            )
+            diag_shift = trial.suggest_float("diag_shift", 1e-6, 1e-2, log=True)
+            diag_eps = trial.suggest_float("diag_eps", 1e-6, 1e-2, log=True)
             nn_model = ConOde(
                 latent_dim=n_q,
                 input_dim=n_tau,
+                nonlinearity=getattr(nn, nonlinearity_name),
+                diag_shift=diag_shift,
+                diag_eps=diag_eps,
             )
         elif dynamics_model_name == "node-lnn":
             # learn_dissipation = trial.suggest_categorical(
