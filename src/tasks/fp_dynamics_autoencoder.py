@@ -51,7 +51,7 @@ def task_factory(
         system_type: the system type to create the task for. For example "pendulum".
         nn_model: the neural network model to use
         ode_fn: ODE function. It should have the following signature:
-            ode_fn(t, x) -> x_dot
+            ode_fn(t, x, tau) -> x_dot
         ts: time steps of the samples
         sim_dt: Time step used for simulation [s].
         encode_fn: the function to use for encoding the input image to the latent space

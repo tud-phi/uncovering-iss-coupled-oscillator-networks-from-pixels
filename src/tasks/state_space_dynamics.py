@@ -17,13 +17,14 @@ from src.structs import TaskCallables
 
 def task_factory(
     system_type: str,
-    nn_model: nn.Module,
     ts: Array,
     sim_dt: float,
     x0_min: Optional[Array] = None,
     x0_max: Optional[Array] = None,
     loss_weights: Optional[Dict[str, float]] = None,
-    dynamics_type: str = "node",  # node or discrete
+    dynamics_type: str = "node",  # ode, node or discrete
+    nn_model: Optional[nn.Module] = None,
+    ode_fn: Optional[Callable] = None,
     normalize_loss: bool = False,
     solver: AbstractSolver = Dopri5(),
     start_time_idx: int = 1,
@@ -35,17 +36,21 @@ def task_factory(
     Will return a TaskCallables object with the forward_fn, loss_fn, and compute_metrics functions.
     Args:
         system_type: the system type to create the task for. For example "pendulum".
-        nn_model: the neural network model of the dynamics autoencoder. Should contain both the autoencoder and the neural ODE.
         ts: time steps of the samples
         sim_dt: Time step used for simulation [s].
         x0_min: the minimal value for the initial state of the simulation
         x0_max: the maximal value for the initial state of the simulation
         loss_weights: the weights for the different loss terms
-        dynamics_type: Dynamics type. One of ["node", "discrete"]
-            node: Neural ODE dynamics map a state consisting of latent and their velocity to the state derivative.
+        dynamics_type: Dynamics type. One of ["ode", "node", "discrete"]
+            ode: ODE dynamics map a state consisting of latent and their velocity to the state derivative.
+            node: Neural ODE dynamics map (i.e., involving an neural network model) a state consisting of latent and their velocity to the state derivative.
             discrete: Discrete forward dynamics map the latents at the num_past_timesteps to the next latent.
+        nn_model: the neural network model of the dynamics autoencoder. Should contain both the autoencoder and the neural ODE.
+        ode_fn: (ground-truth) ODE function. Only mandatory if dynamics_type is "ode". 
+            It should have the following signature:
+            ode_fn(t, x, tau) -> x_dot
         normalize_loss: whether to normalize the loss by the state bounds (i.e., x0_min and x0_max)
-        solver: Diffrax solver to use for the simulation. Only use for the neural ODE.
+        solver: Diffrax solver to use for the simulation. Only use for the (neural) ODE.
         start_time_idx: the index of the time step to start the simulation at. Needs to be >=1 to enable the application
             of finite differences for the latent-space velocity.
         num_past_timesteps: the number of past timesteps to use for the discrete forward dynamics.
@@ -91,7 +96,7 @@ def task_factory(
 
     def forward_fn(
         batch: Dict[str, Array],
-        nn_params: FrozenDict,
+        nn_params: Optional[FrozenDict] = None,
         rng: Optional[random.KeyArray] = None,
         training: bool = False,
     ) -> Dict[str, Array]:
@@ -104,18 +109,21 @@ def task_factory(
         # construct batch of external torques of shape batch_dim x time_dim x n_tau
         tau_bt = jnp.expand_dims(batch["tau"], axis=1).repeat(x_bt.shape[1], axis=1)
 
-        if dynamics_type == "node":
-            # construct ode_fn and initiate ODE term
-            def ode_fn(t: Array, x: Array, tau: Array) -> Array:
-                x_d = nn_model.apply(
-                    {"params": nn_params},
-                    x,
-                    tau,
-                    method=nn_model.forward_dynamics,
-                )
-                return x_d
-
-            ode_term = ODETerm(ode_fn)
+        if dynamics_type in ["ode", "node"]:
+            if dynamics_type == "node":
+                # construct ode_fn and initiate ODE term
+                def node_fn(t: Array, x: Array, tau: Array) -> Array:
+                    x_d = nn_model.apply(
+                        {"params": nn_params},
+                        x,
+                        tau,
+                        method=nn_model.forward_dynamics,
+                    )
+                    return x_d
+                
+                ode_term = ODETerm(node_fn)
+            else:
+                ode_term = ODETerm(ode_fn)
 
             def ode_solve_fn(x0: Array, tau: Array):
                 """
@@ -239,7 +247,7 @@ def task_factory(
 
     def loss_fn(
         batch: Dict[str, Array],
-        nn_params: FrozenDict,
+        nn_params: Optional[FrozenDict] = None,
         rng: Optional[random.KeyArray] = None,
         training: bool = False,
     ) -> Tuple[Array, Dict[str, Array]]:

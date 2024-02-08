@@ -33,7 +33,7 @@ dynamics_model_name = "node-lnn"
 batch_size = 100
 num_epochs = 50
 warmup_epochs = 5
-start_time_idx = 1
+start_time_idx = 0
 num_past_timesteps = 2
 
 base_lr = 0.0
@@ -184,13 +184,13 @@ if __name__ == "__main__":
     # call the factory function for the state space dynamics task
     task_callables, metrics_collection_cls = state_space_dynamics.task_factory(
         system_type,
-        nn_model,
         ts=dataset_metadata["ts"],
         sim_dt=jnp.min(jnp.diff(dataset_metadata["ts"])).item() / 4,
         x0_min=dataset_metadata["x0_min"],
         x0_max=dataset_metadata["x0_max"],
         loss_weights=loss_weights,
         dynamics_type=dynamics_type,
+        nn_model=nn_model,
         normalize_loss=True,
         solver=solver_class(),
         start_time_idx=start_time_idx,

@@ -2,7 +2,8 @@ import flax.linen as nn
 from jax import config as jax_config
 
 jax_config.update("jax_enable_x64", True)
-from jax import Array, random
+jax_config.update("jax_platform_name", "cpu")  # set default device to 'cpu'
+from jax import Array, devices, jit, random
 import jax.numpy as jnp
 import jsrm
 from jsrm.integration import ode_with_forcing_factory
@@ -16,9 +17,6 @@ from src.training.dataset_utils import load_dataset, load_dummy_neural_network_i
 from src.training.loops import run_eval
 from src.tasks import state_space_dynamics
 from src.training.train_state_utils import restore_train_state
-from src.visualization.latent_space import (
-    visualize_mapping_from_configuration_to_latent_space,
-)
 
 # prevent tensorflow from loading everything onto the GPU, as we don't have enough memory for that
 tf.config.experimental.set_visible_devices([], "GPU")
@@ -34,7 +32,7 @@ normalize_loss = False
 
 batch_size = 10
 loss_weights = dict(mse_q=0.0, mse_q_d=1.0)
-start_time_idx = 1
+start_time_idx = 0
 num_past_timesteps = 2
 
 num_mlp_layers, mlp_hidden_dim, mlp_nonlinearity_name = 4, 20, "leaky_relu"
@@ -163,16 +161,16 @@ if __name__ == "__main__":
         dataset_metadata["solver_class"],
     )
 
-    # call the factory function for the sensing task
+    # call the factory function for the state space dynamics task
     task_callables, metrics_collection_cls = state_space_dynamics.task_factory(
         system_type,
-        nn_model,
         ts=dataset_metadata["ts"],
         sim_dt=jnp.min(jnp.diff(dataset_metadata["ts"])).item() / 4,
         x0_min=dataset_metadata["x0_min"],
         x0_max=dataset_metadata["x0_max"],
         loss_weights=loss_weights,
         dynamics_type=dynamics_type,
+        nn_model=nn_model,
         normalize_loss=normalize_loss,
         solver=solver_class(),
         start_time_idx=start_time_idx,
@@ -194,7 +192,58 @@ if __name__ == "__main__":
         f"Final {'normalized ' if normalize_loss else ''}test metrics:\n{test_metrics}"
     )
 
-    # define ground-truth dynamics
-    gt_ode_fn = ode_with_forcing_factory(dynamical_matrices_fn, robot_params)
+    # define settings for the rollout
+    rollout_duration = 5.0  # s
+    rollout_dt = 1e-2
+    rollout_sim_dt = 5e-3 * rollout_dt  # simulation time step of 5e-5 s
+    ts_rollout = jnp.linspace(0.0, rollout_duration, num=int(rollout_duration / rollout_dt))
+    # define the task callables for the rollout
+    task_callables_rollout_ode, _ = state_space_dynamics.task_factory(
+        system_type,
+        ts=ts_rollout,
+        sim_dt=rollout_sim_dt,
+        x0_min=dataset_metadata["x0_min"],
+        x0_max=dataset_metadata["x0_max"],
+        loss_weights=loss_weights,
+        dynamics_type="ode",
+        ode_fn=ode_with_forcing_factory(dynamical_matrices_fn, robot_params),
+        normalize_loss=normalize_loss,
+        solver=solver_class(),
+        start_time_idx=start_time_idx,
+    )
+    task_callables_rollout_learned, _ = state_space_dynamics.task_factory(
+        system_type,
+        ts=ts_rollout,
+        sim_dt=rollout_sim_dt,
+        x0_min=dataset_metadata["x0_min"],
+        x0_max=dataset_metadata["x0_max"],
+        loss_weights=loss_weights,
+        dynamics_type=dynamics_type,
+        nn_model=nn_model,
+        normalize_loss=normalize_loss,
+        solver=solver_class(),
+        start_time_idx=start_time_idx,
+        num_past_timesteps=num_past_timesteps,
+    )
+    forward_fn_ode = jit(task_callables_rollout_ode.forward_fn)
+    forward_fn_learned = jit(task_callables_rollout_learned.forward_fn)
 
     # rollout dynamics
+    print("Rollout...")
+    x0 = jnp.concatenate([dataset_metadata["x0_max"][:n_q], jnp.zeros((n_q, ))])
+    print("x0", x0)
+    x0_bt = x0[None, None, :]
+    tau_bt = jnp.zeros((1, n_tau))
+    batch = dict(x_ts=x0_bt, tau=tau_bt)
+    preds_gt = forward_fn_ode(batch)
+    print("x_ts gt:\n", preds_gt["x_ts"])
+    preds_learned = forward_fn_learned(batch, state.params)
+    print("x_ts learned:\n", preds_learned["x_ts"])
+    fig, ax = plt.subplots(1, 1, num="Rollout")
+    for i in range(n_q):
+        ax.plot(ts_rollout, preds_gt["x_ts"][0, :, i], label=f"gt_q{i}")
+        ax.plot(ts_rollout, preds_learned["x_ts"][0, :, i], label=f"learned_q{i}")
+    ax.set_xlabel("Time [s]")
+    ax.legend()
+    plt.show()
+
