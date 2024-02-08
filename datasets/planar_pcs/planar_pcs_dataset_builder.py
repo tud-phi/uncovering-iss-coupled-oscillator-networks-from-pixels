@@ -181,8 +181,8 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
         # damping matrix
         D = 5e-6 * jnp.diag(
             jnp.repeat(
-                jnp.array([1e0, 1e3, 1e3]), self.builder_config.num_segments, axis=0
-            ),
+                jnp.array([[1e0, 1e3, 1e3]]), self.builder_config.num_segments, axis=0
+            ).flatten(),
         )
         robot_params = {
             "th0": jnp.array(jnp.pi),  # initial orientation angle [rad]
