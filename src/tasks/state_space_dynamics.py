@@ -27,8 +27,7 @@ def task_factory(
     ode_fn: Optional[Callable] = None,
     normalize_loss: bool = False,
     solver: AbstractSolver = Dopri5(),
-    start_time_idx: int = 1,
-    num_past_timesteps: int = 2,
+    start_time_idx: int = 0,
 ) -> Tuple[TaskCallables, Type[clu_metrics.Collection]]:
     """
     Factory function for the task of learning a representation using first-principle dynamics while using the
@@ -44,7 +43,7 @@ def task_factory(
         dynamics_type: Dynamics type. One of ["ode", "node", "discrete"]
             ode: ODE dynamics map a state consisting of latent and their velocity to the state derivative.
             node: Neural ODE dynamics map (i.e., involving an neural network model) a state consisting of latent and their velocity to the state derivative.
-            discrete: Discrete forward dynamics map the latents at the num_past_timesteps to the next latent.
+            discrete: Discrete forward dynamics map the current state to the next state.
         nn_model: the neural network model of the dynamics autoencoder. Should contain both the autoencoder and the neural ODE.
         ode_fn: (ground-truth) ODE function. Only mandatory if dynamics_type is "ode". 
             It should have the following signature:
@@ -53,7 +52,6 @@ def task_factory(
         solver: Diffrax solver to use for the simulation. Only use for the (neural) ODE.
         start_time_idx: the index of the time step to start the simulation at. Needs to be >=1 to enable the application
             of finite differences for the latent-space velocity.
-        num_past_timesteps: the number of past timesteps to use for the discrete forward dynamics.
     Returns:
         task_callables: struct containing the functions for the learning task
         metrics_collection_cls: contains class for collecting metrics
@@ -68,31 +66,16 @@ def task_factory(
         loss_weights = {}
     loss_weights = dict(mse_q=1.0, mse_q_d=1.0) | loss_weights
 
-    if dynamics_type == "discrete":
-        assert (
-            start_time_idx >= num_past_timesteps - 1
-        ), "The start time idx needs to be >= num_past_timesteps - 1 to enable the passing of a sufficient number of inputs to the model."
-
     if normalize_loss is True:
         assert (
             x0_min is not None and x0_max is not None
         ), "x0_min and x0_max must be provided for normalizing the configuration loss"
 
     def assemble_input_fn(batch) -> Tuple[Array, Array]:
-        # batch of images of shape batch_dim x time_dim x 2 * n_q
-        x_bt = batch["x_ts"]
-        if dynamics_type == "node":
-            # return the state and the external torque
-            x = x_bt[0, 0, ...]
-            tau = batch["tau"][0, ...]
-            return x, tau
-        elif dynamics_type == "discrete":
-            # return the state and the external torque
-            x_past_ts = x_bt[0, :num_past_timesteps, ...]
-            tau_ts = batch["tau"][0, None, ...].repeat(num_past_timesteps, axis=0)
-            return x_past_ts, tau_ts
-        else:
-            raise ValueError(f"Unknown dynamics_type: {dynamics_type}")
+        # return the state and the external torque
+        x = batch["x_ts"][0, 0, ...]
+        tau = batch["tau"][0, ...]
+        return x, tau
 
     def forward_fn(
         batch: Dict[str, Array],
@@ -160,23 +143,20 @@ def task_factory(
             # extract the rolled-out latent representations
             x_pred_bt = sol_bt.ys.astype(jnp.float32)
         elif dynamics_type == "discrete":
-            # construct the input for the discrete forward dynamics
-            x_past_bt = x_bt[:, start_time_idx - num_past_timesteps + 1 :]
-
-            def autoregress_fn(_x_past_ts: Array, _tau_ts: Array) -> Array:
+            def autoregress_fn(_x: Array, _tau: Array) -> Array:
                 """
                 Autoregressive function for the discrete forward dynamics
                 Arguments:
-                    _x_past_ts: past latent representations of shape (num_past_timesteps, n_z)
-                    _tau_ts: past & current external torques of shape (num_past_timesteps, n_tau)
+                    _x: current state of shape (2*n_q, )
+                    _tau: external torques of shape (n_tau, )
                 Returns:
-                    _z_next: next latent representation of shape (batch_size, n_z)
+                    _x_next: next state of shape (batch_size, n_z)
                 """
 
                 _x_next = nn_model.apply(
                     {"params": nn_params},
-                    _x_past_ts,
-                    _tau_ts,
+                    _x,
+                    _tau,
                     method=nn_model.forward_dynamics,
                 )
                 return _x_next
@@ -190,18 +170,12 @@ def task_factory(
                     _carry: carry state of the scan function
                     _tau: external torques of shape (n_tau, )
                 """
-                # append the current external torque to the past external torques
-                _tau_ts = jnp.concatenate((_carry["tau_ts"], _tau[None, ...]), axis=0)
-
                 # evaluate the autoregressive function
-                _x_next = autoregress_fn(_carry["x_past_ts"], _tau_ts)
+                _x_next = autoregress_fn(_carry["x"], _tau)
 
                 # update the carry state
                 _carry = dict(
-                    x_past_ts=jnp.concatenate(
-                        (_carry["x_past_ts"][1:], _x_next[None, ...]), axis=0
-                    ),
-                    tau_ts=_tau_ts[1:],
+                    x=_x_next
                 )
 
                 return _carry, _x_next
@@ -216,12 +190,7 @@ def task_factory(
                     _z_dynamic_ts: next latent representation of shape (time_dim - start_time_idx, n_z)
                 """
                 carry_init = dict(
-                    x_past_ts=_x_ts[
-                        start_time_idx - num_past_timesteps + 1 : start_time_idx + 1
-                    ],  # shape (num_past_timesteps, n_z)
-                    tau_ts=_tau_ts[
-                        start_time_idx - num_past_timesteps + 1 : start_time_idx
-                    ],  # shape (num_past_timesteps - 1, n_tau)
+                    x=_x_ts[start_time_idx],  # shape (2*n_q, )
                 )
                 carry_final, _x_ts = lax.scan(
                     scan_fn,
@@ -235,7 +204,7 @@ def task_factory(
                 rollout_discrete_dynamics_fn,
                 in_axes=(0, 0),
                 out_axes=0,
-            )(x_past_bt, tau_bt.astype(jnp.float32))
+            )(x_bt, tau_bt.astype(jnp.float32))
         else:
             raise ValueError(f"Unknown dynamics_type: {dynamics_type}")
 
