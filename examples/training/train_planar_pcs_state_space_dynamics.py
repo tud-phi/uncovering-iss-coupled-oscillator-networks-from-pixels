@@ -28,7 +28,7 @@ tf.random.set_seed(seed=seed)
 
 system_type = "pcc_ns-2"
 # dynamics_model_name in ["node-general-mlp", "node-mechanical-mlp", "node-cornn", "node-con", "node-lnn", "node-hippo-lss", "discrete-mlp"]
-dynamics_model_name = "node-mechanical-mlp"
+dynamics_model_name = "node-lnn"
 
 batch_size = 100
 num_epochs = 50
@@ -147,6 +147,9 @@ if __name__ == "__main__":
         nn_model = LnnOde(
             latent_dim=n_q,
             input_dim=n_tau,
+            learn_dissipation=True,
+            num_layers=num_mlp_layers,
+            hidden_dim=mlp_hidden_dim,
             nonlinearity=getattr(nn, mlp_nonlinearity_name),
             diag_shift=diag_shift,
             diag_eps=diag_eps,
