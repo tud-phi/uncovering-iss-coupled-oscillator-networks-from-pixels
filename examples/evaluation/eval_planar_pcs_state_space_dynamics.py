@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import tensorflow as tf
 
+from src.models.discrete_forward_dynamics import DiscreteMlpDynamics
 from src.models.neural_odes import ConOde, CornnOde, LnnOde, LinearStateSpaceOde, MlpOde
 from src.training.dataset_utils import load_dataset, load_dummy_neural_network_input
 from src.training.loops import run_eval
@@ -33,7 +34,6 @@ normalize_loss = False
 batch_size = 10
 loss_weights = dict(mse_q=0.0, mse_q_d=1.0)
 start_time_idx = 0
-num_past_timesteps = 2
 
 num_mlp_layers, mlp_hidden_dim, mlp_nonlinearity_name = 4, 20, "leaky_relu"
 cornn_gamma, cornn_epsilon = 1.0, 1.0
@@ -152,11 +152,10 @@ if __name__ == "__main__":
         )
     elif dynamics_model_name == "discrete-mlp":
         nn_model = DiscreteMlpDynamics(
-            latent_dim=n_q,
+            latent_dim=2 * n_q,
             input_dim=n_tau,
             output_dim=n_q,
             dt=dataset_metadata["dt"],
-            num_past_timesteps=num_past_timesteps,
             num_layers=num_mlp_layers,
             hidden_dim=mlp_hidden_dim,
             nonlinearity=getattr(nn, mlp_nonlinearity_name),
@@ -184,7 +183,6 @@ if __name__ == "__main__":
         normalize_loss=normalize_loss,
         solver=solver_class(),
         start_time_idx=start_time_idx,
-        num_past_timesteps=num_past_timesteps,
     )
 
     # load the neural network dummy input
@@ -235,7 +233,6 @@ if __name__ == "__main__":
         normalize_loss=normalize_loss,
         solver=solver_class(),
         start_time_idx=start_time_idx,
-        num_past_timesteps=num_past_timesteps,
     )
     forward_fn_ode = jit(task_callables_rollout_ode.forward_fn)
     forward_fn_learned = jit(task_callables_rollout_learned.forward_fn)

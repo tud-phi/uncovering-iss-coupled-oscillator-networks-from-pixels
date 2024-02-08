@@ -33,7 +33,6 @@ batch_size = 100
 num_epochs = 50
 warmup_epochs = 5
 start_time_idx = 1
-num_past_timesteps = 2
 
 num_mlp_layers, mlp_hidden_dim, mlp_nonlinearity_name = 4, 20, "leaky_relu"
 cornn_gamma, cornn_epsilon = 1.0, 1.0
@@ -126,11 +125,9 @@ if __name__ == "__main__":
         )
     elif dynamics_model_name == "discrete-mlp":
         nn_model = DiscreteMlpDynamics(
-            latent_dim=n_q,
             input_dim=n_tau,
-            output_dim=n_q,
+            output_dim=2 * n_q,
             dt=dataset_metadata["dt"],
-            num_past_timesteps=num_past_timesteps,
             num_layers=num_mlp_layers,
             hidden_dim=mlp_hidden_dim,
             nonlinearity=getattr(nn, mlp_nonlinearity_name),
@@ -157,7 +154,6 @@ if __name__ == "__main__":
         nn_model=nn_model,
         solver=solver_class(),
         start_time_idx=start_time_idx,
-        num_past_timesteps=num_past_timesteps,
     )
 
     # run the training loop

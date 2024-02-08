@@ -83,7 +83,6 @@ if __name__ == "__main__":
         )
 
         start_time_idx = 0
-        num_past_timesteps = 2
 
         datasets, dataset_info, dataset_metadata = load_dataset(
             f"planar_pcs/{system_type}_32x32px",
@@ -196,11 +195,9 @@ if __name__ == "__main__":
             mlp_nonlinearity = getattr(nn, mlp_nonlinearity_name)
 
             nn_model = DiscreteMlpDynamics(
-                latent_dim=n_q,
                 input_dim=n_tau,
-                output_dim=n_q,
+                output_dim=2 * n_q,
                 dt=dataset_metadata["dt"],
-                num_past_timesteps=num_past_timesteps,
                 num_layers=num_mlp_layers,
                 hidden_dim=mlp_hidden_dim,
                 nonlinearity=mlp_nonlinearity,
@@ -228,7 +225,6 @@ if __name__ == "__main__":
             normalize_loss=True,
             solver=solver_class(),
             start_time_idx=start_time_idx,
-            num_past_timesteps=num_past_timesteps,
         )
 
         # add the optuna prune callback

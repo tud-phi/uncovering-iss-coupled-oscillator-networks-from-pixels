@@ -28,13 +28,12 @@ tf.random.set_seed(seed=seed)
 
 system_type = "pcc_ns-2"
 # dynamics_model_name in ["node-general-mlp", "node-mechanical-mlp", "node-cornn", "node-con", "node-lnn", "node-hippo-lss", "discrete-mlp"]
-dynamics_model_name = "node-lnn"
+dynamics_model_name = "discrete-mlp"
 
 batch_size = 100
 num_epochs = 50
 warmup_epochs = 5
 start_time_idx = 0
-num_past_timesteps = 2
 
 base_lr = 0.0
 loss_weights = dict(
@@ -66,6 +65,16 @@ elif dynamics_model_name == "node-lnn":
     mlp_hidden_dim = 15
     mlp_nonlinearity_name = "elu"
     diag_shift, diag_eps = 8.271283131006865e-05, 0.005847971857910474
+elif dynamics_model_name == "discrete-mlp":
+    base_lr = 0.0001
+    loss_weights = dict(
+        mse_q=0.0,
+        mse_q_d=1.0,
+    )
+    weight_decay = 0.0
+    num_mlp_layers = 5
+    mlp_hidden_dim = 20
+    mlp_nonlinearity_name = "leaky_relu"
 else:
     raise NotImplementedError(f"Unknown dynamics_model_name: {dynamics_model_name}")
 
@@ -170,11 +179,9 @@ if __name__ == "__main__":
         )
     elif dynamics_model_name == "discrete-mlp":
         nn_model = DiscreteMlpDynamics(
-            latent_dim=n_q,
             input_dim=n_tau,
-            output_dim=n_q,
+            output_dim=2*n_q,
             dt=dataset_metadata["dt"],
-            num_past_timesteps=num_past_timesteps,
             num_layers=num_mlp_layers,
             hidden_dim=mlp_hidden_dim,
             nonlinearity=getattr(nn, mlp_nonlinearity_name),
@@ -202,7 +209,6 @@ if __name__ == "__main__":
         normalize_loss=True,
         solver=solver_class(),
         start_time_idx=start_time_idx,
-        num_past_timesteps=num_past_timesteps,
     )
 
     # run the training loop
