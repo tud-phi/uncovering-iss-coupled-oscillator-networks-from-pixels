@@ -55,6 +55,17 @@ if dynamics_model_name in ["node-mechanical-mlp"]:
     num_mlp_layers = 3
     mlp_hidden_dim = 81
     mlp_nonlinearity_name = "selu"
+elif dynamics_model_name == "node-lnn":
+    base_lr = 0.014497133990714495
+    loss_weights = dict(
+        mse_q=0.9347261979172878,
+        mse_q_d=1.0,
+    )
+    weight_decay = 5.4840283002626335e-05
+    num_mlp_layers = 5
+    mlp_hidden_dim = 15
+    mlp_nonlinearity_name = "elu"
+    diag_shift, diag_eps = 8.271283131006865e-05, 0.005847971857910474
 else:
     raise NotImplementedError(f"Unknown dynamics_model_name: {dynamics_model_name}")
 
@@ -124,16 +135,21 @@ if __name__ == "__main__":
             input_dim=n_tau,
             gamma=cornn_gamma,
             epsilon=cornn_epsilon,
+            nonlinearity=getattr(nn, mlp_nonlinearity_name),
         )
     elif dynamics_model_name == "node-con":
         nn_model = ConOde(
             latent_dim=n_q,
             input_dim=n_tau,
+            nonlinearity=getattr(nn, mlp_nonlinearity_name),
         )
     elif dynamics_model_name == "node-lnn":
         nn_model = LnnOde(
             latent_dim=n_q,
             input_dim=n_tau,
+            nonlinearity=getattr(nn, mlp_nonlinearity_name),
+            diag_shift=diag_shift,
+            diag_eps=diag_eps,
         )
     elif dynamics_model_name in ["node-general-lss", "node-mechanical-lss", "node-hippo-lss"]:
         nn_model = LinearStateSpaceOde(
