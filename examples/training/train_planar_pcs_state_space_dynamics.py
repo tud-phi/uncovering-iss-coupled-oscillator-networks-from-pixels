@@ -91,7 +91,9 @@ logdir = (
 logdir.mkdir(parents=True, exist_ok=True)
 
 sym_exp_filepath = (
-    Path(jsrm.__file__).parent / "symbolic_expressions" / f"planar_pcs_ns-{num_segments}.dill"
+    Path(jsrm.__file__).parent
+    / "symbolic_expressions"
+    / f"planar_pcs_ns-{num_segments}.dill"
 )
 
 if __name__ == "__main__":
@@ -154,11 +156,17 @@ if __name__ == "__main__":
             diag_shift=diag_shift,
             diag_eps=diag_eps,
         )
-    elif dynamics_model_name in ["node-general-lss", "node-mechanical-lss", "node-hippo-lss"]:
+    elif dynamics_model_name in [
+        "node-general-lss",
+        "node-mechanical-lss",
+        "node-hippo-lss",
+    ]:
         nn_model = LinearStateSpaceOde(
             latent_dim=n_q,
             input_dim=n_tau,
-            transition_matrix_init=dynamics_model_name.split("-")[1],  # "general", "mechanical", or "hippo"
+            transition_matrix_init=dynamics_model_name.split("-")[
+                1
+            ],  # "general", "mechanical", or "hippo"
         )
     elif dynamics_model_name == "discrete-mlp":
         nn_model = DiscreteMlpDynamics(

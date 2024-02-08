@@ -228,7 +228,7 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             width=self.builder_config.img_size[0],
             height=self.builder_config.img_size[1],
             origin_uv=self.builder_config.origin_uv,
-            line_thickness=lw
+            line_thickness=lw,
         )
 
         sample_q = jnp.array(self.builder_config.q_max)
@@ -271,5 +271,5 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             metadata=metadata,
             x0_sampling_dist="uniform",
             tau_max=tau_max,
-            save_raw_data=False
+            save_raw_data=False,
         )
