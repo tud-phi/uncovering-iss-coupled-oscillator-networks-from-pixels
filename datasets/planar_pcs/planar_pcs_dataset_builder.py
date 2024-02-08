@@ -19,7 +19,7 @@ class PlanarPcsDatasetConfig(tfds.core.BuilderConfig):
     q_max: Tuple = (10 * jnp.pi, 0.05, 0.1)
     q_d_max: Tuple = (10 * jnp.pi, 0.05, 0.1)
     num_simulations: int = 20000
-    dt: float = 5e-3
+    dt: float = 2e-2
     sim_dt: float = 1e-3
     seed: int = 0
 
@@ -49,6 +49,18 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             description="Planar constant strain continuum robot with images of size 64x64px.",
             state_dim=6,
             num_segments=1,
+        ),
+        PlanarPcsDatasetConfig(
+            name="pcc_ns-2_32x32px",
+            description="Planar two segment piecewise constant curvature continuum robot with images of size 32x32px.",
+            state_dim=4,
+            img_size=(32, 32),
+            origin_uv=(16, 4),
+            num_segments=2,
+            strain_selector=(True, False, False, True, False, False),
+            q_max=(5 * jnp.pi, 5 * jnp.pi),
+            q_d_max=(5 * jnp.pi, 5 * jnp.pi),
+            sim_dt=1e-4,
         ),
         PlanarPcsDatasetConfig(
             name="pcc_ns-2_64x64px",
@@ -207,6 +219,8 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
         ), "Provided state dimension does not match the number of provided q_d_max values!"
 
         # initialize the rendering function
+        # the line thickness is calibrated for 64x64px images
+        lw = int(6 / 64 * jnp.mean(jnp.array(self.builder_config.img_size)))
         rendering_fn = partial(
             render_planar_pcs,
             forward_kinematics_fn,
@@ -214,7 +228,7 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             width=self.builder_config.img_size[0],
             height=self.builder_config.img_size[1],
             origin_uv=self.builder_config.origin_uv,
-            line_thickness=6,
+            line_thickness=lw
         )
 
         sample_q = jnp.array(self.builder_config.q_max)
@@ -257,4 +271,5 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             metadata=metadata,
             x0_sampling_dist="uniform",
             tau_max=tau_max,
+            save_raw_data=False
         )
