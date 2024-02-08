@@ -46,7 +46,7 @@ def task_factory(
             node: Neural ODE dynamics map (i.e., involving an neural network model) a state consisting of latent and their velocity to the state derivative.
             discrete: Discrete forward dynamics map the latents at the num_past_timesteps to the next latent.
         nn_model: the neural network model of the dynamics autoencoder. Should contain both the autoencoder and the neural ODE.
-        ode_fn: (ground-truth) ODE function. Only mandatory if dynamics_type is "ode". 
+        ode_fn: (ground-truth) ODE function. Only mandatory if dynamics_type is "ode".
             It should have the following signature:
             ode_fn(t, x, tau) -> x_dot
         normalize_loss: whether to normalize the loss by the state bounds (i.e., x0_min and x0_max)
@@ -120,7 +120,7 @@ def task_factory(
                         method=nn_model.forward_dynamics,
                     )
                     return x_d
-                
+
                 ode_term = ODETerm(node_fn)
             else:
                 ode_term = ODETerm(ode_fn)
