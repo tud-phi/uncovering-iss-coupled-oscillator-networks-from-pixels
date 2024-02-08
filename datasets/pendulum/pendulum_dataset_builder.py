@@ -192,7 +192,9 @@ class Pendulum(tfds.core.GeneratorBasedBuilder):
         state_init_max = state_init_max.at[num_links:].set(max_q_d_0)
 
         # define maximum external torque
-        tau_max = 2 * jnp.cumsum(jnp.max(robot_params["g"]) * robot_params["m"] * robot_params["lc"])
+        tau_max = 2 * jnp.cumsum(
+            jnp.max(robot_params["g"]) * robot_params["m"] * robot_params["lc"]
+        )
 
         # collect the dataset
         yield from collect_dataset(

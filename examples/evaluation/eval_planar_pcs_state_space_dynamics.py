@@ -70,9 +70,13 @@ dynamics_type = dynamics_model_name.split("-")[0]
 assert dynamics_type in ["node", "discrete"], f"Unknown dynamics_type: {dynamics_type}"
 
 sym_exp_filepath = (
-    Path(jsrm.__file__).parent / "symbolic_expressions" / f"planar_pcs_ns-{num_segments}.dill"
+    Path(jsrm.__file__).parent
+    / "symbolic_expressions"
+    / f"planar_pcs_ns-{num_segments}.dill"
 )
-ckpt_dir = Path("logs").resolve() / f"{system_type}_state_space_dynamics" / experiment_id
+ckpt_dir = (
+    Path("logs").resolve() / f"{system_type}_state_space_dynamics" / experiment_id
+)
 
 
 if __name__ == "__main__":
@@ -134,11 +138,17 @@ if __name__ == "__main__":
             diag_shift=diag_shift,
             diag_eps=diag_eps,
         )
-    elif dynamics_model_name in ["node-general-lss", "node-mechanical-lss", "node-hippo-lss"]:
+    elif dynamics_model_name in [
+        "node-general-lss",
+        "node-mechanical-lss",
+        "node-hippo-lss",
+    ]:
         nn_model = LinearStateSpaceOde(
             latent_dim=n_q,
             input_dim=n_tau,
-            transition_matrix_init=dynamics_model_name.split("-")[1],  # "general", "mechanical", or "hippo"
+            transition_matrix_init=dynamics_model_name.split("-")[
+                1
+            ],  # "general", "mechanical", or "hippo"
         )
     elif dynamics_model_name == "discrete-mlp":
         nn_model = DiscreteMlpDynamics(
@@ -196,7 +206,9 @@ if __name__ == "__main__":
     rollout_duration = 5.0  # s
     rollout_dt = 1e-2
     rollout_sim_dt = 5e-3 * rollout_dt  # simulation time step of 5e-5 s
-    ts_rollout = jnp.linspace(0.0, rollout_duration, num=int(rollout_duration / rollout_dt))
+    ts_rollout = jnp.linspace(
+        0.0, rollout_duration, num=int(rollout_duration / rollout_dt)
+    )
     # define the task callables for the rollout
     task_callables_rollout_ode, _ = state_space_dynamics.task_factory(
         system_type,
@@ -230,7 +242,7 @@ if __name__ == "__main__":
 
     # rollout dynamics
     print("Rollout...")
-    x0 = jnp.concatenate([dataset_metadata["x0_max"][:n_q], jnp.zeros((n_q, ))])
+    x0 = jnp.concatenate([dataset_metadata["x0_max"][:n_q], jnp.zeros((n_q,))])
     print("x0", x0)
     x0_bt = x0[None, None, :]
     tau_bt = jnp.zeros((1, n_tau))
@@ -246,4 +258,3 @@ if __name__ == "__main__":
     ax.set_xlabel("Time [s]")
     ax.legend()
     plt.show()
-
