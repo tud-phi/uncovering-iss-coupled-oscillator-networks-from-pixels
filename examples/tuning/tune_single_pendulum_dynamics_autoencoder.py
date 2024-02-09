@@ -205,6 +205,7 @@ if __name__ == "__main__":
             mlp_nonlinearity = getattr(nn, mlp_nonlinearity_name)
 
             dynamics_model = DiscreteMlpDynamics(
+                state_dim=num_past_timesteps * n_z,
                 input_dim=n_tau,
                 output_dim=n_z,
                 dt=dataset_metadata["dt"],

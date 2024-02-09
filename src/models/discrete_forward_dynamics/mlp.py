@@ -9,6 +9,7 @@ from .discrete_forward_dynamics_base import DiscreteForwardDynamicsBase
 class DiscreteMlpDynamics(DiscreteForwardDynamicsBase):
     """A simple MLP ODE."""
 
+    state_dim: int
     input_dim: int
     output_dim: int
     dt: float

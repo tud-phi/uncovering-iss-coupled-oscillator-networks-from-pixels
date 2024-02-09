@@ -152,9 +152,9 @@ if __name__ == "__main__":
         )
     elif dynamics_model_name == "discrete-mlp":
         nn_model = DiscreteMlpDynamics(
-            latent_dim=2 * n_q,
+            state_dim=2 * n_q,
             input_dim=n_tau,
-            output_dim=n_q,
+            output_dim=2 * n_q,
             dt=dataset_metadata["dt"],
             num_layers=num_mlp_layers,
             hidden_dim=mlp_hidden_dim,

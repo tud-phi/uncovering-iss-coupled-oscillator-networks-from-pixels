@@ -218,12 +218,14 @@ if __name__ == "__main__":
         )
     elif dynamics_model_name in ["discrete-elman-rnn", "discrete-gru-rnn"]:
         nn_model = DiscreteRnnDynamics(
+            state_dim=2 * n_q,
             input_dim=n_tau,
             output_dim=2 * n_q,
             rnn_method=dynamics_model_name.split("-")[1],  # "elman" or "gru"
         )
     elif dynamics_model_name in ["discrete-general-lss", "discrete-hippo-lss"]:
         nn_model = DiscreteLssDynamics(
+            state_dim=2 * n_q,
             input_dim=n_tau,
             output_dim=2 * n_q,
             dt=dataset_metadata["dt"],

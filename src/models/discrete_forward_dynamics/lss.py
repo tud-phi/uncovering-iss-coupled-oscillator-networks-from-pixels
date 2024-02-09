@@ -13,6 +13,7 @@ class DiscreteLssDynamics(DiscreteForwardDynamicsBase):
     A simple linear state space model.
     """
 
+    state_dim: int
     input_dim: int
     output_dim: int
     dt: float
@@ -32,9 +33,11 @@ class DiscreteLssDynamics(DiscreteForwardDynamicsBase):
         Returns:
             x_next: state of shape (output_dim, )
         """
+        assert self.output_dim <= self.state_dim, "Output dim must be less than or equal to state dim"
+
         if self.transition_matrix_init == "hippo":
             hippo_params = Hippo(
-                state_size=self.output_dim,
+                state_size=self.state_dim,
                 basis_measure=self.hippo_measure,
                 diagonalize=False,
             )()
@@ -51,8 +54,12 @@ class DiscreteLssDynamics(DiscreteForwardDynamicsBase):
             x_next = Ad @ x + Bd @ tau
         else:
             # compute x_d = Ad @ x + Bd @ tau where Ad and Bd are learned, time-discrete matrices
-            x_next = nn.Dense(features=self.output_dim, use_bias=False)(x) + nn.Dense(
-                features=self.output_dim, use_bias=False
+            x_next = nn.Dense(features=self.state_dim, use_bias=False)(x) + nn.Dense(
+                features=self.state_dim, use_bias=False
             )(tau)
+
+        # the state dim might be larger than the output dim
+        # in which case we need to slice the output
+        x_next = x_next[..., -self.output_dim:]
 
         return x_next

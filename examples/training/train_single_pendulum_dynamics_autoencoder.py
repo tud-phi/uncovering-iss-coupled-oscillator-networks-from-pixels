@@ -236,6 +236,7 @@ if __name__ == "__main__":
         )
     elif dynamics_model_name == "discrete-mlp":
         dynamics_model = DiscreteMlpDynamics(
+            state_dim=num_past_timesteps * n_z,
             input_dim=n_tau,
             output_dim=n_z,
             dt=dataset_metadata["dt"],
