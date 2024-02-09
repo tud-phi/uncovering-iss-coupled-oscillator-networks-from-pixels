@@ -40,6 +40,7 @@ def task_factory(
     solver: AbstractSolver = Dopri5(),
     latent_velocity_source: str = "latent-space-finite-differences",
     num_past_timesteps: int = 2,
+    interpret_discrete_hidden_state_as_displacement: bool = False,
 ) -> Tuple[TaskCallables, Type[clu_metrics.Collection]]:
     """
     Factory function for the task of learning a representation using first-principle dynamics while using the
@@ -66,6 +67,11 @@ def task_factory(
         latent_velocity_source: the source of the latent velocity. Only used for the neural ODE.
             Can be either "latent-space-finite-differences", or "image-space-finite-differences".
         num_past_timesteps: the number of past timesteps to use for the discrete forward dynamics.
+        interpret_discrete_hidden_state_as_displacement: whether to interpret the hidden state of the discrete forward dynamics
+            as differences (i.e., deltas) between actual physical states. It has been shown that this can improve the
+            performance of RNNs, see:
+            J. Martinez, M. J. Black, and J. Romero, “On human motion prediction using recurrent neural networks,”
+            in Proc. IEEE Conf. on Comput. Vis. Pattern Recognit., 2017.
     Returns:
         task_callables: struct containing the functions for the learning task
         metrics_collection_cls: contains class for collecting metrics
@@ -287,9 +293,17 @@ def task_factory(
                 # append the current external torque to the past external torques
                 _tau_ts = jnp.concatenate((_carry["tau_ts"], _tau[None, ...]), axis=0)
 
+                if interpret_discrete_hidden_state_as_displacement:
+                    _hidden_state = jnp.concatenate([
+                        jnp.diff(_carry["z_past_ts"], axis=0),  # this is the relative displacement of the previous latents from the current latent
+                        _carry["z_past_ts"][-2:-1, ...],  # this is the current latent
+                    ], axis=0).flatten()
+                else:
+                    _hidden_state = _carry["z_past_ts"].flatten()
+
                 # evaluate the autoregressive function
                 _z_next = autoregress_fn(
-                    _carry["z_past_ts"].flatten(), _tau_ts.flatten()
+                    _hidden_state, _tau_ts.flatten()
                 )
 
                 # update the carry state
