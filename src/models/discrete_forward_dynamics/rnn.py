@@ -28,7 +28,9 @@ class DiscreteRnnDynamics(DiscreteForwardDynamicsBase):
         Returns:
             x_next: state of shape (output_dim, ). In RNN literature, this is often called the next "hidden state" or "carry" h.
         """
-        assert self.output_dim <= self.state_dim, "Output dim must be less than or equal to state dim"
+        assert (
+            self.output_dim <= self.state_dim
+        ), "Output dim must be less than or equal to state dim"
 
         if self.rnn_method == "elman":
             # Elman RNN
@@ -48,6 +50,6 @@ class DiscreteRnnDynamics(DiscreteForwardDynamicsBase):
 
         # the state dim might be larger than the output dim
         # in which case we need to slice the output
-        x_next = x_next[..., -self.output_dim:]
+        x_next = x_next[..., -self.output_dim :]
 
         return x_next

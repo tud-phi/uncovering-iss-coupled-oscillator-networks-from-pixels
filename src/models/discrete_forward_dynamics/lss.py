@@ -33,7 +33,9 @@ class DiscreteLssDynamics(DiscreteForwardDynamicsBase):
         Returns:
             x_next: state of shape (output_dim, )
         """
-        assert self.output_dim <= self.state_dim, "Output dim must be less than or equal to state dim"
+        assert (
+            self.output_dim <= self.state_dim
+        ), "Output dim must be less than or equal to state dim"
 
         if self.transition_matrix_init == "hippo":
             hippo_params = Hippo(
@@ -60,6 +62,6 @@ class DiscreteLssDynamics(DiscreteForwardDynamicsBase):
 
         # the state dim might be larger than the output dim
         # in which case we need to slice the output
-        x_next = x_next[..., -self.output_dim:]
+        x_next = x_next[..., -self.output_dim :]
 
         return x_next

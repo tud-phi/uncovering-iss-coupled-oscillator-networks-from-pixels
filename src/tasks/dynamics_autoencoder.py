@@ -294,17 +294,22 @@ def task_factory(
                 _tau_ts = jnp.concatenate((_carry["tau_ts"], _tau[None, ...]), axis=0)
 
                 if interpret_discrete_hidden_state_as_displacement:
-                    _hidden_state = jnp.concatenate([
-                        jnp.diff(_carry["z_past_ts"], axis=0),  # this is the relative displacement of the previous latents from the current latent
-                        _carry["z_past_ts"][-2:-1, ...],  # this is the current latent
-                    ], axis=0).flatten()
+                    _hidden_state = jnp.concatenate(
+                        [
+                            jnp.diff(
+                                _carry["z_past_ts"], axis=0
+                            ),  # this is the relative displacement of the previous latents from the current latent
+                            _carry["z_past_ts"][
+                                -2:-1, ...
+                            ],  # this is the current latent
+                        ],
+                        axis=0,
+                    ).flatten()
                 else:
                     _hidden_state = _carry["z_past_ts"].flatten()
 
                 # evaluate the autoregressive function
-                _z_next = autoregress_fn(
-                    _hidden_state, _tau_ts.flatten()
-                )
+                _z_next = autoregress_fn(_hidden_state, _tau_ts.flatten())
 
                 # update the carry state
                 _carry = dict(
