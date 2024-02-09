@@ -66,6 +66,15 @@ elif dynamics_model_name == "node-lnn":
     mlp_hidden_dim = 15
     mlp_nonlinearity_name = "elu"
     diag_shift, diag_eps = 8.271283131006865e-05, 0.005847971857910474
+elif dynamics_model_name == "node-con":
+    base_lr = 0.05464221872891958
+    loss_weights = dict(
+        mse_q=0.0003253194073232259,
+        mse_q_d=1.0,
+    )
+    weight_decay = 0.00019740817308270745
+    nonlinearity_name = "sigmoid"
+    diag_shift, diag_eps = 7.892200115980268e-06, 1.3090986307629387e-06
 else:
     raise NotImplementedError(f"Unknown dynamics_model_name: {dynamics_model_name}")
 
@@ -143,7 +152,9 @@ if __name__ == "__main__":
         nn_model = ConOde(
             latent_dim=n_q,
             input_dim=n_tau,
-            nonlinearity=getattr(nn, mlp_nonlinearity_name),
+            nonlinearity=getattr(nn, nonlinearity_name),
+            diag_shift=diag_shift,
+            diag_eps=diag_eps,
         )
     elif dynamics_model_name == "node-lnn":
         nn_model = LnnOde(
