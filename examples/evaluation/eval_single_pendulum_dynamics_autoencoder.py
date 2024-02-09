@@ -187,6 +187,7 @@ if __name__ == "__main__":
         autoencoder=autoencoder_model,
         dynamics=dynamics_model,
         dynamics_type=dynamics_type,
+        num_past_timesteps=num_past_timesteps,
     )
 
     # import solver class from diffrax

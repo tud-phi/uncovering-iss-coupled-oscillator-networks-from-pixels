@@ -2,6 +2,7 @@ from datetime import datetime
 import flax.linen as nn
 from jax import config as jax_config
 
+# jax_config.update("jax_platform_name", "cpu")  # set default device to 'cpu'
 jax_config.update("jax_enable_x64", True)
 from jax import random
 import jax.numpy as jnp
@@ -9,8 +10,6 @@ import jsrm
 from jsrm.systems import planar_pcs
 from pathlib import Path
 import tensorflow as tf
-
-# jax_config.update("jax_platform_name", "cpu")  # set default device to 'cpu'
 
 from src.models.discrete_forward_dynamics import DiscreteMlpDynamics
 from src.models.neural_odes import ConOde, CornnOde, LnnOde, LinearStateSpaceOde, MlpOde

@@ -2,6 +2,7 @@ from datetime import datetime
 import flax.linen as nn
 from jax import config as jax_config
 
+# jax_config.update("jax_platform_name", "cpu")  # set default device to 'cpu'
 jax_config.update("jax_enable_x64", True)
 from jax import random
 import jax.numpy as jnp
@@ -9,8 +10,6 @@ import jsrm
 from jsrm.systems import pendulum
 from pathlib import Path
 import tensorflow as tf
-
-# jax_config.update("jax_platform_name", "cpu")  # set default device to 'cpu'
 
 from src.models.autoencoders import Autoencoder, VAE
 from src.models.discrete_forward_dynamics import DiscreteMlpDynamics
@@ -31,7 +30,7 @@ tf.random.set_seed(seed=seed)
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 # dynamics_model_name in ["node-general-mlp", "node-mechanical-mlp", "node-cornn", "node-con",
 # "node-lnn", "node-general-lss", "node-mechanical-lss", "discrete-mlp"]
-dynamics_model_name = "node-hippo-lss"
+dynamics_model_name = "discrete-mlp"
 # size of latent space
 n_z = 2
 
@@ -250,6 +249,7 @@ if __name__ == "__main__":
         autoencoder=autoencoder_model,
         dynamics=dynamics_model,
         dynamics_type=dynamics_type,
+        num_past_timesteps=num_past_timesteps,
     )
 
     # import solver class from diffrax
