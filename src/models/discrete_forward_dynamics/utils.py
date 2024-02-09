@@ -3,6 +3,7 @@ import jax.numpy as jnp
 import jax.scipy as jsp
 from typing import Tuple, Union
 
+
 def discretize_state_space_model(
     A: Array, B: Array, dt: Union[Array, float], method: str = "zoh"
 ) -> Tuple[Array, Array]:
@@ -24,22 +25,23 @@ def discretize_state_space_model(
         em_upper = jnp.hstack((A, B))
 
         # Need to stack zeros under the A and B matrices
-        em_lower = jnp.hstack((jnp.zeros((B.shape[1], A.shape[0])),
-                              jnp.zeros((B.shape[1], B.shape[1]))))
+        em_lower = jnp.hstack(
+            (jnp.zeros((B.shape[1], A.shape[0])), jnp.zeros((B.shape[1], B.shape[1])))
+        )
         em = jnp.vstack((em_upper, em_lower))
         ms = jsp.linalg.expm(dt * em)
 
         # Dispose of the lower rows
-        ms = ms[:A.shape[0], :]
-        Ad = ms[:, 0:A.shape[1]]
-        Bd = ms[:, A.shape[1]:]
+        ms = ms[: A.shape[0], :]
+        Ad = ms[:, 0 : A.shape[1]]
+        Bd = ms[:, A.shape[1] :]
     elif method == "bilinear":
         # Bilinear (Tustin) approximation
         # https://srush.github.io/annotated-s4/#part-1-state-space-models
         I = jnp.eye(A.shape[0])
         BL = jnp.linalg.inv(I - (dt / 2.0) * A)
         Ad = BL @ (I + (dt / 2.0) * A)
-        Bd= (BL * dt) @ B
+        Bd = (BL * dt) @ B
     else:
         raise ValueError(f"Unknown discretization method: {method}")
 

@@ -143,6 +143,7 @@ def task_factory(
             # extract the rolled-out latent representations
             x_pred_bt = sol_bt.ys.astype(jnp.float32)
         elif dynamics_type == "discrete":
+
             def autoregress_fn(_x: Array, _tau: Array) -> Array:
                 """
                 Autoregressive function for the discrete forward dynamics
@@ -174,9 +175,7 @@ def task_factory(
                 _x_next = autoregress_fn(_carry["x"], _tau)
 
                 # update the carry state
-                _carry = dict(
-                    x=_x_next
-                )
+                _carry = dict(x=_x_next)
 
                 return _carry, _x_next
 

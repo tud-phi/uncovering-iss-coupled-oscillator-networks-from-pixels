@@ -31,7 +31,10 @@ class DiscreteRnnDynamics(DiscreteForwardDynamicsBase):
             # Elman RNN
             # https://en.wikipedia.org/wiki/Recurrent_neural_network#Elman_networks_and_Jordan_networks
             # https://pytorch.org/docs/stable/generated/torch.nn.RNN.html
-            x_next = nn.tanh(nn.Dense(features=self.output_dim)(x) + nn.Dense(features=self.output_dim)(tau))
+            x_next = nn.tanh(
+                nn.Dense(features=self.output_dim)(x)
+                + nn.Dense(features=self.output_dim)(tau)
+            )
         elif self.rnn_method == "gru":
             # GRU
             # https://en.wikipedia.org/wiki/Gated_recurrent_unit

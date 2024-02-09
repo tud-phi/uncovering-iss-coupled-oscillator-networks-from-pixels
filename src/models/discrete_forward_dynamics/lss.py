@@ -33,7 +33,11 @@ class DiscreteLssDynamics(DiscreteForwardDynamicsBase):
             x_next: state of shape (output_dim, )
         """
         if self.transition_matrix_init == "hippo":
-            hippo_params = Hippo(state_size=self.output_dim, basis_measure=self.hippo_measure, diagonalize=False)()
+            hippo_params = Hippo(
+                state_size=self.output_dim,
+                basis_measure=self.hippo_measure,
+                diagonalize=False,
+            )()
             # TODO: make A and B learnable
             A = hippo_params.state_matrix
             # Structure State Space Models usually assume a 1D input
@@ -41,7 +45,9 @@ class DiscreteLssDynamics(DiscreteForwardDynamicsBase):
             # to make it compatible with the input
             B = jnp.repeat(hippo_params.input_matrix[:, None], self.input_dim, axis=1)
             # compute x_d = Ad @ x + Bd @ tau where Ad and Bd are time-discrete matrices
-            Ad, Bd = discretize_state_space_model(A, B, self.dt, method=self.discretization_method)
+            Ad, Bd = discretize_state_space_model(
+                A, B, self.dt, method=self.discretization_method
+            )
             x_next = Ad @ x + Bd @ tau
         else:
             # compute x_d = Ad @ x + Bd @ tau where Ad and Bd are learned, time-discrete matrices

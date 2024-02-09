@@ -11,7 +11,11 @@ from jsrm.systems import planar_pcs
 from pathlib import Path
 import tensorflow as tf
 
-from src.models.discrete_forward_dynamics import DiscreteLssDynamics, DiscreteMlpDynamics, DiscreteRnnDynamics
+from src.models.discrete_forward_dynamics import (
+    DiscreteLssDynamics,
+    DiscreteMlpDynamics,
+    DiscreteRnnDynamics,
+)
 from src.models.neural_odes import ConOde, CornnOde, LnnOde, LinearStateSpaceOde, MlpOde
 from src.tasks import state_space_dynamics
 from src.training.dataset_utils import load_dataset
@@ -87,7 +91,12 @@ elif dynamics_model_name == "discrete-mlp":
     num_mlp_layers = 5
     mlp_hidden_dim = 20
     mlp_nonlinearity_name = "leaky_relu"
-elif dynamics_model_name in ["discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss"]:
+elif dynamics_model_name in [
+    "discrete-elman-rnn",
+    "discrete-gru-rnn",
+    "discrete-general-lss",
+    "discrete-hippo-lss",
+]:
     base_lr = 0.0001
     loss_weights = dict(
         mse_q=0.0,
@@ -201,7 +210,7 @@ if __name__ == "__main__":
     elif dynamics_model_name == "discrete-mlp":
         nn_model = DiscreteMlpDynamics(
             input_dim=n_tau,
-            output_dim=2*n_q,
+            output_dim=2 * n_q,
             dt=dataset_metadata["dt"],
             num_layers=num_mlp_layers,
             hidden_dim=mlp_hidden_dim,
@@ -210,13 +219,13 @@ if __name__ == "__main__":
     elif dynamics_model_name in ["discrete-elman-rnn", "discrete-gru-rnn"]:
         nn_model = DiscreteRnnDynamics(
             input_dim=n_tau,
-            output_dim=2*n_q,
+            output_dim=2 * n_q,
             rnn_method=dynamics_model_name.split("-")[1],  # "elman" or "gru"
         )
     elif dynamics_model_name in ["discrete-general-lss", "discrete-hippo-lss"]:
         nn_model = DiscreteLssDynamics(
             input_dim=n_tau,
-            output_dim=2*n_q,
+            output_dim=2 * n_q,
             dt=dataset_metadata["dt"],
             transition_matrix_init=dynamics_model_name.split("-")[
                 1

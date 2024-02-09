@@ -288,7 +288,9 @@ def task_factory(
                 _tau_ts = jnp.concatenate((_carry["tau_ts"], _tau[None, ...]), axis=0)
 
                 # evaluate the autoregressive function
-                _z_next = autoregress_fn(_carry["z_past_ts"].flatten(), _tau_ts.flatten())
+                _z_next = autoregress_fn(
+                    _carry["z_past_ts"].flatten(), _tau_ts.flatten()
+                )
 
                 # update the carry state
                 _carry = dict(
