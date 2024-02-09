@@ -18,8 +18,8 @@ class LinearStateSpaceOde(NeuralOdeBase):
 
     latent_dim: int
     input_dim: int
-    transition_matrix_init: str = "general"  # in ["general", "mechanical", "hippo"]
 
+    transition_matrix_init: str = "general"  # in ["general", "mechanical", "hippo"]
     # HiPPO parameters
     # in ["legs", "legt", "lmu", "lagt", "glagt", "fout", "foud", "fourier_decay", "fourier_double", "linear", "inverse"]
     hippo_measure: str = "legs"
