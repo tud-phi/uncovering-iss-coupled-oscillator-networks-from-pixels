@@ -3,6 +3,7 @@ from hippox.main import Hippo
 from jax import Array
 import jax.numpy as jnp
 from typing import Callable
+from warnings import warn
 
 from .neural_ode_base import NeuralOdeBase
 
@@ -36,16 +37,32 @@ class LinearStateSpaceOde(NeuralOdeBase):
             # concatenate the velocity and acceleration of the latent variables
             x_d = jnp.concatenate([z_d, z_dd], axis=-1)
         elif self.transition_matrix_init == "hippo":
-            hippo_params = Hippo(
-                state_size=2 * self.latent_dim,
+            if self.input_dim > 1:
+                warn(
+                    "Hippo is only designed for the use with 1D inputs. If this is not the case, the initial input matrix "
+                    "will have all equal columns (but with independent parameters).")
+
+            hippo = Hippo(
+                state_size=self.state_dim,
                 basis_measure=self.hippo_measure,
+                dplr=True,
                 diagonalize=False,
-            )()
-            A = hippo_params.state_matrix
+            )
+            hippo()
+
+            A = self.param(
+                "lambda", hippo.lambda_initializer('full'), (self.state_dim,)
+            )
             # Structure State Space Models usually assume a 1D input
             # but we have self.input_dim inputs. We can repeat the input matrix B self.input_dim times
-            # to make it compatible with the input
-            B = jnp.repeat(hippo_params.input_matrix[:, None], self.input_dim, axis=1)
+            # to make it compatible with the input (while keeping the parameters to be independent)
+            B_columns = []
+            for i in range(self.input_dim):
+                B_columns.append(self.param(
+                    f"input_matrix_{i}", hippo.b_initializer(), [self.state_dim, 1]
+                ))
+            B = jnp.stack(B_columns, axis=-1)
+
             # compute x_d = A @ x + B @ tau
             x_d = A @ x + B @ tau
         else:

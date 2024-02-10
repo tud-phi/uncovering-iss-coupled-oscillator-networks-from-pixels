@@ -1,8 +1,9 @@
 from flax import linen as nn  # Linen API
 from hippox.main import Hippo
-from jax import Array
+from jax import Array, debug
 import jax.numpy as jnp
-from typing import Callable
+from typing import Any, Callable
+from warnings import warn
 
 from .discrete_forward_dynamics_base import DiscreteForwardDynamicsBase
 from .utils import discretize_state_space_model
@@ -10,7 +11,7 @@ from .utils import discretize_state_space_model
 
 class DiscreteLssDynamics(DiscreteForwardDynamicsBase):
     """
-    A simple linear state space model.
+    A linear state space model.
     """
 
     state_dim: int
@@ -18,6 +19,7 @@ class DiscreteLssDynamics(DiscreteForwardDynamicsBase):
     output_dim: int
     dt: float
 
+    param_dtype: Any = jnp.float32
     transition_matrix_init: str = "general"  # in ["general", "hippo"]
     discretization_method: str = "zoh"  # in ["zoh", "bilinear"]
     # HiPPO parameters
@@ -38,17 +40,32 @@ class DiscreteLssDynamics(DiscreteForwardDynamicsBase):
         ), "Output dim must be less than or equal to state dim"
 
         if self.transition_matrix_init == "hippo":
-            hippo_params = Hippo(
+            if self.input_dim > 1:
+                warn(
+                    "Hippo is only designed for the use with 1D inputs. If this is not the case, the initial input matrix "
+                    "will have all equal columns (but with independent parameters).")
+
+            hippo = Hippo(
                 state_size=self.state_dim,
                 basis_measure=self.hippo_measure,
+                dplr=True,
                 diagonalize=False,
-            )()
-            # TODO: make A and B learnable
-            A = hippo_params.state_matrix
+            )
+            hippo()
+
+            A = self.param(
+                "lambda", hippo.lambda_initializer('full'), (self.state_dim,)
+            )
             # Structure State Space Models usually assume a 1D input
             # but we have self.input_dim inputs. We can repeat the input matrix B self.input_dim times
-            # to make it compatible with the input
-            B = jnp.repeat(hippo_params.input_matrix[:, None], self.input_dim, axis=1)
+            # to make it compatible with the input (while keeping the parameters to be independent)
+            B_columns = []
+            for i in range(self.input_dim):
+                B_columns.append(self.param(
+                    f"input_matrix_{i}", hippo.b_initializer(), [self.state_dim, 1]
+                ))
+            B = jnp.stack(B_columns, axis=-1)
+
             # compute x_d = Ad @ x + Bd @ tau where Ad and Bd are time-discrete matrices
             Ad, Bd = discretize_state_space_model(
                 A, B, self.dt, method=self.discretization_method
