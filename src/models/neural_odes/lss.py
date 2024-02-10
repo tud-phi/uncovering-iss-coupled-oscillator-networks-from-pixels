@@ -43,7 +43,7 @@ class LinearStateSpaceOde(NeuralOdeBase):
                     "will have all equal columns (but with independent parameters).")
 
             hippo = Hippo(
-                state_size=self.state_dim,
+                state_size=2 * self.latent_dim,
                 basis_measure=self.hippo_measure,
                 dplr=True,
                 diagonalize=False,
@@ -51,7 +51,7 @@ class LinearStateSpaceOde(NeuralOdeBase):
             hippo()
 
             A = self.param(
-                "lambda", hippo.lambda_initializer('full'), (self.state_dim,)
+                "lambda", hippo.lambda_initializer('full'), (2 * self.latent_dim,)
             )
             # Structure State Space Models usually assume a 1D input
             # but we have self.input_dim inputs. We can repeat the input matrix B self.input_dim times
@@ -59,7 +59,7 @@ class LinearStateSpaceOde(NeuralOdeBase):
             B_columns = []
             for i in range(self.input_dim):
                 B_columns.append(self.param(
-                    f"input_matrix_{i}", hippo.b_initializer(), [self.state_dim, 1]
+                    f"input_matrix_{i}", hippo.b_initializer(), [2 * self.latent_dim, 1]
                 ))
             B = jnp.stack(B_columns, axis=-1)
 
