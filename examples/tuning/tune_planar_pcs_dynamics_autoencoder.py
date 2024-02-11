@@ -7,7 +7,6 @@ from jax import config as jax_config
 jax_config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 import jsrm
-from jsrm.systems import planar_pcs
 import logging
 from pathlib import Path
 import optuna
@@ -49,9 +48,11 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
 ]
 """
-dynamics_model_name = "discrete-mlp"
+dynamics_model_name = "node-mechanical-mlp"
 # latent space shape
 n_z = 4
+# simulation time step
+sim_dt = 1e-2
 
 # identify the number of segments
 if system_type == "cc":
@@ -76,12 +77,6 @@ datetime_str = f"{now:%Y-%m-%d_%H-%M-%S}"
 study_id = f"study-{experiment_name}-{datetime_str}"  # Unique identifier of the study.
 logdir = Path("logs").resolve() / experiment_name / datetime_str
 logdir.mkdir(parents=True, exist_ok=True)
-
-sym_exp_filepath = (
-    Path(jsrm.__file__).parent
-    / "symbolic_expressions"
-    / f"planar_pcs_ns-{num_segments}.dill"
-)
 
 if __name__ == "__main__":
     # define the objective function for hyperparameter tuning
@@ -280,11 +275,12 @@ if __name__ == "__main__":
         )
 
         # call the factory function for the task
+        print("Dataset dt:", dataset_metadata["dt"], "dataset sim_dt:", dataset_metadata["sim_dt"], "actually using sim_dt", sim_dt)
         task_callables, metrics_collection_cls = dynamics_autoencoder.task_factory(
             system_type,
             nn_model,
             ts=dataset_metadata["ts"],
-            sim_dt=dataset_metadata["sim_dt"],
+            sim_dt=sim_dt,
             loss_weights=loss_weights,
             ae_type=ae_type,
             dynamics_type=dynamics_type,
