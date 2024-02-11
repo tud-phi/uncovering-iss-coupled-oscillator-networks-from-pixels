@@ -49,9 +49,7 @@ class DiscreteMambaDynamics(DiscreteForwardDynamicsBase):
         )
         hippo()
 
-        A = self.param(
-            "lambda", hippo.lambda_initializer('full'), (self.state_dim,)
-        )
+        A = self.param("lambda", hippo.lambda_initializer("full"), (self.state_dim,))
         B_flat = nn.Dense(features=self.state_dim * self.input_dim)(tau)
         B = jnp.reshape(B_flat, (self.state_dim, self.input_dim))
 

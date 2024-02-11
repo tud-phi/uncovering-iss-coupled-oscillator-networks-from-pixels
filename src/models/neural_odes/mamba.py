@@ -33,7 +33,7 @@ class MambaOde(NeuralOdeBase):
         hippo()
 
         A = self.param(
-            "lambda", hippo.lambda_initializer('full'), (2 * self.latent_dim,)
+            "lambda", hippo.lambda_initializer("full"), (2 * self.latent_dim,)
         )
         B_flat = nn.Dense(features=2 * self.latent_dim * self.input_dim)(tau)
         B = jnp.reshape(B_flat, (2 * self.latent_dim, self.input_dim))

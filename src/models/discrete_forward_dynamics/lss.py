@@ -42,7 +42,8 @@ class DiscreteLssDynamics(DiscreteForwardDynamicsBase):
             if self.input_dim > 1:
                 warn(
                     "Hippo is only designed for the use with 1D inputs. If this is not the case, the initial input matrix "
-                    "will have all equal columns (but with independent parameters).")
+                    "will have all equal columns (but with independent parameters)."
+                )
 
             hippo = Hippo(
                 state_size=self.state_dim,
@@ -53,16 +54,18 @@ class DiscreteLssDynamics(DiscreteForwardDynamicsBase):
             hippo()
 
             A = self.param(
-                "lambda", hippo.lambda_initializer('full'), (self.state_dim,)
+                "lambda", hippo.lambda_initializer("full"), (self.state_dim,)
             )
             # Structure State Space Models usually assume a 1D input
             # but we have self.input_dim inputs. We can repeat the input matrix B self.input_dim times
             # to make it compatible with the input (while keeping the parameters to be independent)
             B_columns = []
             for i in range(self.input_dim):
-                B_columns.append(self.param(
-                    f"input_matrix_{i}", hippo.b_initializer(), [self.state_dim, 1]
-                ))
+                B_columns.append(
+                    self.param(
+                        f"input_matrix_{i}", hippo.b_initializer(), [self.state_dim, 1]
+                    )
+                )
             B = jnp.stack(B_columns, axis=-1)
 
             # compute x_d = Ad @ x + Bd @ tau where Ad and Bd are time-discrete matrices
