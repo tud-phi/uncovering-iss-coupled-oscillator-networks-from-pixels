@@ -13,10 +13,11 @@ import tensorflow as tf
 
 from src.models.discrete_forward_dynamics import (
     DiscreteLssDynamics,
+    DiscreteMambaDynamics,
     DiscreteMlpDynamics,
     DiscreteRnnDynamics,
 )
-from src.models.neural_odes import ConOde, CornnOde, LnnOde, LinearStateSpaceOde, MlpOde
+from src.models.neural_odes import ConOde, CornnOde, LnnOde, LinearStateSpaceOde, MambaOde, MlpOde
 from src.tasks import state_space_dynamics
 from src.training.dataset_utils import load_dataset
 from src.training.loops import run_training
@@ -31,8 +32,8 @@ tf.random.set_seed(seed=seed)
 
 system_type = "pcc_ns-2"
 """ dynamics_model_name in [
-    "node-general-mlp", "node-mechanical-mlp", "node-cornn", "node-con", "node-lnn", "node-hippo-lss", 
-    "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss"
+    "node-general-mlp", "node-mechanical-mlp", "node-cornn", "node-con", "node-lnn", "node-hippo-lss", "mambda-ode",
+    "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
 ]
 """
 dynamics_model_name = "discrete-gru-rnn"
@@ -207,6 +208,11 @@ if __name__ == "__main__":
                 1
             ],  # "general", "mechanical", or "hippo"
         )
+    elif dynamics_model_name == "node-mamba":
+        nn_model = MambaOde(
+            latent_dim=n_q,
+            input_dim=n_tau,
+        )
     elif dynamics_model_name == "discrete-mlp":
         nn_model = DiscreteMlpDynamics(
             input_dim=n_tau,
@@ -232,6 +238,13 @@ if __name__ == "__main__":
             transition_matrix_init=dynamics_model_name.split("-")[
                 1
             ],  # "general", or "hippo"
+        )
+    elif dynamics_model_name == "discrete-mamba":
+        nn_model = DiscreteMambaDynamics(
+            state_dim=2 * n_q,
+            input_dim=n_tau,
+            output_dim=2 * n_q,
+            dt=dataset_metadata["dt"],
         )
     else:
         raise ValueError(f"Unknown dynamics_model_name: {dynamics_model_name}")

@@ -19,7 +19,6 @@ class DiscreteLssDynamics(DiscreteForwardDynamicsBase):
     output_dim: int
     dt: float
 
-    param_dtype: Any = jnp.float32
     transition_matrix_init: str = "general"  # in ["general", "hippo"]
     discretization_method: str = "zoh"  # in ["zoh", "bilinear"]
     # HiPPO parameters
