@@ -48,6 +48,8 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 dynamics_model_name = "node-con"
 # size of latent space
 n_z = 4
+# simulation time step
+sim_dt = 1e-2
 
 batch_size = 100
 num_epochs = 50
@@ -231,6 +233,7 @@ if __name__ == "__main__":
         dynamics_model = ConOde(
             latent_dim=n_z,
             input_dim=n_tau,
+            use_w_coordinates=False,
         )
     elif dynamics_model_name == "node-lnn":
         dynamics_model = LnnOde(
@@ -281,12 +284,13 @@ if __name__ == "__main__":
         dataset_metadata["solver_class"],
     )
 
-    # call the factory function for the sensing task
+    # call the factory function for the dynamics autoencoder task
+    print("Dataset dt:", dataset_metadata["dt"], "dataset sim_dt:", dataset_metadata["sim_dt"], "actually using sim_dt", sim_dt)
     task_callables, metrics_collection_cls = dynamics_autoencoder.task_factory(
         system_type,
         nn_model,
         ts=dataset_metadata["ts"],
-        sim_dt=dataset_metadata["sim_dt"],
+        sim_dt=sim_dt,
         loss_weights=loss_weights,
         ae_type=ae_type,
         dynamics_type=dynamics_type,
