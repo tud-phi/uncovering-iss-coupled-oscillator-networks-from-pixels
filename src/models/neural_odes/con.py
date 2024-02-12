@@ -24,6 +24,7 @@ class ConOde(NeuralOdeBase):
     param_dtype: Any = jnp.float32
     bias_init: Callable = nn.initializers.zeros
 
+    use_w_coordinates: bool = False
     diag_shift: float = 1e-6
     diag_eps: float = 2e-6
 
@@ -40,21 +41,6 @@ class ConOde(NeuralOdeBase):
         # this is "fan-out" mode for lecun_normal
         # TODO: make this standard deviation tunable for each matrix separately?
         tri_params_init = nn.initializers.normal(stddev=jnp.sqrt(1.0 / self.latent_dim))
-
-        # constructing Bw as a positive definite matrix
-        num_B_w_params = int((self.latent_dim**2 + self.latent_dim) / 2)
-        # vector of parameters for triangular matrix
-        b_w = self.param("b_w", tri_params_init, (num_B_w_params,), self.param_dtype)
-        B_w = generate_positive_definite_matrix_from_params(
-            self.latent_dim, b_w, diag_shift=self.diag_shift, diag_eps=self.diag_eps
-        )
-
-        """
-        # print minimum eigenvalue of B_w
-        debug.print(
-            "min Eigenvalue of B_w: {min_eig}", min_eig=jnp.min(jnp.linalg.eigh(B_w)[0])
-        )
-        """
 
         # constructing Lambda_w as a positive definite matrix
         num_Lambda_w_params = int((self.latent_dim**2 + self.latent_dim) / 2)
@@ -77,23 +63,60 @@ class ConOde(NeuralOdeBase):
             self.latent_dim, e_w, diag_shift=self.diag_shift, diag_eps=self.diag_eps
         )
 
-        # compute everything in the orginal coordinates
-        W = jnp.linalg.inv(B_w)
-        Lambda = Lambda_w @ B_w
-        E = E_w @ B_w
-        b = self.param("b", self.bias_init, (self.latent_dim,), self.param_dtype)
+        # bias term
+        bias = self.param("bias", self.bias_init, (self.latent_dim,), self.param_dtype)
 
-        # the latent variables are given in the input
-        z = x[..., : self.latent_dim]
-        # the velocity of the latent variables is given in the input
-        z_d = x[..., self.latent_dim :]
+        # number of params in B_w / B_w_inv matrix
+        num_B_w_params = int((self.latent_dim**2 + self.latent_dim) / 2)
 
-        z_dd = (
-            self.nonlinearity(nn.Dense(features=self.latent_dim, use_bias=False)(tau))
-            - Lambda @ z
-            - E @ z_d
-            - self.nonlinearity(W @ z + b)
-        )
+        if self.use_w_coordinates:
+            # constructing Bw_inv as a positive definite matrix
+            b_w_inv = self.param("b_w_inv", tri_params_init, (num_B_w_params,), self.param_dtype)
+            B_w_inv = generate_positive_definite_matrix_from_params(
+                self.latent_dim, b_w_inv, diag_shift=self.diag_shift, diag_eps=self.diag_eps
+            )
+
+            # the latent variables are given in the input
+            z_w = x[..., : self.latent_dim]
+            # the velocity of the latent variables is given in the input
+            z_d_w = x[..., self.latent_dim :]
+
+            z_dd = B_w_inv @ (
+                self.nonlinearity(nn.Dense(features=self.latent_dim, use_bias=False)(tau))
+                - Lambda_w @ z_w
+                - E_w @ z_d_w
+                - self.nonlinearity(z_w + bias)
+            )
+        else:
+            # constructing Bw as a positive definite matrix
+            # vector of parameters for triangular matrix
+            b_w = self.param("b_w", tri_params_init, (num_B_w_params,), self.param_dtype)
+            B_w = generate_positive_definite_matrix_from_params(
+                self.latent_dim, b_w, diag_shift=self.diag_shift, diag_eps=self.diag_eps
+            )
+            """
+            # print minimum eigenvalue of B_w
+            debug.print(
+                "min Eigenvalue of B_w: {min_eig}", min_eig=jnp.min(jnp.linalg.eigh(B_w)[0])
+            )
+            """
+
+            # compute everything in the orginal coordinates
+            W = jnp.linalg.inv(B_w)
+            Lambda = Lambda_w @ B_w
+            E = E_w @ B_w
+
+            # the latent variables are given in the input
+            z = x[..., : self.latent_dim]
+            # the velocity of the latent variables is given in the input
+            z_d = x[..., self.latent_dim :]
+
+            z_dd = (
+                self.nonlinearity(nn.Dense(features=self.latent_dim, use_bias=False)(tau))
+                - Lambda @ z
+                - E @ z_d
+                - self.nonlinearity(W @ z + bias)
+            )
 
         # concatenate the velocity and acceleration of the latent variables
         x_d = jnp.concatenate([z_d, z_dd], axis=-1)
