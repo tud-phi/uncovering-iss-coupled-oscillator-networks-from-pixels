@@ -155,6 +155,16 @@ elif ae_type == "beta_vae":
         num_mlp_layers = 4
         mlp_hidden_dim = 95
         mlp_nonlinearity_name = "elu"
+    elif dynamics_model_name == "discrete-elman-rnn":
+        base_lr = 0.009562362872368196
+        loss_weights = dict(
+            mse_z=0.4515819661074938,
+            mse_rec_static=1.0,
+            mse_rec_dynamic=45.25873190730584,
+            beta=0.001817925663163544,
+        )
+        weight_decay = 0.00015443793550364007
+        latent_velocity_source = "image-space-finite-differences"
     else:
         raise NotImplementedError(
             f"beta_vae with node_type '{dynamics_model_name}' not implemented yet."
@@ -233,7 +243,7 @@ if __name__ == "__main__":
         dynamics_model = ConOde(
             latent_dim=n_z,
             input_dim=n_tau,
-            use_w_coordinates=False,
+            use_w_coordinates=True,
         )
     elif dynamics_model_name == "node-lnn":
         dynamics_model = LnnOde(
@@ -267,6 +277,13 @@ if __name__ == "__main__":
             num_layers=num_mlp_layers,
             hidden_dim=mlp_hidden_dim,
             nonlinearity=getattr(nn, mlp_nonlinearity_name),
+        )
+    elif dynamics_model_name in ["discrete-elman-rnn", "discrete-gru-rnn"]:
+        nn_model = DiscreteRnnDynamics(
+            state_dim=num_past_timesteps * n_z,
+            input_dim=n_tau,
+            output_dim=n_z,
+            rnn_method=dynamics_model_name.split("-")[1],  # "elman" or "gru"
         )
     else:
         raise ValueError(f"Unknown dynamics_model_name: {dynamics_model_name}")
