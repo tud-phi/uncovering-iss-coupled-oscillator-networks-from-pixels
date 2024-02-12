@@ -81,12 +81,15 @@ class ConOde(NeuralOdeBase):
             # the velocity of the latent variables is given in the input
             z_d_w = x[..., self.latent_dim :]
 
-            z_dd = B_w_inv @ (
+            z_dd_w = B_w_inv @ (
                 self.nonlinearity(nn.Dense(features=self.latent_dim, use_bias=False)(tau))
                 - Lambda_w @ z_w
                 - E_w @ z_d_w
                 - self.nonlinearity(z_w + bias)
             )
+
+            # concatenate the velocity and acceleration of the latent variables
+            x_d = jnp.concatenate([z_d_w, z_dd_w], axis=-1)
         else:
             # constructing Bw as a positive definite matrix
             # vector of parameters for triangular matrix
@@ -118,7 +121,7 @@ class ConOde(NeuralOdeBase):
                 - self.nonlinearity(W @ z + bias)
             )
 
-        # concatenate the velocity and acceleration of the latent variables
-        x_d = jnp.concatenate([z_d, z_dd], axis=-1)
+            # concatenate the velocity and acceleration of the latent variables
+            x_d = jnp.concatenate([z_d, z_dd], axis=-1)
 
         return x_d
