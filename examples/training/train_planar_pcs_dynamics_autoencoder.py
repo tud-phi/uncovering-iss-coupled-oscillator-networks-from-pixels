@@ -45,7 +45,7 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
 ]
 """
-dynamics_model_name = "discrete-mlp"
+dynamics_model_name = "node-con"
 # size of latent space
 n_z = 4
 
@@ -102,16 +102,15 @@ elif ae_type == "beta_vae":
         cornn_gamma = 14.699222042132245
         cornn_epsilon = 1.122193753584045
     elif dynamics_model_name == "node-con":
-        base_lr = 0.006720897010650257
+        base_lr = 0.006177316580570417
         loss_weights = dict(
-            mse_z=0.03020580710811323,
+            mse_z=0.030379588926380468,
             mse_rec_static=1.0,
-            mse_rec_dynamic=113.57201294093048,
-            beta=0.00038589900089786266,
+            mse_rec_dynamic=5.697451534699487,
+            beta=0.0013426621470719866,
         )
-        weight_decay = 0.00019609847803674207
+        weight_decay = 1.7554301123255296e-05
         latent_velocity_source = "image-space-finite-differences"
-        raise NotImplementedError
     elif dynamics_model_name == "node-lnn":
         base_lr = 0.0015553597576502523
         loss_weights = dict(
