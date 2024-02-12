@@ -77,18 +77,18 @@ elif ae_type == "beta_vae":
         mlp_hidden_dim = 40
         raise NotImplementedError
     elif dynamics_model_name == "node-mechanical-mlp":
-        base_lr = 0.004515967701381585
+        base_lr = 0.009549630971301099
         loss_weights = dict(
-            mse_z=0.10726653464324469,
+            mse_z=0.15036907451864656,
             mse_rec_static=1.0,
-            mse_rec_dynamic=455.96650828264166,
-            beta=0.01663158737179567,
+            mse_rec_dynamic=16.356448652349172,
+            beta=0.00014574221959894125,
         )
-        weight_decay = 8.746966135967026e-06
+        weight_decay = 5.1572222268612065e-05
         latent_velocity_source = "latent-space-finite-differences"
         num_mlp_layers = 4
-        mlp_hidden_dim = 46
-        raise NotImplementedError
+        mlp_hidden_dim = 52
+        mlp_nonlinearity_name = "elu"
     elif dynamics_model_name == "node-cornn":
         base_lr = 0.00398427112108674
         loss_weights = dict(
