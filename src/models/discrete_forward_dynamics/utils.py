@@ -26,7 +26,7 @@ def discretize_state_space_model(
 
         # Need to stack zeros under the A and B matrices
         em_lower = jnp.hstack(
-            (jnp.zeros((B.shape[1], A.shape[0])), jnp.zeros((B.shape[1], B.shape[1])))
+            (jnp.zeros_like(A, shape=(B.shape[1], A.shape[0])), jnp.zeros_like(B, shape=(B.shape[1], B.shape[1])))
         )
         em = jnp.vstack((em_upper, em_lower))
         ms = jsp.linalg.expm(dt * em)
@@ -38,7 +38,7 @@ def discretize_state_space_model(
     elif method == "bilinear":
         # Bilinear (Tustin) approximation
         # https://srush.github.io/annotated-s4/#part-1-state-space-models
-        I = jnp.eye(A.shape[0])
+        I = jnp.eye(A.shape[0], dtype=A.dtype)
         BL = jnp.linalg.inv(I - (dt / 2.0) * A)
         Ad = BL @ (I + (dt / 2.0) * A)
         Bd = (BL * dt) @ B

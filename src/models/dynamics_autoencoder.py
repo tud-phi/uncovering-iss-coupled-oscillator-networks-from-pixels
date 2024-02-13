@@ -28,7 +28,7 @@ class DynamicsAutoencoder(nn.Module):
 
         if self.dynamics_type == "node":
             x_bt = jnp.concatenate([z_bt, jnp.zeros_like(z_bt)], axis=-1)
-            tau_bt = jnp.zeros((z_bt.shape[0], self.dynamics.input_dim))
+            tau_bt = jnp.zeros_like(x_bt, shape=(z_bt.shape[0], self.dynamics.input_dim))
             x_d_bt = vmap(
                 self.forward_dynamics,
             )(x_bt, tau_bt)
