@@ -74,7 +74,6 @@ elif ae_type == "beta_vae":
             beta=0.00020732900159342376,
         )
         weight_decay = 7.942186445089656e-06
-        latent_velocity_source = "image-space-finite-differences"
         num_mlp_layers = 4
         mlp_hidden_dim = 40
         raise NotImplementedError
@@ -87,7 +86,6 @@ elif ae_type == "beta_vae":
             beta=0.00014574221959894125,
         )
         weight_decay = 5.1572222268612065e-05
-        latent_velocity_source = "latent-space-finite-differences"
         num_mlp_layers = 4
         mlp_hidden_dim = 52
         mlp_nonlinearity_name = "elu"
@@ -100,7 +98,6 @@ elif ae_type == "beta_vae":
             beta=0.0009692016013541893,
         )
         weight_decay = 0.00010890363692419105
-        latent_velocity_source = "image-space-finite-differences"
         cornn_gamma = 14.699222042132245
         cornn_epsilon = 1.122193753584045
     elif dynamics_model_name == "node-con":
@@ -112,7 +109,6 @@ elif ae_type == "beta_vae":
             beta=0.0013426621470719866,
         )
         weight_decay = 1.7554301123255296e-05
-        latent_velocity_source = "image-space-finite-differences"
     elif dynamics_model_name == "node-lnn":
         base_lr = 0.0015553597576502523
         loss_weights = dict(
@@ -122,7 +118,6 @@ elif ae_type == "beta_vae":
             beta=0.000148761017920335,
         )
         weight_decay = 1.367664507404463e-05
-        latent_velocity_source = "image-space-finite-differences"
         lnn_learn_dissipation = True
         num_mlp_layers, mlp_hidden_dim, mlp_nonlinearity_name = 4, 13, "relu"
         diag_shift, diag_eps = 1.3009374296641844e-06, 1.4901550009073945e-05
@@ -140,7 +135,6 @@ elif ae_type == "beta_vae":
             beta=0.0004775274363009053,
         )
         weight_decay = 5.409956968011885e-06
-        latent_velocity_source = "image-space-finite-differences"
         raise NotImplementedError
     elif dynamics_model_name == "discrete-mlp":
         base_lr = 0.008868218513411644
@@ -151,7 +145,6 @@ elif ae_type == "beta_vae":
             beta=0.03405228893154261,
         )
         weight_decay = 0.00018061847705335356
-        latent_velocity_source = "image-space-finite-differences"
         num_mlp_layers = 4
         mlp_hidden_dim = 95
         mlp_nonlinearity_name = "elu"
@@ -164,7 +157,15 @@ elif ae_type == "beta_vae":
             beta=0.001817925663163544,
         )
         weight_decay = 0.00015443793550364007
-        latent_velocity_source = "image-space-finite-differences"
+    elif dynamics_model_name == "discrete-gru-rnn":
+        base_lr = 0.0061904901667741855
+        loss_weights = dict(
+            mse_z=0.0791729093402154,
+            mse_rec_static=1.0,
+            mse_rec_dynamic=34.12991695226881,
+            beta=0.00022655846366566662,
+        )
+        weight_decay = 0.0001519957156945279
     else:
         raise NotImplementedError(
             f"beta_vae with node_type '{dynamics_model_name}' not implemented yet."
