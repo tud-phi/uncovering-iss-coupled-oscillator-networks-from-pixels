@@ -8,7 +8,7 @@ import jax.numpy as jnp
 import jsrm
 from jsrm.integration import ode_with_forcing_factory
 from jsrm.systems import planar_pcs
-import matplotlib.pyplot as plt
+import numpy as onp
 from pathlib import Path
 import tensorflow as tf
 
@@ -34,6 +34,7 @@ from src.training.dataset_utils import load_dataset, load_dummy_neural_network_i
 from src.training.loops import run_eval
 from src.tasks import dynamics_autoencoder
 from src.training.train_state_utils import restore_train_state
+from src.visualization.img_animation import animate_pred_vs_target_image_cv2, animate_pred_vs_target_image_pyplot
 
 # prevent tensorflow from loading everything onto the GPU, as we don't have enough memory for that
 tf.config.experimental.set_visible_devices([], "GPU")
@@ -264,14 +265,13 @@ if __name__ == "__main__":
     )
 
     # define settings for the rollout
-    rollout_duration = 0.1  # s
+    rollout_duration = 0.5  # s
     rollout_fps = 30  # frames per second
     rollout_dt = 1 / rollout_fps  # s
     rollout_sim_dt = 1e-3 * rollout_dt  # simulation time step of 1e-5 s
     ts_rollout = jnp.linspace(
         0.0, rollout_duration, num=int(rollout_duration / rollout_dt)
     )
-    print("Rollout time steps:", ts_rollout)
     ode_rollout_fn = partial(
         rollout_ode,
         ode_fn=ode_fn,
@@ -307,17 +307,24 @@ if __name__ == "__main__":
     tau = jnp.zeros((n_tau,))
     print("x0:", x0)
     rollout_data_ts = ode_rollout_fn(x0=x0, tau=tau)
-    print("Rollout data shapes:")
-    for key in rollout_data_ts.keys():
-        print(f"{key}: {rollout_data_ts[key].shape}")
     rollout_batch = dict(
         t_ts=ts_rollout[None, ...],
         x_ts=rollout_data_ts["x_ts"][None, ...],
         tau=tau[None, ...],
         rendering_ts=rollout_data_ts["rendering_ts"][None, :],
     )
-    # preds_gt = forward_fn_ode(batch)
     preds = forward_fn_learned(rollout_batch, state.params)
-    print("Predictions shapes:")
-    for key in preds.keys():
-        print(f"{key}: {preds[key].shape}")
+    # extract both the target and the predicted images
+    rendering_pred_ts = preds["rendering_dynamic_ts"][0]
+    rendering_target_ts = rollout_data_ts["rendering_ts"][start_time_idx:]
+
+    # animate the rollout
+    print("Animate the rollout...")
+    animate_pred_vs_target_image_pyplot(
+        onp.array(ts_rollout),
+        img_pred_ts=rendering_pred_ts,
+        img_target_ts=rendering_target_ts,
+        filepath=ckpt_dir / "rollout.mp4",
+        step_skip=1,
+        show=True
+    )

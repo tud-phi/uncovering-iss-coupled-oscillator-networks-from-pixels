@@ -1,11 +1,12 @@
 import cv2  # importing cv2
+from jax import Array
 import matplotlib.pyplot as plt
 from matplotlib import animation
 import numpy as onp
 import os
 from pathlib import Path
 from tqdm import tqdm
-from typing import Optional
+from typing import Optional, Union
 
 
 def animate_pred_vs_target_image_cv2(
@@ -57,13 +58,13 @@ def animate_pred_vs_target_image_cv2(
 
 
 def animate_pred_vs_target_image_pyplot(
-    t_ts: onp.ndarray,
-    img_pred_ts: onp.ndarray,
-    img_target_ts: onp.ndarray,
+    t_ts: Union[Array, onp.ndarray],
+    img_pred_ts: Union[Array, onp.ndarray],
+    img_target_ts: Union[Array, onp.ndarray],
     filepath: Optional[os.PathLike] = None,
     show: bool = False,
     step_skip: int = 1,
-    blit: bool = False,
+    bgr_to_rgb: bool = False,
 ):
     """
     Creates an animation of the predicted vs. target images using matplotlib.
@@ -74,7 +75,7 @@ def animate_pred_vs_target_image_pyplot(
         filepath: path to the output video
         show: whether to show the animation
         step_skip: number of time steps to skip between frames
-        blit: whether to use blitting
+        bgr_to_rgb: whether to convert the images from BGR to RGB
     """
     sample_rate = 1 / (onp.mean(t_ts[1:] - t_ts[:-1]))
     # frames
@@ -85,8 +86,12 @@ def animate_pred_vs_target_image_pyplot(
         1, 2, num="Prediction vs. target images", figsize=(6, 4), dpi=200
     )
 
-    im_pred = axes[0].imshow(cv2.cvtColor(img_pred_ts[0], cv2.COLOR_BGR2RGB))
-    im_target = axes[1].imshow(cv2.cvtColor(img_target_ts[0], cv2.COLOR_BGR2RGB))
+    if bgr_to_rgb:
+        img_pred_ts = cv2.cvtColor(img_pred_ts, cv2.COLOR_BGR2RGB)
+        img_target_ts = cv2.cvtColor(img_target_ts, cv2.COLOR_BGR2RGB)
+
+    im_pred = axes[0].imshow(img_pred_ts[0])
+    im_target = axes[1].imshow(img_target_ts[1])
     text_time = fig.text(
         x=0.5, y=0.1, s="", color="black", fontsize=11, ha="center", va="center"
     )
@@ -102,8 +107,8 @@ def animate_pred_vs_target_image_pyplot(
 
     def animate(frame_idx):
         text_time.set_text(f"t = {t_ts[frame_idx]:.2f} s")
-        im_pred.set_data(cv2.cvtColor(img_pred_ts[frame_idx], cv2.COLOR_BGR2RGB))
-        im_target.set_data(cv2.cvtColor(img_target_ts[frame_idx], cv2.COLOR_BGR2RGB))
+        im_pred.set_data(img_pred_ts[frame_idx])
+        im_target.set_data(img_target_ts[frame_idx])
         pbar.update(1)
         return text_time, im_pred, im_target
 
