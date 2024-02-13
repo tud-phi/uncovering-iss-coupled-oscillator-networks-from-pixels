@@ -164,13 +164,20 @@ class Pendulum(tfds.core.GeneratorBasedBuilder):
         assert num_links == n_q, "Number of links must match half the state dimension."
 
         # initialize the rendering function
+        # line thickness
+        lw = 2
+        metadata["rendering"] = {
+            "width": self.builder_config.img_size[0],
+            "height": self.builder_config.img_size[1],
+            "line_thickness": lw,
+        }
         rendering_fn = partial(
             render_pendulum,
             forward_kinematics_fn,
             robot_params,
             width=self.builder_config.img_size[0],
             height=self.builder_config.img_size[1],
-            line_thickness=2,
+            line_thickness=lw,
         )
 
         sample_q = 36 / 180 * jnp.pi * jnp.linspace(0.0, 1.0, num_links)

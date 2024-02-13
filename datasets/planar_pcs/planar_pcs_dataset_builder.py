@@ -2,7 +2,6 @@
 import dataclasses
 from jax import Array
 import jax.numpy as jnp
-from natsort import natsorted
 from pathlib import Path
 import tensorflow_datasets as tfds
 from typing import List, Optional, Tuple
@@ -221,6 +220,12 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
         # initialize the rendering function
         # the line thickness is calibrated for 64x64px images
         lw = int(6 / 64 * jnp.mean(jnp.array(self.builder_config.img_size)))
+        metadata["rendering"] = {
+            "width": self.builder_config.img_size[0],
+            "height": self.builder_config.img_size[1],
+            "origin_uv": self.builder_config.origin_uv,
+            "line_thickness": lw,
+        }
         rendering_fn = partial(
             render_planar_pcs,
             forward_kinematics_fn,
