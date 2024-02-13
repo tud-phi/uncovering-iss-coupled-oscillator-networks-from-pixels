@@ -156,9 +156,7 @@ def task_factory(
         )
 
         # construct batch of external torques of shape batch_dim x time_dim x n_tau
-        tau_bt = jnp.expand_dims(batch["tau"], axis=1).repeat(
-            ts.shape[0], axis=1
-        )
+        tau_bt = jnp.expand_dims(batch["tau"], axis=1).repeat(ts.shape[0], axis=1)
 
         if dynamics_type == "node":
             # initial latent at initial time provided by the encoder

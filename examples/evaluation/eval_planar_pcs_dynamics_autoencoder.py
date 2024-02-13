@@ -34,7 +34,10 @@ from src.training.dataset_utils import load_dataset, load_dummy_neural_network_i
 from src.training.loops import run_eval
 from src.tasks import dynamics_autoencoder
 from src.training.train_state_utils import restore_train_state
-from src.visualization.img_animation import animate_pred_vs_target_image_cv2, animate_pred_vs_target_image_pyplot
+from src.visualization.img_animation import (
+    animate_pred_vs_target_image_cv2,
+    animate_pred_vs_target_image_pyplot,
+)
 
 # prevent tensorflow from loading everything onto the GPU, as we don't have enough memory for that
 tf.config.experimental.set_visible_devices([], "GPU")
@@ -92,7 +95,9 @@ dynamics_type = dynamics_model_name.split("-")[0]
 assert dynamics_type in ["node", "discrete"], f"Unknown dynamics_type: {dynamics_type}"
 
 sym_exp_filepath = (
-    Path(jsrm.__file__).parent / "symbolic_expressions" / f"planar_pcs_ns-{num_segments}.dill"
+    Path(jsrm.__file__).parent
+    / "symbolic_expressions"
+    / f"planar_pcs_ns-{num_segments}.dill"
 )
 ckpt_dir = (
     Path("logs").resolve() / f"{system_type}_dynamics_autoencoder" / experiment_id
@@ -123,9 +128,7 @@ if __name__ == "__main__":
     strain_basis, forward_kinematics_fn, dynamical_matrices_fn = planar_pcs.factory(
         sym_exp_filepath, strain_selector=dataset_metadata["strain_selector"]
     )
-    ode_fn = ode_with_forcing_factory(
-        dynamical_matrices_fn, robot_params
-    )
+    ode_fn = ode_with_forcing_factory(dynamical_matrices_fn, robot_params)
 
     # initialize the rendering function
     rendering_fn = partial(
@@ -282,7 +285,10 @@ if __name__ == "__main__":
         show_progress=True,
     )
     # define the task callables for the rollout
-    task_callables_rollout_learned, metrics_collection_cls = dynamics_autoencoder.task_factory(
+    (
+        task_callables_rollout_learned,
+        metrics_collection_cls,
+    ) = dynamics_autoencoder.task_factory(
         system_type,
         nn_model,
         ts=ts_rollout,
@@ -326,5 +332,5 @@ if __name__ == "__main__":
         img_target_ts=rendering_target_ts,
         filepath=ckpt_dir / "rollout.mp4",
         step_skip=1,
-        show=True
+        show=True,
     )
