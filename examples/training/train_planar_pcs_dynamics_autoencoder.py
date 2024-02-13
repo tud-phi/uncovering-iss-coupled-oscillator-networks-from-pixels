@@ -166,6 +166,15 @@ elif ae_type == "beta_vae":
             beta=0.00022655846366566662,
         )
         weight_decay = 0.0001519957156945279
+    elif dynamics_model_name == "discrete-mamba":
+        base_lr = 0.00870873016301107
+        loss_weights = dict(
+            mse_z=0.28214113853521156,
+            mse_rec_static=1.0,
+            mse_rec_dynamic=33.60427838050405,
+            beta=0.0007276292657337367,
+        )
+        weight_decay = 2.360420656597323e-05
     else:
         raise NotImplementedError(
             f"beta_vae with node_type '{dynamics_model_name}' not implemented yet."
