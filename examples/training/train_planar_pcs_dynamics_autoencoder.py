@@ -286,6 +286,13 @@ if __name__ == "__main__":
             output_dim=n_z,
             rnn_method=dynamics_model_name.split("-")[1],  # "elman" or "gru"
         )
+    elif dynamics_model_name == "discrete-mamba":
+        dynamics_model = DiscreteMambaDynamics(
+            state_dim=num_past_timesteps * n_z,
+            input_dim=num_past_timesteps * n_tau,
+            output_dim=n_z,
+            dt=dataset_metadata["dt"],
+        )
     else:
         raise ValueError(f"Unknown dynamics_model_name: {dynamics_model_name}")
     nn_model = DynamicsAutoencoder(
