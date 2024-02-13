@@ -90,16 +90,16 @@ elif ae_type == "beta_vae":
         mlp_hidden_dim = 52
         mlp_nonlinearity_name = "elu"
     elif dynamics_model_name == "node-cornn":
-        base_lr = 0.00398427112108674
+        base_lr = 0.0032720052876344437
         loss_weights = dict(
-            mse_z=0.2548882784224465,
+            mse_z=0.44777585091731187,
             mse_rec_static=1.0,
-            mse_rec_dynamic=8.493464866080236,
-            beta=0.0009692016013541893,
+            mse_rec_dynamic=2.511229022994574,
+            beta=0.00011714626957666846,
         )
-        weight_decay = 0.00010890363692419105
-        cornn_gamma = 14.699222042132245
-        cornn_epsilon = 1.122193753584045
+        weight_decay = 1.8390286588494643e-05
+        cornn_gamma = 35.60944428175452
+        cornn_epsilon = 0.05125440449424828
     elif dynamics_model_name == "node-con":
         base_lr = 0.006177316580570417
         loss_weights = dict(
