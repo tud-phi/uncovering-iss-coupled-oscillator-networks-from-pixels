@@ -45,7 +45,7 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
 ]
 """
-dynamics_model_name = "node-con"
+dynamics_model_name = "discrete-mamba"
 # size of latent space
 n_z = 4
 # simulation time step
@@ -86,8 +86,7 @@ elif ae_type == "beta_vae":
             beta=0.00014574221959894125,
         )
         weight_decay = 5.1572222268612065e-05
-        num_mlp_layers = 4
-        mlp_hidden_dim = 52
+        num_mlp_layers, mlp_hidden_dim = 4, 52
         mlp_nonlinearity_name = "elu"
     elif dynamics_model_name == "node-cornn":
         base_lr = 0.0032720052876344437
@@ -145,8 +144,7 @@ elif ae_type == "beta_vae":
             beta=0.03405228893154261,
         )
         weight_decay = 0.00018061847705335356
-        num_mlp_layers = 4
-        mlp_hidden_dim = 95
+        num_mlp_layers, mlp_hidden_dim = 4, 95
         mlp_nonlinearity_name = "elu"
     elif dynamics_model_name == "discrete-elman-rnn":
         base_lr = 0.009562362872368196
@@ -289,7 +287,7 @@ if __name__ == "__main__":
             nonlinearity=getattr(nn, mlp_nonlinearity_name),
         )
     elif dynamics_model_name in ["discrete-elman-rnn", "discrete-gru-rnn"]:
-        nn_model = DiscreteRnnDynamics(
+        dynamics_model = DiscreteRnnDynamics(
             state_dim=num_past_timesteps * n_z,
             input_dim=num_past_timesteps * n_tau,
             output_dim=n_z,
