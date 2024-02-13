@@ -18,7 +18,7 @@ def visualize_mapping_from_configuration_to_latent_space(
     eval_ds: tf.data.Dataset,
     state: TrainState,
     task_callables: TaskCallables,
-    rng: Optional[random.KeyArray] = None,
+    rng: Optional[Array] = None,
 ):
     q_ss = None
     z_pred_ss = None

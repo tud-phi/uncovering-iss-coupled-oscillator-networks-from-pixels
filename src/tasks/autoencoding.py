@@ -114,7 +114,7 @@ def task_factory(
     def forward_fn(
         batch: Dict[str, Array],
         nn_params: FrozenDict,
-        rng: Optional[random.KeyArray] = None,
+        rng: Optional[Array] = None,
         training: bool = False,
     ) -> Dict[str, Array]:
         (img_bt,) = assemble_input(batch)
@@ -178,7 +178,7 @@ def task_factory(
     def loss_fn(
         batch: Dict[str, Array],
         nn_params: FrozenDict,
-        rng: Optional[random.KeyArray] = None,
+        rng: Optional[Array] = None,
         training: bool = False,
     ) -> Tuple[Array, Dict[str, Array]]:
         n_q = batch["x_ts"].shape[-1] // 2  # number of generalized coordinates

@@ -13,7 +13,7 @@ from typing import Any, Callable, Dict, Optional, Type, TypeVar
 def collect_dataset(
     ode_fn: Callable,
     rendering_fn: Callable,
-    rng: random.KeyArray,
+    rng: Array,
     num_simulations: int,
     horizon_dim: int,
     dt: Array,

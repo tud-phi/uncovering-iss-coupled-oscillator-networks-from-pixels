@@ -87,7 +87,7 @@ def make_wae_mdd_loss(
         x_target: Array,
         z: Array,
         z_prior: Array = None,
-        rng: Optional[random.KeyArray] = None,
+        rng: Optional[Array] = None,
     ) -> Array:
         """
         Regularization loss of a Wasserstein Auto-Encoder with a Maximum Mean Discrepancy loss.

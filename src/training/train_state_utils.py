@@ -13,7 +13,7 @@ from src.structs import TrainState
 
 
 def initialize_train_state(
-    rng: random.KeyArray,
+    rng: Array,
     nn_model: nn.Module,
     nn_dummy_input: Array,
     metrics_collection_cls: Type[clu_metrics.Collection],
@@ -70,7 +70,7 @@ def initialize_train_state(
 
 
 def restore_train_state(
-    rng: random.KeyArray,
+    rng: Array,
     ckpt_dir: os.PathLike,
     nn_model: nn.Module,
     nn_dummy_input: Array,
