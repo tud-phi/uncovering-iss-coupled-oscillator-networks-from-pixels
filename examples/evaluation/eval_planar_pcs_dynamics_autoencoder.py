@@ -3,6 +3,7 @@ from functools import partial
 from jax import config as jax_config
 
 jax_config.update("jax_enable_x64", True)
+jax_config.update("jax_platform_name", "cpu")  # set default device to 'cpu'
 from jax import Array, jit, random
 import jax.numpy as jnp
 import jsrm
@@ -53,7 +54,7 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
 ]
 """
-dynamics_model_name = "node-con"
+dynamics_model_name = "node-mechanical-mlp"
 # latent space shape
 n_z = 4
 # simulation time step
@@ -72,8 +73,22 @@ diag_shift, diag_eps = 1e-6, 2e-6
 if ae_type == "wae":
     raise NotImplementedError
 elif ae_type == "beta_vae":
-    if dynamics_model_name == "node-con":
+    if dynamics_model_name == "node-mechanical-mlp":
+        experiment_id = "2024-02-13_16-27-39"
+        num_mlp_layers, mlp_hidden_dim = 4, 52
+        mlp_nonlinearity_name = "elu"
+    elif dynamics_model_name == "node-con":
         experiment_id = "2024-02-13_12-57-25"
+    elif dynamics_model_name == "discrete-mlp":
+        experiment_id = "2024-02-13_17-11-21"
+        num_mlp_layers, mlp_hidden_dim = 4, 95
+        mlp_nonlinearity_name = "elu"
+    elif dynamics_model_name == "discrete-elman-rnn":
+        experiment_id = "2024-02-13_17-19-57"
+    elif dynamics_model_name == "discrete-gru-rnn":
+        experiment_id = "2024-02-13_17-28-13"
+    elif dynamics_model_name == "discrete-mamba":
+        experiment_id = "2024-02-13_17-42-29"
     else:
         raise NotImplementedError(
             f"beta_vae with node_type '{dynamics_model_name}' not implemented yet."
