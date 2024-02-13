@@ -268,7 +268,7 @@ if __name__ == "__main__":
     )
 
     # define settings for the rollout
-    rollout_duration = 0.5  # s
+    rollout_duration = 3.0  # s
     rollout_fps = 30  # frames per second
     rollout_dt = 1 / rollout_fps  # s
     rollout_sim_dt = 1e-3 * rollout_dt  # simulation time step of 1e-5 s
