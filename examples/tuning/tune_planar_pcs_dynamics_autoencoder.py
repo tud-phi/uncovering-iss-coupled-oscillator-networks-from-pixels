@@ -44,15 +44,15 @@ rng = random.PRNGKey(seed=seed)
 system_type = "pcc_ns-2"
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 """ dynamics_model_name in [
-    "node-general-mlp", "node-mechanical-mlp", "node-cornn", "node-con", "node-lnn", "node-hippo-lss", "mambda-ode",
+    "node-general-mlp", "node-mechanical-mlp", "node-cornn", "node-con", "node-w-con", "node-lnn", "node-hippo-lss", "mambda-ode",
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
 ]
 """
-dynamics_model_name = "discrete-mamba"
+dynamics_model_name = "node-lnn"
 # latent space shape
 n_z = 4
 # simulation time step
-sim_dt = 1e-2
+sim_dt = 1e-3
 
 # identify the number of segments
 if system_type == "cc":
@@ -172,10 +172,11 @@ if __name__ == "__main__":
                 gamma=cornn_gamma,
                 epsilon=cornn_epsilon,
             )
-        elif dynamics_model_name == "node-con":
+        elif dynamics_model_name in ["node-con", "node-w-con"]:
             dynamics_model = ConOde(
                 latent_dim=n_z,
                 input_dim=n_tau,
+                use_w_coordinates=dynamics_model_name == "node-w-con",
             )
         elif dynamics_model_name == "node-lnn":
             learn_dissipation = trial.suggest_categorical(

@@ -50,7 +50,7 @@ tf.random.set_seed(seed=seed)
 system_type = "pcc_ns-2"
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 """ dynamics_model_name in [
-    "node-general-mlp", "node-mechanical-mlp", "node-cornn", "node-con", "node-lnn", "node-hippo-lss", "mambda-ode",
+    "node-general-mlp", "node-mechanical-mlp", "node-cornn", "node-con", "node-w-con", "node-lnn", "node-hippo-lss", "mambda-ode",
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
 ]
 """
@@ -183,11 +183,11 @@ if __name__ == "__main__":
             gamma=cornn_gamma,
             epsilon=cornn_epsilon,
         )
-    elif dynamics_model_name == "node-con":
+    elif dynamics_model_name in ["node-con", "node-w-con"]:
         dynamics_model = ConOde(
             latent_dim=n_z,
             input_dim=n_tau,
-            use_w_coordinates=True,
+            use_w_coordinates=dynamics_model_name == "node-w-con",
         )
     elif dynamics_model_name == "node-lnn":
         dynamics_model = LnnOde(
