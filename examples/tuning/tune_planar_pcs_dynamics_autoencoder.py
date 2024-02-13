@@ -48,11 +48,11 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
 ]
 """
-dynamics_model_name = "node-lnn"
+dynamics_model_name = "node-w-con"
 # latent space shape
 n_z = 4
 # simulation time step
-sim_dt = 1e-3
+sim_dt = 1e-2
 
 # identify the number of segments
 if system_type == "cc":
