@@ -117,6 +117,7 @@ class LnnOde(NeuralOdeBase):
     input_dim: int
 
     learn_dissipation: bool = True
+    learn_input_matrix: bool = True
 
     num_layers: int = 5
     hidden_dim: int = 32
@@ -240,7 +241,13 @@ class LnnOde(NeuralOdeBase):
         else:
             tau_d = jnp.zeros_like(z)
 
-        z_dd = jnp.linalg.inv(M) @ (tau - tau_corioli - tau_pot - tau_d)
+        # compute the external torque
+        if self.learn_input_matrix:
+            tau_ext = nn.Dense(features=self.latent_dim, use_bias=False)(tau)
+        else:
+            tau_ext = tau
+
+        z_dd = jnp.linalg.inv(M) @ (tau_ext - tau_corioli - tau_pot - tau_d)
 
         # concatenate the velocity and acceleration of the latent variables
         x_d = jnp.concatenate([z_d, z_dd], axis=-1)
