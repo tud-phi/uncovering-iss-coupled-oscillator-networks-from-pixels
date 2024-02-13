@@ -71,9 +71,14 @@ class ConOde(NeuralOdeBase):
 
         if self.use_w_coordinates:
             # constructing Bw_inv as a positive definite matrix
-            b_w_inv = self.param("b_w_inv", tri_params_init, (num_B_w_params,), self.param_dtype)
+            b_w_inv = self.param(
+                "b_w_inv", tri_params_init, (num_B_w_params,), self.param_dtype
+            )
             B_w_inv = generate_positive_definite_matrix_from_params(
-                self.latent_dim, b_w_inv, diag_shift=self.diag_shift, diag_eps=self.diag_eps
+                self.latent_dim,
+                b_w_inv,
+                diag_shift=self.diag_shift,
+                diag_eps=self.diag_eps,
             )
 
             # the latent variables are given in the input
@@ -82,7 +87,9 @@ class ConOde(NeuralOdeBase):
             z_d_w = x[..., self.latent_dim :]
 
             z_dd_w = B_w_inv @ (
-                self.nonlinearity(nn.Dense(features=self.latent_dim, use_bias=False)(tau))
+                self.nonlinearity(
+                    nn.Dense(features=self.latent_dim, use_bias=False)(tau)
+                )
                 - Lambda_w @ z_w
                 - E_w @ z_d_w
                 - self.nonlinearity(z_w + bias)
@@ -93,7 +100,9 @@ class ConOde(NeuralOdeBase):
         else:
             # constructing Bw as a positive definite matrix
             # vector of parameters for triangular matrix
-            b_w = self.param("b_w", tri_params_init, (num_B_w_params,), self.param_dtype)
+            b_w = self.param(
+                "b_w", tri_params_init, (num_B_w_params,), self.param_dtype
+            )
             B_w = generate_positive_definite_matrix_from_params(
                 self.latent_dim, b_w, diag_shift=self.diag_shift, diag_eps=self.diag_eps
             )
@@ -115,7 +124,9 @@ class ConOde(NeuralOdeBase):
             z_d = x[..., self.latent_dim :]
 
             z_dd = (
-                self.nonlinearity(nn.Dense(features=self.latent_dim, use_bias=False)(tau))
+                self.nonlinearity(
+                    nn.Dense(features=self.latent_dim, use_bias=False)(tau)
+                )
                 - Lambda @ z
                 - E @ z_d
                 - self.nonlinearity(W @ z + bias)

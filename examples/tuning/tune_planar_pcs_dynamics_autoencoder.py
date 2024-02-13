@@ -275,7 +275,14 @@ if __name__ == "__main__":
         )
 
         # call the factory function for the task
-        print("Dataset dt:", dataset_metadata["dt"], "dataset sim_dt:", dataset_metadata["sim_dt"], "actually using sim_dt", sim_dt)
+        print(
+            "Dataset dt:",
+            dataset_metadata["dt"],
+            "dataset sim_dt:",
+            dataset_metadata["sim_dt"],
+            "actually using sim_dt",
+            sim_dt,
+        )
         task_callables, metrics_collection_cls = dynamics_autoencoder.task_factory(
             system_type,
             nn_model,
