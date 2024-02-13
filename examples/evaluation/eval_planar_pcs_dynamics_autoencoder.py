@@ -1,8 +1,9 @@
 import flax.linen as nn
+from functools import partial
 from jax import config as jax_config
 
 jax_config.update("jax_enable_x64", True)
-from jax import Array, random
+from jax import Array, jit, random
 import jax.numpy as jnp
 import jsrm
 from jsrm.integration import ode_with_forcing_factory
@@ -12,9 +13,23 @@ from pathlib import Path
 import tensorflow as tf
 
 from src.models.autoencoders import Autoencoder, VAE
-from src.models.discrete_forward_dynamics import DiscreteMlpDynamics
-from src.models.neural_odes import ConOde, CornnOde, LinearStateSpaceOde, LnnOde, MlpOde
+from src.models.discrete_forward_dynamics import (
+    DiscreteLssDynamics,
+    DiscreteMambaDynamics,
+    DiscreteMlpDynamics,
+    DiscreteRnnDynamics,
+)
+from src.models.neural_odes import (
+    ConOde,
+    CornnOde,
+    LnnOde,
+    LinearStateSpaceOde,
+    MambaOde,
+    MlpOde,
+)
 from src.models.dynamics_autoencoder import DynamicsAutoencoder
+from src.rendering import render_planar_pcs
+from src.rollout import rollout_ode
 from src.training.dataset_utils import load_dataset, load_dummy_neural_network_input
 from src.training.loops import run_eval
 from src.tasks import dynamics_autoencoder
@@ -96,6 +111,8 @@ if __name__ == "__main__":
     # extract the robot parameters from the dataset
     robot_params = dataset_metadata["system_params"]
     print(f"Robot parameters: {robot_params}")
+    # dimension of the configuration space
+    n_q = train_ds.element_spec["x_ts"].shape[-1] // 2
     # size of torques
     n_tau = train_ds.element_spec["tau"].shape[-1]  # dimension of the control input
     # image shape
@@ -104,6 +121,20 @@ if __name__ == "__main__":
     # get the dynamics function
     strain_basis, forward_kinematics_fn, dynamical_matrices_fn = planar_pcs.factory(
         sym_exp_filepath, strain_selector=dataset_metadata["strain_selector"]
+    )
+    ode_fn = ode_with_forcing_factory(
+        dynamical_matrices_fn, robot_params
+    )
+
+    # initialize the rendering function
+    rendering_fn = partial(
+        render_planar_pcs,
+        forward_kinematics_fn,
+        robot_params,
+        width=img_shape[0],
+        height=img_shape[0],
+        origin_uv=dataset_metadata["rendering"]["origin_uv"],
+        line_thickness=dataset_metadata["rendering"]["line_thickness"],
     )
 
     # initialize the neural networks
@@ -231,3 +262,62 @@ if __name__ == "__main__":
         f"rmse_rec_static={test_metrics['rmse_rec_static']:.4f}, "
         f"rmse_rec_dynamic={test_metrics['rmse_rec_dynamic']:.4f}"
     )
+
+    # define settings for the rollout
+    rollout_duration = 0.1  # s
+    rollout_fps = 30  # frames per second
+    rollout_dt = 1 / rollout_fps  # s
+    rollout_sim_dt = 1e-3 * rollout_dt  # simulation time step of 1e-5 s
+    ts_rollout = jnp.linspace(
+        0.0, rollout_duration, num=int(rollout_duration / rollout_dt)
+    )
+    print("Rollout time steps:", ts_rollout)
+    ode_rollout_fn = partial(
+        rollout_ode,
+        ode_fn=ode_fn,
+        ts=ts_rollout,
+        sim_dt=rollout_sim_dt,
+        rendering_fn=rendering_fn,
+        solver=solver_class(),
+        show_progress=True,
+    )
+    # define the task callables for the rollout
+    task_callables_rollout_learned, metrics_collection_cls = dynamics_autoencoder.task_factory(
+        system_type,
+        nn_model,
+        ts=ts_rollout,
+        sim_dt=rollout_sim_dt,
+        loss_weights=loss_weights,
+        ae_type=ae_type,
+        dynamics_type=dynamics_type,
+        start_time_idx=start_time_idx,
+        solver=solver_class(),
+        latent_velocity_source="image-space-finite-differences",
+        num_past_timesteps=num_past_timesteps,
+    )
+    forward_fn_learned = jit(task_callables_rollout_learned.forward_fn)
+
+    test_batch = next(test_ds.as_numpy_iterator())
+    for key in test_batch.keys():
+        print(f"{key} shape: {test_batch[key].shape}")
+
+    # rollout dynamics
+    print("Rollout...")
+    x0 = jnp.concatenate([dataset_metadata["x0_max"][:n_q], jnp.zeros((n_q,))])
+    tau = jnp.zeros((n_tau,))
+    print("x0:", x0)
+    rollout_data_ts = ode_rollout_fn(x0=x0, tau=tau)
+    print("Rollout data shapes:")
+    for key in rollout_data_ts.keys():
+        print(f"{key}: {rollout_data_ts[key].shape}")
+    rollout_batch = dict(
+        t_ts=ts_rollout[None, ...],
+        x_ts=rollout_data_ts["x_ts"][None, ...],
+        tau=tau[None, ...],
+        rendering_ts=rollout_data_ts["rendering_ts"][None, :],
+    )
+    # preds_gt = forward_fn_ode(batch)
+    preds = forward_fn_learned(rollout_batch, state.params)
+    print("Predictions shapes:")
+    for key in preds.keys():
+        print(f"{key}: {preds[key].shape}")
