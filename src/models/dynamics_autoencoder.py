@@ -34,8 +34,8 @@ class DynamicsAutoencoder(nn.Module):
             )(x_bt, tau_bt)
         elif self.dynamics_type == "discrete":
             z_ts = z_bt[: self.num_past_timesteps]
-            tau_ts = jnp.zeros((z_ts.shape[0], self.dynamics.input_dim))
-            z_next = self.forward_dynamics(z_ts.flatten(), tau_ts.flatten())
+            tau = jnp.zeros_like(z_ts, shape=(self.dynamics.input_dim, ))
+            z_next = self.forward_dynamics(z_ts.flatten(), tau)
 
     def encode_vae(self, *args, **kwargs):
         return self.autoencoder.encode_vae(*args, **kwargs)

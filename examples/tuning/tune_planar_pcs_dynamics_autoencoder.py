@@ -48,7 +48,7 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
 ]
 """
-dynamics_model_name = "node-mechanical-mlp"
+dynamics_model_name = "discrete-mamba"
 # latent space shape
 n_z = 4
 # simulation time step
@@ -227,7 +227,7 @@ if __name__ == "__main__":
 
             dynamics_model = DiscreteMlpDynamics(
                 state_dim=num_past_timesteps * n_z,
-                input_dim=n_tau,
+                input_dim=num_past_timesteps * n_tau,
                 output_dim=n_z,
                 dt=dataset_metadata["dt"],
                 num_layers=num_mlp_layers,
@@ -237,14 +237,14 @@ if __name__ == "__main__":
         elif dynamics_model_name in ["discrete-elman-rnn", "discrete-gru-rnn"]:
             dynamics_model = DiscreteRnnDynamics(
                 state_dim=num_past_timesteps * n_z,
-                input_dim=n_tau,
+                input_dim=num_past_timesteps * n_tau,
                 output_dim=n_z,
                 rnn_method=dynamics_model_name.split("-")[1],
             )
         elif dynamics_model_name in ["discrete-general-lss", "discrete-hippo-lss"]:
             dynamics_model = DiscreteLssDynamics(
                 state_dim=num_past_timesteps * n_z,
-                input_dim=n_tau,
+                input_dim=num_past_timesteps * n_tau,
                 output_dim=n_z,
                 dt=dataset_metadata["dt"],
                 transition_matrix_init=dynamics_model_name.split("-")[
@@ -254,7 +254,7 @@ if __name__ == "__main__":
         elif dynamics_model_name == "discrete-mamba":
             dynamics_model = DiscreteMambaDynamics(
                 state_dim=num_past_timesteps * n_z,
-                input_dim=n_tau,
+                input_dim=num_past_timesteps * n_tau,
                 output_dim=n_z,
                 dt=dataset_metadata["dt"],
             )
