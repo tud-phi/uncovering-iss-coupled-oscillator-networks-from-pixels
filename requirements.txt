@@ -7,7 +7,7 @@ flax
 hippox
 jax
 jax-models
-jsrm>=0.3
+jsrm
 matplotlib
 natsort
 numpy
