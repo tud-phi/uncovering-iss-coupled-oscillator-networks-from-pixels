@@ -223,7 +223,7 @@ if __name__ == "__main__":
             nonlinearity=getattr(nn, mlp_nonlinearity_name),
         )
     elif dynamics_model_name in ["discrete-elman-rnn", "discrete-gru-rnn"]:
-        nn_model = DiscreteRnnDynamics(
+        dynamics_model = DiscreteRnnDynamics(
             state_dim=num_past_timesteps * n_z,
             input_dim=num_past_timesteps * n_tau,
             output_dim=n_z,
