@@ -54,7 +54,7 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
 ]
 """
-dynamics_model_name = "discrete-mlp"
+dynamics_model_name = "node-cornn"
 # latent space shape
 n_z = 4
 # simulation time step
@@ -81,7 +81,9 @@ elif ae_type == "beta_vae":
         experiment_id = "2024-02-14_18-17-49"
         cornn_gamma, cornn_epsilon = 35.60944428175452, 0.05125440449424828
     elif dynamics_model_name == "node-con":
-        experiment_id = "2024-02-13_12-57-25"
+        experiment_id = "2024-02-14_18-34-27"
+    elif dynamics_model_name == "node-w-con":
+        experiment_id = "2024-02-14_22-52-37"
     elif dynamics_model_name == "discrete-mlp":
         experiment_id = "2024-02-14_17-45-30"
         num_mlp_layers, mlp_hidden_dim = 4, 95
