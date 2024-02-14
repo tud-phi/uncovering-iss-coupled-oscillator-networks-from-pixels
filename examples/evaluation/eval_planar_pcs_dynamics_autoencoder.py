@@ -77,6 +77,9 @@ elif ae_type == "beta_vae":
         experiment_id = "2024-02-13_16-27-39"
         num_mlp_layers, mlp_hidden_dim = 4, 52
         mlp_nonlinearity_name = "elu"
+    elif dynamics_model_name == "node-cornn":
+        experiment_id = "2024-02-14_18-17-49"
+        cornn_gamma, cornn_epsilon = 35.60944428175452, 0.05125440449424828
     elif dynamics_model_name == "node-con":
         experiment_id = "2024-02-13_12-57-25"
     elif dynamics_model_name == "discrete-mlp":

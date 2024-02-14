@@ -45,7 +45,7 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
 ]
 """
-dynamics_model_name = "discrete-mamba"
+dynamics_model_name = "node-cornn"
 # size of latent space
 n_z = 4
 # simulation time step
@@ -97,8 +97,7 @@ elif ae_type == "beta_vae":
             beta=0.00011714626957666846,
         )
         weight_decay = 1.8390286588494643e-05
-        cornn_gamma = 35.60944428175452
-        cornn_epsilon = 0.05125440449424828
+        cornn_gamma, cornn_epsilon = 35.60944428175452, 0.05125440449424828
     elif dynamics_model_name in ["node-con", "node-w-con"]:
         base_lr = 0.00948905454174363
         loss_weights = dict(
