@@ -319,8 +319,6 @@ if __name__ == "__main__":
     forward_fn_learned = jit(task_callables_rollout_learned.forward_fn)
 
     test_batch = next(test_ds.as_numpy_iterator())
-    for key in test_batch.keys():
-        print(f"{key} shape: {test_batch[key].shape}")
 
     # rollout dynamics
     print("Rollout...")
