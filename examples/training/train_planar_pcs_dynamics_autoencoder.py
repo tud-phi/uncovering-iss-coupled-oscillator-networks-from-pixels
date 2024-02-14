@@ -99,15 +99,15 @@ elif ae_type == "beta_vae":
         weight_decay = 1.8390286588494643e-05
         cornn_gamma = 35.60944428175452
         cornn_epsilon = 0.05125440449424828
-    elif dynamics_model_name == "node-con":
-        base_lr = 0.006177316580570417
+    elif dynamics_model_name in ["node-con", "node-w-con"]:
+        base_lr = 0.00948905454174363
         loss_weights = dict(
-            mse_z=0.030379588926380468,
+            mse_z=0.25452411365868755,
             mse_rec_static=1.0,
-            mse_rec_dynamic=5.697451534699487,
-            beta=0.0013426621470719866,
+            mse_rec_dynamic=10.716251946521883,
+            beta=0.0001000304459146119,
         )
-        weight_decay = 1.7554301123255296e-05
+        weight_decay = 2.9642914376858733e-05
     elif dynamics_model_name == "node-lnn":
         base_lr = 0.0015553597576502523
         loss_weights = dict(
