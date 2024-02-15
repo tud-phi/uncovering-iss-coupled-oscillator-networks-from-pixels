@@ -108,18 +108,17 @@ elif ae_type == "beta_vae":
         )
         weight_decay = 2.9642914376858733e-05
     elif dynamics_model_name == "node-lnn":
-        base_lr = 0.0015553597576502523
+        base_lr = 0.002922002372648181
         loss_weights = dict(
-            mse_z=0.24740396032120054,
+            mse_z=0.45534786191007814,
             mse_rec_static=1.0,
-            mse_rec_dynamic=19.997472562384235,
-            beta=0.000148761017920335,
+            mse_rec_dynamic=8.181311383245621,
+            beta=0.012987943339071037,
         )
-        weight_decay = 1.367664507404463e-05
+        weight_decay = 7.869361804893107e-06
         lnn_learn_dissipation = True
-        num_mlp_layers, mlp_hidden_dim, mlp_nonlinearity_name = 4, 13, "relu"
-        diag_shift, diag_eps = 1.3009374296641844e-06, 1.4901550009073945e-05
-        raise NotImplementedError
+        num_mlp_layers, mlp_hidden_dim, mlp_nonlinearity_name = 6, 9, "sigmoid"
+        diag_shift, diag_eps = 2.3522236095556114e-06, 0.0019146626034900816
     elif dynamics_model_name in [
         "node-general-lss",
         "node-mechanical-lss",
