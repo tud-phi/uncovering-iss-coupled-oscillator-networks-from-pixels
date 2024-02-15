@@ -54,7 +54,7 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
 ]
 """
-dynamics_model_name = "node-cornn"
+dynamics_model_name = "node-mechanical-mlp"
 # latent space shape
 n_z = 4
 # simulation time step
@@ -334,7 +334,8 @@ if __name__ == "__main__":
 
     # rollout dynamics
     print("Rollout...")
-    x0 = jnp.concatenate([dataset_metadata["x0_max"][:n_q], jnp.zeros((n_q,))])
+    q0 = 0.5 * jnp.tile(jnp.array([1.0, -1.0]), reps=int(jnp.ceil(n_q / 2)))[:n_q] * dataset_metadata["x0_max"][:n_q]
+    x0 = jnp.concatenate([q0, jnp.zeros((n_q,))])
     tau = jnp.zeros((n_tau,))
     print("x0:", x0)
     rollout_data_ts = ode_rollout_fn(x0=x0, tau=tau)
