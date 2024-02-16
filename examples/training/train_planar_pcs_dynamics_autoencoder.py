@@ -99,6 +99,18 @@ elif ae_type == "beta_vae":
         weight_decay = 1.8390286588494643e-05
         cornn_gamma, cornn_epsilon = 35.60944428175452, 0.05125440449424828
     elif dynamics_model_name in ["node-con", "node-w-con"]:
+        """ node-w-con with n_z > 4
+        rmse_rec_dynamic_val = 0.14233292639255524
+        n_z = 19
+        base_lr = 0.009617650941325244
+        loss_weights = dict(
+            mse_z=0.059448660726075624,
+            mse_rec_static=1.0,
+            mse_rec_dynamic=3.668281962438858,
+            beta=0.00019619911312997068,
+        )
+        weight_decay = 5.192280250126059e-06
+        """
         base_lr = 0.00948905454174363
         loss_weights = dict(
             mse_z=0.25452411365868755,
