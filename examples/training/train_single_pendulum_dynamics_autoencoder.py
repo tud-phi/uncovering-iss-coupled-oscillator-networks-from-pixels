@@ -105,7 +105,7 @@ elif ae_type == "beta_vae":
         weight_decay = 1.367664507404463e-05
         latent_velocity_source = "image-space-finite-differences"
         lnn_learn_dissipation = True
-        num_mlp_layers, mlp_hidden_dim, mlp_nonlinearity_name = 4, 13, "relu"
+        num_mlp_layers, mlp_hidden_dim, mlp_nonlinearity_name = 4, 13, "softplus"
         diag_shift, diag_eps = 1.3009374296641844e-06, 1.4901550009073945e-05
     elif dynamics_model_name in [
         "node-general-lss",

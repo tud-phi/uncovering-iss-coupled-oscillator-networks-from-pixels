@@ -157,9 +157,13 @@ if __name__ == "__main__":
             learn_dissipation = True
             num_mlp_layers = trial.suggest_int("num_mlp_layers", 2, 6)
             mlp_hidden_dim = trial.suggest_int("mlp_hidden_dim", 4, 72)
+            # attention: we are not allowed to use non-continuous activation functions like ReLU, leaky ReLU, or ELU
+            # the second derivative of the activation function must be continuous
+            # otherwise, the second derivative of the potential is not continuous and with that the Hessian
+            # of the potential is not symmetric
             mlp_nonlinearity_name = trial.suggest_categorical(
                 "mlp_nonlinearity",
-                ["leaky_relu", "relu", "tanh", "sigmoid", "elu", "selu", "softplus"],
+                ["tanh", "sigmoid", "softplus"],
             )
             diag_shift = trial.suggest_float("diag_shift", 1e-6, 1e-2, log=True)
             diag_eps = trial.suggest_float("diag_eps", 1e-6, 1e-2, log=True)

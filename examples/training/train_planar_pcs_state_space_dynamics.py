@@ -78,7 +78,7 @@ elif dynamics_model_name == "node-lnn":
     weight_decay = 5.4840283002626335e-05
     num_mlp_layers = 5
     mlp_hidden_dim = 15
-    mlp_nonlinearity_name = "elu"
+    mlp_nonlinearity_name = "softplus"
     diag_shift, diag_eps = 8.271283131006865e-05, 0.005847971857910474
 elif dynamics_model_name == "node-con":
     base_lr = 0.05464221872891958
