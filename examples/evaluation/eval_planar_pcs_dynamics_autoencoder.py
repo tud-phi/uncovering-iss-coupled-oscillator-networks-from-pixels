@@ -270,6 +270,8 @@ if __name__ == "__main__":
         solver=solver_class(),
         latent_velocity_source="image-space-finite-differences",
         num_past_timesteps=num_past_timesteps,
+        compute_psnr=True,
+        compute_ssim=True,
     )
 
     # load the neural network dummy input
@@ -291,7 +293,11 @@ if __name__ == "__main__":
         "\n"
         f"Final test metrics:\n"
         f"rmse_rec_static={test_metrics['rmse_rec_static']:.4f}, "
-        f"rmse_rec_dynamic={test_metrics['rmse_rec_dynamic']:.4f}"
+        f"rmse_rec_dynamic={test_metrics['rmse_rec_dynamic']:.4f}, "
+        f"psnr_rec_static={test_metrics['psnr_rec_static']:.4f}, "
+        f"psnr_rec_dynamic={test_metrics['psnr_rec_dynamic']:.4f}, "
+        f"ssim_rec_static={test_metrics['ssim_rec_static']:.4f}, "
+        f"ssim_rec_dynamic={test_metrics['ssim_rec_dynamic']:.4f}"
     )
 
     # define settings for the rollout

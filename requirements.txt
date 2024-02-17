@@ -3,6 +3,7 @@ ciclo>=0.1.8
 clu
 diffrax
 dill
+dm-pix  # PIX is an image processing library in JAX, for JAX.
 flax
 hippox
 jax

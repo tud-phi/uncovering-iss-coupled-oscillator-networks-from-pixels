@@ -9,6 +9,8 @@ import jax.numpy as jnp
 from typing import Any, Callable, Dict, Optional, Tuple, Type
 
 from src.losses.kld import kullback_leiber_divergence
+from src.losses.psnr import peak_signal_to_noise_ratio
+from src.losses.ssim import structural_similarity_index
 from src.metrics import RootAverage
 from src.models.dynamics_autoencoder import DynamicsAutoencoder
 from src.structs import TaskCallables
@@ -41,6 +43,8 @@ def task_factory(
     latent_velocity_source: str = "latent-space-finite-differences",
     num_past_timesteps: int = 2,
     interpret_discrete_hidden_state_as_displacement: bool = False,
+    compute_psnr: bool = False,
+    compute_ssim: bool = False,
 ) -> Tuple[TaskCallables, Type[clu_metrics.Collection]]:
     """
     Factory function for the task of learning a representation using first-principle dynamics while using the
@@ -72,6 +76,8 @@ def task_factory(
             performance of RNNs, see:
             J. Martinez, M. J. Black, and J. Romero, “On human motion prediction using recurrent neural networks,”
             in Proc. IEEE Conf. on Comput. Vis. Pattern Recognit., 2017.
+        compute_psnr: whether to compute the Peak Signal-to-Noise Ratio (PSNR) as a metric
+        compute_ssim: whether to compute the Structural Similarity Index (SSIM) as a metric
     Returns:
         task_callables: struct containing the functions for the learning task
         metrics_collection_cls: contains class for collecting metrics
@@ -477,6 +483,25 @@ def task_factory(
             ),
         }
 
+        if compute_psnr:
+            batch_loss_dict["psnr_rec_static"] = peak_signal_to_noise_ratio(
+                preds["rendering_static_ts"], batch["rendering_ts"]
+            )
+            batch_loss_dict["psnr_rec_dynamic"] = peak_signal_to_noise_ratio(
+                preds["rendering_dynamic_ts"],
+                batch["rendering_ts"][:, start_time_idx:],
+            )
+
+        if compute_ssim:
+            batch_loss_dict["ssim_rec_static"] = structural_similarity_index(
+                preds["rendering_static_ts"].reshape(-1, *preds["rendering_static_ts"].shape[2:]),
+                batch["rendering_ts"].reshape(-1, *batch["rendering_ts"].shape[2:])
+            )
+            batch_loss_dict["ssim_rec_dynamic"] = structural_similarity_index(
+                preds["rendering_dynamic_ts"].reshape(-1, *preds["rendering_dynamic_ts"].shape[2:]),
+                batch["rendering_ts"][:, start_time_idx:].reshape(-1, *batch["rendering_ts"].shape[2:]),
+            )
+
         return batch_loss_dict
 
     task_callables = TaskCallables(
@@ -489,6 +514,14 @@ def task_factory(
         lr: clu_metrics.LastValue.from_output("lr")
         rmse_rec_static: RootAverage.from_output("mse_rec_static")
         rmse_rec_dynamic: RootAverage.from_output("mse_rec_dynamic")
+
+        if compute_psnr:
+            psnr_rec_static: RootAverage.from_output("psnr_rec_static")
+            psnr_rec_dynamic: RootAverage.from_output("psnr_rec_dynamic")
+
+        if compute_ssim:
+            ssim_rec_static: RootAverage.from_output("ssim_rec_static")
+            ssim_rec_dynamic: RootAverage.from_output("ssim_rec_dynamic")
 
     metrics_collection_cls = MetricsCollection
     return task_callables, metrics_collection_cls
