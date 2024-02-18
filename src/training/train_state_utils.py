@@ -123,11 +123,14 @@ def restore_train_state(
     return state
 
 
-def print_number_of_trainable_params(state: TrainState):
+def count_number_of_trainable_params(state: TrainState, verbose: bool = True):
     """
-    Print the number of trainable parameters of the neural network.
+    Count the number of trainable parameters of the neural network.
     Args:
         state: TrainState object for the neural network.
+        verbose: Whether to print the number of trainable parameters.
+    Returns:
+        params_count: Dictionary with the number of trainable parameters.
     """
     params_count = dict(total=sum(x.size for x in tree_leaves(state.params)))
 
@@ -135,5 +138,8 @@ def print_number_of_trainable_params(state: TrainState):
         for k, v in state.params.items():
             params_count[k] = sum(x.size for x in tree_leaves(v))
 
-    # print the number of trainable parameters
-    print(f"Number of trainable parameters: {params_count}")
+    if verbose:
+        # print the number of trainable parameters
+        print(f"Number of trainable parameters: {params_count}")
+
+    return params_count

@@ -1,4 +1,5 @@
 from datetime import datetime
+import dill
 import flax.linen as nn
 from jax import config as jax_config
 
@@ -30,6 +31,14 @@ from src.models.dynamics_autoencoder import DynamicsAutoencoder
 from src.tasks import dynamics_autoencoder
 from src.training.dataset_utils import load_dataset
 from src.training.loops import run_eval, run_training
+from src.training.train_state_utils import count_number_of_trainable_params
+
+
+def concat_or_none(x, y, **kwargs):
+    if x is None:
+        return y
+    return onp.concatenate([x, y], **kwargs)
+
 
 # prevent tensorflow from loading everything onto the GPU, as we don't have enough memory for that
 tf.config.experimental.set_visible_devices([], "GPU")
@@ -211,7 +220,35 @@ logdir = (
 )
 logdir.mkdir(parents=True, exist_ok=True)
 
+
 if __name__ == "__main__":
+    # initialize dictionary with experimental results
+    zero_array = None
+    sweep_results = dict(
+        n_z=zero_array,
+        seed=zero_array,
+        num_trainable_params=dict(
+            total=zero_array,
+            autoencoder=zero_array,
+            dynamics=zero_array,
+        ),
+        train=dict(
+            rmse_rec_static=zero_array,
+            rmse_rec_dynamic=zero_array,
+            psnr_rec_static=zero_array,
+            psnr_rec_dynamic=zero_array,
+            ssim_rec_static=zero_array,
+            ssim_rec_dynamic=zero_array,
+        ),
+        test=dict(
+            rmse_rec_static=zero_array,
+            rmse_rec_dynamic=zero_array,
+            psnr_rec_static=zero_array,
+            psnr_rec_dynamic=zero_array,
+            ssim_rec_static=zero_array,
+            ssim_rec_dynamic=zero_array,
+        )
+    )
     for n_z in n_z_range:
         for seed in seed_range:
             # initialize the pseudo-random number generator
@@ -363,7 +400,11 @@ if __name__ == "__main__":
                 weight_decay=weight_decay,
                 logdir=logdir / f"n_z_{n_z}_seed_{seed}",
             )
-            print(f"Final training metrics for n_z={n_z}, seed={seed}:\n", state.metrics.compute())
+            train_metrics = state.metrics.compute()
+            print(f"Final training metrics for n_z={n_z}, seed={seed}:\n", train_metrics)
+
+            # count the number of trainable parameters
+            params_count = count_number_of_trainable_params(state, verbose=False)
 
             print(f"Run testing for n_z={n_z}, seed={seed}...")
             state, test_history = run_eval(test_ds, state, task_callables)
@@ -378,3 +419,86 @@ if __name__ == "__main__":
                 f"ssim_rec_static={test_metrics['ssim_rec_static']:.4f}, "
                 f"ssim_rec_dynamic={test_metrics['ssim_rec_dynamic']:.4f}"
             )
+
+            # update sweep results
+            sweep_results["n_z"] = concat_or_none(sweep_results["n_z"], onp.array(n_z)[None, ...], axis=0)
+            sweep_results["seed"] = concat_or_none(sweep_results["seed"], onp.array(seed)[None, ...], axis=0)
+            sweep_results["num_trainable_params"]["total"] = concat_or_none(
+                sweep_results["num_trainable_params"]["total"],
+                onp.array(params_count["total"])[None, ...],
+                axis=0,
+            )
+            sweep_results["num_trainable_params"]["autoencoder"] = concat_or_none(
+                sweep_results["num_trainable_params"]["autoencoder"],
+                onp.array(params_count["autoencoder"])[None, ...],
+                axis=0,
+            )
+            sweep_results["num_trainable_params"]["dynamics"] = concat_or_none(
+                sweep_results["num_trainable_params"]["dynamics"],
+                onp.array(params_count["dynamics"])[None, ...],
+                axis=0,
+            )
+            sweep_results["train"]["rmse_rec_static"] = concat_or_none(
+                sweep_results["train"]["rmse_rec_static"],
+                train_metrics["rmse_rec_static"][None, ...],
+                axis=0,
+            )
+            sweep_results["train"]["rmse_rec_dynamic"] = concat_or_none(
+                sweep_results["train"]["rmse_rec_dynamic"],
+                train_metrics["rmse_rec_dynamic"][None, ...],
+                axis=0,
+            )
+            sweep_results["train"]["psnr_rec_static"] = concat_or_none(
+                sweep_results["train"]["psnr_rec_static"],
+                train_metrics["psnr_rec_static"][None, ...],
+                axis=0,
+            )
+            sweep_results["train"]["psnr_rec_dynamic"] = concat_or_none(
+                sweep_results["train"]["psnr_rec_dynamic"],
+                train_metrics["psnr_rec_dynamic"][None, ...],
+                axis=0,
+            )
+            sweep_results["train"]["ssim_rec_static"] = concat_or_none(
+                sweep_results["train"]["ssim_rec_static"],
+                train_metrics["ssim_rec_static"][None, ...],
+                axis=0,
+            )
+            sweep_results["train"]["ssim_rec_dynamic"] = concat_or_none(
+                sweep_results["train"]["ssim_rec_dynamic"],
+                train_metrics["ssim_rec_dynamic"][None, ...],
+                axis=0,
+            )
+            sweep_results["test"]["rmse_rec_static"] = concat_or_none(
+                sweep_results["test"]["rmse_rec_static"],
+                test_metrics["rmse_rec_static"][None, ...],
+                axis=0,
+            )
+            sweep_results["test"]["rmse_rec_dynamic"] = concat_or_none(
+                sweep_results["test"]["rmse_rec_dynamic"],
+                test_metrics["rmse_rec_dynamic"][None, ...],
+                axis=0,
+            )
+            sweep_results["test"]["psnr_rec_static"] = concat_or_none(
+                sweep_results["test"]["psnr_rec_static"],
+                test_metrics["psnr_rec_static"][None, ...],
+                axis=0,
+            )
+            sweep_results["test"]["psnr_rec_dynamic"] = concat_or_none(
+                sweep_results["test"]["psnr_rec_dynamic"],
+                test_metrics["psnr_rec_dynamic"][None, ...],
+                axis=0,
+            )
+            sweep_results["test"]["ssim_rec_static"] = concat_or_none(
+                sweep_results["test"]["ssim_rec_static"],
+                test_metrics["ssim_rec_static"][None, ...],
+                axis=0,
+            )
+            sweep_results["test"]["ssim_rec_dynamic"] = concat_or_none(
+                sweep_results["test"]["ssim_rec_dynamic"],
+                test_metrics["ssim_rec_dynamic"][None, ...],
+                axis=0,
+            )
+
+            # save the experimental results
+            with open(logdir / "sweep_results.dill", "wb") as f:
+                dill.dump(sweep_results, f)

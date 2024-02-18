@@ -15,7 +15,7 @@ from src.structs import TaskCallables, TrainState
 from src.training.checkpointing import OrbaxCheckpointerCallback
 from src.training.train_state_utils import (
     initialize_train_state,
-    print_number_of_trainable_params,
+    count_number_of_trainable_params,
 )
 from src.training.optim import create_learning_rate_fn
 
@@ -223,7 +223,7 @@ def run_training(
         state = state.replace(tx=tx, opt_state=tx.init(state.params))
 
     # print number of trainable parameters
-    print_number_of_trainable_params(state)
+    count_number_of_trainable_params(state)
 
     if callbacks is None:
         callbacks = []
@@ -299,7 +299,7 @@ def run_eval(
         history: History object containing the test metrics.
     """
     # print number of trainable parameters
-    print_number_of_trainable_params(state)
+    count_number_of_trainable_params(state)
 
     callbacks = []
     if show_pbar:
