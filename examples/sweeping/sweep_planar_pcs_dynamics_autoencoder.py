@@ -56,7 +56,7 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
 ]
 """
-dynamics_model_name = "node-con"
+dynamics_model_name = "node-w-con"
 # simulation time step
 sim_dt = 1e-2
 
@@ -108,26 +108,14 @@ elif ae_type == "beta_vae":
         weight_decay = 1.8390286588494643e-05
         cornn_gamma, cornn_epsilon = 35.60944428175452, 0.05125440449424828
     elif dynamics_model_name in ["node-con", "node-w-con"]:
-        """ node-w-con with n_z > 4
-        rmse_rec_dynamic_val = 0.14014695584774017
-        n_z = 17
         base_lr = 0.009575159163417718
         loss_weights = dict(
             mse_z=0.10188200495675905,
             mse_rec_static=1.0,
-            mse_rec_dynamic=3.3080609062995894,,
-            beta=0.0001718351163778155,
+            mse_rec_dynamic=3.3080609062995894,
+            beta = 0.0001718351163778155,
         )
         weight_decay = 9.534255318218664e-06
-        """
-        base_lr = 0.00948905454174363
-        loss_weights = dict(
-            mse_z=0.25452411365868755,
-            mse_rec_static=1.0,
-            mse_rec_dynamic=10.716251946521883,
-            beta=0.0001000304459146119,
-        )
-        weight_decay = 2.9642914376858733e-05
     elif dynamics_model_name == "node-lnn":
         base_lr = 0.002922002372648181
         loss_weights = dict(
