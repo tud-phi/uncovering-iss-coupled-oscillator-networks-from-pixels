@@ -9,14 +9,18 @@ import matplotlib.pyplot as plt
 import numpy as onp
 from pathlib import Path
 
-
-sweep_folder = Path("logs") / "pcc_ns-2_dynamics_autoencoder" / "2024-02-19_00-38-28"
+"""
+node-mechanical-mlp: sweep_id = "2024-02-19_10-42-33"
+node-w-con: sweep_id = "2024-02-19_00-38-28"
+"""
+sweep_id = "2024-02-19_00-38-28"
 
 # plotting settings
 figsize = (8, 6)
 
 
 def main():
+    sweep_folder = Path("logs") / "pcc_ns-2_dynamics_autoencoder" / sweep_id
     with open(sweep_folder / "sweep_results.dill", "rb") as file:
         sweep_results = dill.load(file)
 
@@ -30,6 +34,8 @@ def main():
     ax.set_xlabel("$n_z$")
     ax.set_ylabel("RMSE of reconstruction")
     ax.legend()
+    plt.grid(True)
+    plt.box(True)
     plt.savefig(sweep_folder / "rmse_rec_vs_n_z.pdf")
     plt.show()
 
@@ -40,6 +46,8 @@ def main():
     ax.set_xlabel("$n_z$")
     ax.set_ylabel("SSIM of reconstruction")
     ax.legend()
+    plt.grid(True)
+    plt.box(True)
     plt.savefig(sweep_folder / "ssim_rec_vs_n_z.pdf")
     plt.show()
 
@@ -49,6 +57,8 @@ def main():
     ax.set_xlabel("$n_z$")
     ax.set_ylabel("Number of trainable parameters")
     ax.legend()
+    plt.grid(True)
+    plt.box(True)
     plt.savefig(sweep_folder / "num_trainable_params_dynamics_vs_n_z.pdf")
     plt.show()
 
@@ -59,6 +69,8 @@ def main():
     ax.set_xlabel("Number of trainable parameters")
     ax.set_ylabel("RMSE of reconstruction")
     ax.legend()
+    plt.grid(True)
+    plt.box(True)
     plt.savefig(sweep_folder / "rmse_rec_vs_num_trainable_params.pdf")
     plt.show()
 
