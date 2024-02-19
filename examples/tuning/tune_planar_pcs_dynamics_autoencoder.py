@@ -44,7 +44,7 @@ rng = random.PRNGKey(seed=seed)
 system_type = "pcc_ns-2"
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 """ dynamics_model_name in [
-    "node-general-mlp", "node-mechanical-mlp", "node-cornn", "node-con", "node-w-con", "node-lnn", "node-hippo-lss", "mambda-ode",
+    "node-general-mlp", "node-mechanical-mlp", "node-mechanical-mlp-s", "node-cornn", "node-con", "node-w-con", "node-lnn", "node-hippo-lss", "mambda-ode",
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
 ]
 """
@@ -144,13 +144,18 @@ if __name__ == "__main__":
             autoencoder_model = Autoencoder(
                 latent_dim=n_z, img_shape=img_shape, norm_layer=nn.LayerNorm
             )
-        if dynamics_model_name in ["node-general-mlp", "node-mechanical-mlp"]:
-            num_mlp_layers = trial.suggest_int("num_mlp_layers", 2, 6)
-            mlp_hidden_dim = trial.suggest_int("mlp_hidden_dim", 4, 96)
-            mlp_nonlinearity_name = trial.suggest_categorical(
-                "mlp_nonlinearity",
-                ["leaky_relu", "relu", "tanh", "sigmoid", "elu", "selu"],
-            )
+        if dynamics_model_name in ["node-general-mlp", "node-mechanical-mlp", "node-mechanical-mlp-s"]:
+            if dynamics_model_name == "node-mechanical-mlp-s":
+                # small mlp model
+                num_mlp_layers, mlp_hidden_dim = 2, 24
+                mlp_nonlinearity_name = "elu"
+            else:
+                num_mlp_layers = trial.suggest_int("num_mlp_layers", 2, 6)
+                mlp_hidden_dim = trial.suggest_int("mlp_hidden_dim", 4, 96)
+                mlp_nonlinearity_name = trial.suggest_categorical(
+                    "mlp_nonlinearity",
+                    ["leaky_relu", "relu", "tanh", "sigmoid", "elu", "selu"],
+                )
             mlp_nonlinearity = getattr(nn, mlp_nonlinearity_name)
 
             dynamics_model = MlpOde(
@@ -160,7 +165,7 @@ if __name__ == "__main__":
                 hidden_dim=mlp_hidden_dim,
                 nonlinearity=mlp_nonlinearity,
                 mechanical_system=True
-                if dynamics_model_name == "node-mechanical-mlp"
+                if dynamics_model_name.split("-")[1] == "mechanical"
                 else False,
             )
         elif dynamics_model_name == "node-cornn":

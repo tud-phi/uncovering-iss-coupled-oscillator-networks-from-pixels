@@ -52,11 +52,11 @@ seed_range = onp.array([0])
 system_type = "pcc_ns-2"
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 """ dynamics_model_name in [
-    "node-general-mlp", "node-mechanical-mlp", "node-cornn", "node-con", "node-w-con", "node-lnn", "node-hippo-lss", "mambda-ode",
+    "node-general-mlp", "node-mechanical-mlp", "node-mechanical-mlp-s", "node-cornn", "node-con", "node-w-con", "node-lnn", "node-hippo-lss", "mambda-ode",
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
 ]
 """
-dynamics_model_name = "node-mechanical-mlp-small"
+dynamics_model_name = "node-mechanical-mlp-s"
 # simulation time step
 sim_dt = 1e-2
 
@@ -86,7 +86,7 @@ elif ae_type == "beta_vae":
         num_mlp_layers = 4
         mlp_hidden_dim = 40
         raise NotImplementedError
-    elif dynamics_model_name in ["node-mechanical-mlp", "node-mechanical-mlp-small"]:
+    elif dynamics_model_name in ["node-mechanical-mlp", "node-mechanical-mlp-s"]:
         base_lr = 0.009549630971301099
         loss_weights = dict(
             mse_z=0.15036907451864656,
@@ -95,7 +95,7 @@ elif ae_type == "beta_vae":
             beta=0.00014574221959894125,
         )
         weight_decay = 5.1572222268612065e-05
-        if dynamics_model_name == "node-mechanical-mlp-small":
+        if dynamics_model_name == "node-mechanical-mlp-s":
             num_mlp_layers, mlp_hidden_dim = 2, 24
             mlp_nonlinearity_name = "elu"
         else:
