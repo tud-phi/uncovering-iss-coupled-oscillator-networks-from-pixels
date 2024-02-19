@@ -29,9 +29,9 @@ from src.models.neural_odes import (
 )
 from src.models.dynamics_autoencoder import DynamicsAutoencoder
 from src.tasks import dynamics_autoencoder
-from src.training.dataset_utils import load_dataset
+from src.training.dataset_utils import load_dataset, load_dummy_neural_network_input
 from src.training.loops import run_eval, run_training
-from src.training.train_state_utils import count_number_of_trainable_params
+from src.training.train_state_utils import count_number_of_trainable_params, restore_train_state
 
 
 def concat_or_none(x, y, **kwargs):
@@ -113,7 +113,7 @@ elif ae_type == "beta_vae":
             mse_z=0.10188200495675905,
             mse_rec_static=1.0,
             mse_rec_dynamic=3.3080609062995894,
-            beta = 0.0001718351163778155,
+            beta=0.0001718351163778155,
         )
         weight_decay = 9.534255318218664e-06
     elif dynamics_model_name == "node-lnn":
@@ -242,6 +242,9 @@ if __name__ == "__main__":
             # initialize the pseudo-random number generator
             rng = random.PRNGKey(seed=seed)
             tf.random.set_seed(seed=seed)
+
+            # specify the folder
+            logdir_run = logdir / f"n_z_{n_z}_seed_{seed}"
 
             datasets, dataset_info, dataset_metadata = load_dataset(
                 f"planar_pcs/{system_type}_32x32px",
@@ -386,13 +389,25 @@ if __name__ == "__main__":
                 base_lr=base_lr,
                 warmup_epochs=warmup_epochs,
                 weight_decay=weight_decay,
-                logdir=logdir / f"n_z_{n_z}_seed_{seed}",
+                logdir=logdir_run,
             )
             train_metrics = state.metrics.compute()
             print(f"Final training metrics for n_z={n_z}, seed={seed}:\n", train_metrics)
 
             # count the number of trainable parameters
             params_count = count_number_of_trainable_params(state, verbose=False)
+
+            # load the neural network dummy input
+            nn_dummy_input = load_dummy_neural_network_input(test_ds, task_callables)
+            # load the training state from the checkpoint directory
+            state = restore_train_state(
+                rng=rng,
+                ckpt_dir=logdir_run,
+                nn_model=nn_model,
+                nn_dummy_input=nn_dummy_input,
+                metrics_collection_cls=metrics_collection_cls,
+                init_fn=nn_model.initialize_all_weights,
+            )
 
             print(f"Run testing for n_z={n_z}, seed={seed}...")
             state, test_history = run_eval(test_ds, state, task_callables)
