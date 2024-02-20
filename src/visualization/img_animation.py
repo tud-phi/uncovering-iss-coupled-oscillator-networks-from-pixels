@@ -120,14 +120,16 @@ def animate_pred_vs_target_image_pyplot(
         blit=False,
     )
 
-    if not type(filepath) is Path:
-        filepath = Path(filepath)
-    filepath.parent.mkdir(parents=True, exist_ok=True)
-    print("Writing video to", filepath.resolve())
+    if filepath is not None:
+        if not type(filepath) is Path:
+            filepath = Path(filepath)
+        filepath.parent.mkdir(parents=True, exist_ok=True)
+        print("Writing video to", filepath.resolve())
 
-    movie_writer = animation.FFMpegWriter(fps=sample_rate)
-    ani.save(str(filepath))
-    pbar.close()
+        movie_writer = animation.FFMpegWriter(fps=sample_rate)
+        ani.save(str(filepath))
 
     if show:
         plt.show()
+
+    pbar.close()
