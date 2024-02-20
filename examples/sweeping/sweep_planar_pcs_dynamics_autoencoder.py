@@ -86,7 +86,7 @@ elif ae_type == "beta_vae":
         num_mlp_layers = 4
         mlp_hidden_dim = 40
         raise NotImplementedError
-    elif dynamics_model_name in ["node-mechanical-mlp", "node-mechanical-mlp-s"]:
+    elif dynamics_model_name == "node-mechanical-mlp":
         base_lr = 0.009549630971301099
         loss_weights = dict(
             mse_z=0.15036907451864656,
@@ -95,12 +95,18 @@ elif ae_type == "beta_vae":
             beta=0.00014574221959894125,
         )
         weight_decay = 5.1572222268612065e-05
-        if dynamics_model_name == "node-mechanical-mlp-s":
-            num_mlp_layers, mlp_hidden_dim = 2, 24
-            mlp_nonlinearity_name = "elu"
-        else:
-            num_mlp_layers, mlp_hidden_dim = 4, 52
-            mlp_nonlinearity_name = "elu"
+    elif dynamics_model_name == "node-mechanical-mlp-s":
+        # small mechanical MLP
+        base_lr = 0.00979825084515708
+        loss_weights = dict(
+            mse_z=0.05433101413064328,
+            mse_rec_static=1.0,
+            mse_rec_dynamic=1.1952938927274663,
+            beta=0.00014325464264979977,
+        )
+        weight_decay = 1.3352584277785608e-05
+        num_mlp_layers, mlp_hidden_dim = 2, 24
+        mlp_nonlinearity_name = "elu"
     elif dynamics_model_name == "node-cornn":
         base_lr = 0.0032720052876344437
         loss_weights = dict(
@@ -275,7 +281,7 @@ if __name__ == "__main__":
                 autoencoder_model = Autoencoder(
                     latent_dim=n_z, img_shape=img_shape, norm_layer=nn.LayerNorm
                 )
-            if dynamics_model_name in ["node-general-mlp", "node-mechanical-mlp", "node-mechanical-mlp-small"]:
+            if dynamics_model_name in ["node-general-mlp", "node-mechanical-mlp", "node-mechanical-mlp-s"]:
                 dynamics_model = MlpOde(
                     latent_dim=n_z,
                     input_dim=n_tau,
