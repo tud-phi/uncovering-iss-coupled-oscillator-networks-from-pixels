@@ -45,7 +45,7 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
 ]
 """
-dynamics_model_name = "node-cornn"
+dynamics_model_name = "node-w-con"
 # size of latent space
 n_z = 4
 # simulation time step

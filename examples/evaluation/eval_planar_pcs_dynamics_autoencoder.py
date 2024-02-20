@@ -336,8 +336,6 @@ if __name__ == "__main__":
     )
     forward_fn_learned = jit(task_callables_rollout_learned.forward_fn)
 
-    test_batch = next(test_ds.as_numpy_iterator())
-
     # rollout dynamics
     print("Rollout...")
     q0 = 0.5 * jnp.tile(jnp.array([1.0, -1.0]), reps=int(jnp.ceil(n_q / 2)))[:n_q] * dataset_metadata["x0_max"][:n_q]

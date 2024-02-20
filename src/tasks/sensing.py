@@ -70,7 +70,7 @@ def task_factory(
 
         return mse, preds
 
-    def compute_metrics(
+    def compute_metrics_fn(
         batch: Dict[str, Array], preds: Dict[str, Array]
     ) -> Dict[str, Array]:
         q_pred_bt = preds["q_ts"]
@@ -88,7 +88,7 @@ def task_factory(
         }
 
     task_callables = TaskCallables(
-        system_type, assemble_input, forward_fn, loss_fn, compute_metrics
+        system_type, assemble_input, forward_fn, loss_fn, compute_metrics_fn
     )
 
     @dataclass  # <-- required for JAX transformations

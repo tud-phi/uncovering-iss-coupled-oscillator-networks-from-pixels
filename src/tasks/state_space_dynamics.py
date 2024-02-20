@@ -32,7 +32,7 @@ def task_factory(
     """
     Factory function for the task of learning a representation using first-principle dynamics while using the
     ground-truth velocity.
-    Will return a TaskCallables object with the forward_fn, loss_fn, and compute_metrics functions.
+    Will return a TaskCallables object with the forward_fn, loss_fn, and compute_metrics_fn functions.
     Args:
         system_type: the system type to create the task for. For example "pendulum".
         ts: time steps of the samples
@@ -243,7 +243,7 @@ def task_factory(
 
         return loss, preds
 
-    def compute_metrics(
+    def compute_metrics_fn(
         batch: Dict[str, Array], preds: Dict[str, Array]
     ) -> Dict[str, Array]:
         n_q = batch["x_ts"].shape[-1] // 2  # number of generalized coordinates
@@ -273,7 +273,7 @@ def task_factory(
         return batch_loss_dict
 
     task_callables = TaskCallables(
-        system_type, assemble_input_fn, forward_fn, loss_fn, compute_metrics
+        system_type, assemble_input_fn, forward_fn, loss_fn, compute_metrics_fn
     )
 
     @dataclass  # <-- required for JAX transformations
