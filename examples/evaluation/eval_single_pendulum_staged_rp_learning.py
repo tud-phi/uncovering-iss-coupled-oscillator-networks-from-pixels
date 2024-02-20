@@ -1,6 +1,6 @@
-from jax import config as jax_config
+import jax
 
-jax_config.update("jax_enable_x64", True)
+jax.config.update("jax_enable_x64", True)
 from jax import Array, random
 import jax.numpy as jnp
 import jsrm

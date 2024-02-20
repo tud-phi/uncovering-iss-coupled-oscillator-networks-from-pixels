@@ -1,8 +1,8 @@
 import dill
-from jax import config as jax_config
+import jax
 
-jax_config.update("jax_platform_name", "cpu")  # set default device to 'cpu'
-jax_config.update("jax_enable_x64", True)
+jax.config.update("jax_platform_name", "cpu")  # set default device to 'cpu'
+jax.config.update("jax_enable_x64", True)
 from jax import random
 import jax.numpy as jnp
 import matplotlib.pyplot as plt

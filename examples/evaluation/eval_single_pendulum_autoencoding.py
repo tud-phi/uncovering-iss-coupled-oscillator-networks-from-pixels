@@ -1,7 +1,6 @@
 from datetime import datetime
 import flax.linen as nn
 from jax import random
-from jax import config as jax_config
 import jax.numpy as jnp
 import jsrm
 from jsrm.systems.pendulum import normalize_joint_angles

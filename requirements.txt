@@ -20,6 +20,7 @@ orbax-checkpoint>=0.5.0
 pytest
 ruff
 seaborn
+sympy
 tensorboard
 tensorflow  # required for tensorflow-datasets
 tensorflow-datasets

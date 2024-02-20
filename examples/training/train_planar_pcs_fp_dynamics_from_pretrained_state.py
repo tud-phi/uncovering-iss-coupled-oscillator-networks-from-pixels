@@ -2,9 +2,9 @@ from datetime import datetime
 from flax import traverse_util
 from flax.core.frozen_dict import freeze, unfreeze
 import flax.linen as nn
-from jax import config as jax_config
+import jax
 
-jax_config.update("jax_enable_x64", True)
+jax.config.update("jax_enable_x64", True)
 from jax import random
 import jax.numpy as jnp
 import jsrm
@@ -13,8 +13,6 @@ from jsrm.systems import planar_pcs
 import optax
 from pathlib import Path
 import tensorflow as tf
-
-# jax_config.update("jax_platform_name", "cpu")  # set default device to 'cpu'
 
 from src.models.autoencoders.simple_cnn import Autoencoder
 from src.models.autoencoders.staged_autoencoder import StagedAutoencoder

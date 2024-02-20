@@ -1,9 +1,9 @@
 from datetime import datetime
 import dill
-from jax import random
-from jax import config as jax_config
+import jax
 
-jax_config.update("jax_enable_x64", True)
+jax.config.update("jax_enable_x64", True)
+from jax import random
 import jax.numpy as jnp
 import jsrm
 from jsrm.integration import ode_with_forcing_factory

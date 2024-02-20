@@ -1,9 +1,9 @@
 import flax.linen as nn
 from functools import partial
-from jax import config as jax_config
+import jax
 
-jax_config.update("jax_enable_x64", True)
-jax_config.update("jax_platform_name", "cpu")  # set default device to 'cpu'
+jax.config.update("jax_enable_x64", True)
+jax.config.update("jax_platform_name", "cpu")  # set default device to 'cpu'
 from jax import Array, jit, random
 import jax.numpy as jnp
 import jsrm

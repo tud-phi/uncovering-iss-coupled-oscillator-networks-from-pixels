@@ -161,10 +161,9 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
         """Yields examples."""
         # lazy imports
         cv2 = tfds.core.lazy_imports.cv2
-        jax_config = tfds.core.lazy_imports.jax.config
-        jax_config.update("jax_platform_name", "cpu")  # set default device to 'cpu'
-        jax_config.update("jax_enable_x64", True)  # double precision
         jax = tfds.core.lazy_imports.jax
+        jax.config.update("jax_platform_name", "cpu")  # set default device to 'cpu'
+        jax.config.update("jax_enable_x64", True)  # double precision
         jnp = tfds.core.lazy_imports.jax.numpy
         plt = tfds.core.lazy_imports.matplotlib.pyplot
         # normal imports
