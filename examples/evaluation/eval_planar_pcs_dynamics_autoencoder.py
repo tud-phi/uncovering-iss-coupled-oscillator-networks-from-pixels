@@ -351,15 +351,15 @@ if __name__ == "__main__":
     )
     preds = forward_fn_learned(rollout_batch, state.params)
     # extract both the target and the predicted images
-    rendering_pred_ts = preds["rendering_dynamic_ts"][0]
-    rendering_target_ts = rollout_data_ts["rendering_ts"][start_time_idx:]
+    img_pred_ts = preds["img_dynamic_ts"][0]
+    img_target_ts = rollout_data_ts["rendering_ts"][start_time_idx:]
 
     # animate the rollout
     print("Animate the rollout...")
     animate_pred_vs_target_image_pyplot(
         onp.array(ts_rollout),
-        img_pred_ts=rendering_pred_ts,
-        img_target_ts=rendering_target_ts,
+        img_pred_ts=img_pred_ts,
+        img_target_ts=img_target_ts,
         filepath=ckpt_dir / "rollout.mp4",
         step_skip=1,
         show=True,

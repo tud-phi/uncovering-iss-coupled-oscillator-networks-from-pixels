@@ -122,7 +122,7 @@ if __name__ == "__main__":
             )
 
             img_gt = (128 * (1.0 + test_batch["rendering_ts"][i, t])).astype(jnp.uint8)
-            img_rec = (128 * (1.0 + test_preds["rendering_dynamic_ts"][i, t])).astype(
+            img_rec = (128 * (1.0 + test_preds["img_dynamic_ts"][i, t])).astype(
                 jnp.uint8
             )
 

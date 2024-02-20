@@ -165,7 +165,7 @@ def task_factory(
         # reshape to batch_dim x time_dim x ...
         z_pred_bt = z_pred_bt.reshape((batch_size, -1, *z_pred_bt.shape[1:]))
         img_pred_bt = img_pred_bt.reshape((batch_size, -1, *img_pred_bt.shape[1:]))
-        preds = dict(q_ts=z_pred_bt, rendering_ts=img_pred_bt)
+        preds = dict(q_ts=z_pred_bt, img_ts=img_pred_bt)
 
         if ae_type == "beta_vae":
             preds["mu_ts"] = mu_bt.reshape((batch_size, -1, *mu_bt.shape[1:]))
@@ -205,7 +205,7 @@ def task_factory(
             # supervised binary cross entropy loss on the reconstructed image
             # first, we need to bring predictions and targets from the range [-1.0, 1.0] into the range [0, 1]
             img_label_bt = jnp.round(batch["rendering_ts"] / 2 + 0.5, decimals=0)
-            img_pred_bt = preds["rendering_ts"] / 2 + 0.5
+            img_pred_bt = preds["img_ts"] / 2 + 0.5
             # then, we can compute the binary cross entropy loss
             rec_loss = jnp.mean(sigmoid_binary_cross_entropy(img_pred_bt, img_label_bt))
             # debug.print("rec_loss = {rec_loss}", rec_loss=rec_loss)
@@ -216,12 +216,12 @@ def task_factory(
             # supervised MSE loss on the reconstructed image
             if weight_on_foreground is None:
                 rec_loss = jnp.mean(
-                    jnp.square(preds["rendering_ts"] - batch["rendering_ts"])
+                    jnp.square(preds["img_ts"] - batch["rendering_ts"])
                 )
             else:
                 # allows to equally weigh the importance of correctly reconstructing the foreground and background
                 rec_loss = masked_mse_loss(
-                    preds["rendering_ts"],
+                    preds["img_ts"],
                     batch["rendering_ts"],
                     threshold_cond_sign=-1,
                     weight_loss_masked_area=weight_on_foreground,
@@ -235,8 +235,8 @@ def task_factory(
             latent_dim = preds["q_ts"].shape[-1]
 
             (img_target_bt,) = assemble_input(batch)
-            img_pred_bt = preds["rendering_ts"].reshape(
-                (-1, *preds["rendering_ts"].shape[2:])
+            img_pred_bt = preds["img_ts"].reshape(
+                (-1, *preds["img_ts"].shape[2:])
             )
             q_pred_bt = preds["q_ts"].reshape((-1, latent_dim))
 
@@ -293,7 +293,7 @@ def task_factory(
         metrics = {
             "mse_q": jnp.mean(jnp.square(error_q)),
             "mse_rec": jnp.mean(
-                jnp.square(preds["rendering_ts"] - batch["rendering_ts"])
+                jnp.square(preds["img_ts"] - batch["rendering_ts"])
             ),
         }
 
@@ -305,7 +305,7 @@ def task_factory(
         if weight_on_foreground is not None:
             # allows to equally weigh the importance of correctly reconstructing the foreground and background
             metrics["masked_mse_rec"] = masked_mse_loss(
-                preds["rendering_ts"],
+                preds["img_ts"],
                 batch["rendering_ts"],
                 threshold_cond_sign=-1,
                 weight_loss_masked_area=weight_on_foreground,

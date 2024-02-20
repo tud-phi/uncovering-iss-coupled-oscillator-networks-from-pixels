@@ -166,7 +166,7 @@ if __name__ == "__main__":
     for i in range(test_batch["x_ts"].shape[0]):
         print("test sample:", i, "latent variable z:", test_preds["q_ts"][i, 0])
         img_gt = (128 * (1.0 + test_batch["rendering_ts"][i, 0])).astype(jnp.uint8)
-        img_rec = (128 * (1.0 + test_preds["rendering_ts"][i, 0])).astype(jnp.uint8)
+        img_rec = (128 * (1.0 + test_preds["img_ts"][i, 0])).astype(jnp.uint8)
 
         fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, 5))
         img_gt_plot = axes[0].imshow(img_gt, vmin=0, vmax=255)

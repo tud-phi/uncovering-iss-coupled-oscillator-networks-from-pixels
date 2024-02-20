@@ -192,9 +192,9 @@ def task_factory(
 
         preds = dict(
             q_static_ts=q_static_pred_bt,
-            rendering_static_ts=img_static_pred_bt,
+            img_static_ts=img_static_pred_bt,
             q_dynamic_ts=q_dynamic_pred_bt,
-            rendering_dynamic_ts=img_dynamic_pred_bt,
+            img_dynamic_ts=img_dynamic_pred_bt,
         )
 
         return preds
@@ -222,11 +222,11 @@ def task_factory(
 
         # supervised MSE loss on the reconstructed image of the static predictions
         mse_rec_static = jnp.mean(
-            jnp.square(preds["rendering_static_ts"] - batch["rendering_ts"])
+            jnp.square(preds["img_static_ts"] - batch["rendering_ts"])
         )
         # supervised MSE loss on the reconstructed image of the dynamic predictions
         mse_rec_dynamic = jnp.mean(
-            jnp.square(preds["rendering_dynamic_ts"] - batch["rendering_ts"])
+            jnp.square(preds["img_dynamic_ts"] - batch["rendering_ts"])
         )
 
         # total loss
@@ -257,11 +257,11 @@ def task_factory(
         return {
             "mse_q_static": jnp.mean(jnp.square(error_q_static)),
             "mse_rec_static": jnp.mean(
-                jnp.square(preds["rendering_static_ts"] - batch["rendering_ts"])
+                jnp.square(preds["img_static_ts"] - batch["rendering_ts"])
             ),
             "mse_q_dynamic": jnp.mean(jnp.square(error_q_dynamic)),
             "mse_rec_dynamic": jnp.mean(
-                jnp.square(preds["rendering_dynamic_ts"] - batch["rendering_ts"])
+                jnp.square(preds["img_dynamic_ts"] - batch["rendering_ts"])
             ),
         }
 

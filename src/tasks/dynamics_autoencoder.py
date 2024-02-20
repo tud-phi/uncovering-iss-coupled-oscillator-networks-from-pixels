@@ -188,7 +188,7 @@ def task_factory(
                         out_axes=0,
                     )(img_bt).astype(img_bt.dtype)
 
-                    def encode_rendering_bt_to_latent_bt(_img_bt) -> Array:
+                    def encode_img_bt_to_latent_bt(_img_bt) -> Array:
                         _z = nn_model.apply(
                             {"params": nn_params},
                             _img_bt,
@@ -205,7 +205,7 @@ def task_factory(
                     # computing the jacobian-vector product is more efficient
                     # than first computing the jacobian and then performing a matrix multiplication
                     _, z_d_init_bt = jvp(
-                        encode_rendering_bt_to_latent_bt,
+                        encode_img_bt_to_latent_bt,
                         (img_init_fd_bt,),
                         (img_d_init_fd_bt,),
                     )
@@ -388,9 +388,9 @@ def task_factory(
 
         preds = dict(
             z_static_ts=z_static_pred_bt,
-            rendering_static_ts=img_static_pred_bt,
+            img_static_ts=img_static_pred_bt,
             z_dynamic_ts=z_dynamic_pred_bt,
-            rendering_dynamic_ts=img_dynamic_pred_bt,
+            img_dynamic_ts=img_dynamic_pred_bt,
         )
 
         if ae_type == "beta_vae":
@@ -425,12 +425,12 @@ def task_factory(
 
         # supervised MSE loss on the reconstructed image of the static predictions
         mse_rec_static = jnp.mean(
-            jnp.square(preds["rendering_static_ts"] - batch["rendering_ts"])
+            jnp.square(preds["img_static_ts"] - batch["rendering_ts"])
         )
         # supervised MSE loss on the reconstructed image of the dynamic predictions
         mse_rec_dynamic = jnp.mean(
             jnp.square(
-                preds["rendering_dynamic_ts"]
+                preds["img_dynamic_ts"]
                 - batch["rendering_ts"][:, start_time_idx:]
             )
         )
@@ -446,8 +446,8 @@ def task_factory(
             latent_dim = preds["z_static_ts"].shape[-1]
 
             (img_target_bt,) = assemble_input(batch)
-            img_pred_bt = preds["rendering_static_ts"].reshape(
-                (-1, *preds["rendering_static_ts"].shape[2:])
+            img_pred_bt = preds["img_static_ts"].reshape(
+                (-1, *preds["img_static_ts"].shape[2:])
             )
             z_pred_bt = preds["z_static_ts"].reshape((-1, latent_dim))
 
@@ -473,11 +473,11 @@ def task_factory(
     ) -> Dict[str, Array]:
         batch_loss_dict = {
             "mse_rec_static": jnp.mean(
-                jnp.square(preds["rendering_static_ts"] - batch["rendering_ts"])
+                jnp.square(preds["img_static_ts"] - batch["rendering_ts"])
             ),
             "mse_rec_dynamic": jnp.mean(
                 jnp.square(
-                    preds["rendering_dynamic_ts"]
+                    preds["img_dynamic_ts"]
                     - batch["rendering_ts"][:, start_time_idx:]
                 )
             ),
@@ -485,20 +485,20 @@ def task_factory(
 
         if compute_psnr:
             batch_loss_dict["psnr_rec_static"] = peak_signal_to_noise_ratio(
-                preds["rendering_static_ts"], batch["rendering_ts"]
+                preds["img_static_ts"], batch["rendering_ts"]
             )
             batch_loss_dict["psnr_rec_dynamic"] = peak_signal_to_noise_ratio(
-                preds["rendering_dynamic_ts"],
+                preds["img_dynamic_ts"],
                 batch["rendering_ts"][:, start_time_idx:],
             )
 
         if compute_ssim:
             batch_loss_dict["ssim_rec_static"] = structural_similarity_index(
-                preds["rendering_static_ts"].reshape(-1, *preds["rendering_static_ts"].shape[2:]),
+                preds["img_static_ts"].reshape(-1, *preds["img_static_ts"].shape[2:]),
                 batch["rendering_ts"].reshape(-1, *batch["rendering_ts"].shape[2:])
             )
             batch_loss_dict["ssim_rec_dynamic"] = structural_similarity_index(
-                preds["rendering_dynamic_ts"].reshape(-1, *preds["rendering_dynamic_ts"].shape[2:]),
+                preds["img_dynamic_ts"].reshape(-1, *preds["img_dynamic_ts"].shape[2:]),
                 batch["rendering_ts"][:, start_time_idx:].reshape(-1, *batch["rendering_ts"].shape[2:]),
             )
 

@@ -160,7 +160,7 @@ if __name__ == "__main__":
 
             img_gt = (128 * (1.0 + test_batch["rendering_ts"][i, t])).astype(jnp.uint8)
             img_rec = (
-                128 * (1.0 + test_preds["rendering_dynamic_ts"][i, t - start_time_idx])
+                128 * (1.0 + test_preds["img_dynamic_ts"][i, t - start_time_idx])
             ).astype(jnp.uint8)
 
             fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(10, 5))
