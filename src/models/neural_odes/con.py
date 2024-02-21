@@ -157,7 +157,7 @@ class ConOde(NeuralOdeBase):
         Args:
             x: latent state of shape (2* latent_dim, )
         Returns:
-            V: energy of the system
+            V: energy of the system of shape ()
         """
         # extract the matrices from the neural network
         bias = self.get_variable("params", "bias")
@@ -201,15 +201,14 @@ class ConOde(NeuralOdeBase):
             # map the latent variables to the w-coordinates
             zw = W @ z
             zw_d = W @ z_d
-        
 
         # compute the potential energy
         U = (
             0.5 * zw[None, :] @ Lambda_w @ zw[:, None] 
-            + jnp.log(jnp.cosh(zw + bias))
-        )
+            + jnp.sum(jnp.log(jnp.cosh(zw + bias)))
+        ).squeeze()
         # compute the kinetic energy
-        T = 0.5 * zw_d[None, :] @ B_w @ zw_d[:, None]
+        T = (0.5 * zw_d[None, :] @ B_w @ zw_d[:, None]).squeeze()
 
         # compute the total energy
         V = T + U

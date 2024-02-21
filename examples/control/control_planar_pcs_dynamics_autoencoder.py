@@ -2,10 +2,10 @@ from flax.core import FrozenDict
 import flax.linen as nn
 
 from functools import partial
-from jax import config as jax_config
+import jax
 
-jax_config.update("jax_enable_x64", True)
-jax_config.update("jax_platform_name", "cpu")  # set default device to 'cpu'
+jax.config.update("jax_enable_x64", True)
+jax.config.update("jax_platform_name", "cpu")  # set default device to 'cpu'
 from jax import Array, jit, random
 import jax.numpy as jnp
 import jsrm
@@ -365,4 +365,24 @@ if __name__ == "__main__":
     ax.legend()
     plt.grid(True)
     plt.box(True)
+    plt.savefig(ckpt_dir / "latent_space_torques_vs_time.pdf")
+    plt.show()
+
+    # plot the energy over time
+    fig, ax = plt.subplots(1, 1, figsize=figsize, num="Energy vs. time")
+    V_ts = jax.vmap(
+        partial(
+            dynamics_model.apply,
+            {"params": state.params["dynamics"]},
+            method=dynamics_model.energy_fn,
+        )
+    )(sim_ts["xi_ts"])
+    ax.plot(ts, V_ts, color=colors[0], label="Energy")
+    ax.set_xlabel("Time [s]")
+    ax.set_ylabel("Energy")
+    ax.set_title("Energy vs. time")
+    ax.legend()
+    plt.grid(True)
+    plt.box(True)
+    plt.savefig(ckpt_dir / "energy_vs_time.pdf")
     plt.show()
