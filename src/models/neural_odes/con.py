@@ -308,3 +308,112 @@ class ConOde(NeuralOdeBase):
         )
 
         return tau, control_info
+    
+    def setpoint_regulation_collocated_form_fn(
+        self,
+        x: Array,
+        z_des: Array,
+        kp: Union[float, Array] = 0.0,
+        ki: Union[float, Array] = 0.0,
+        kd: Union[float, Array] = 0.0,
+    ) -> Tuple[Array, Dict[str, Array]]:
+        """
+        P-satI-D feedback together with potential force compensation in the collocated variables.
+        Args:
+            x: latent state of shape (2* latent_dim, )
+            z_des: desired latent state of shape (latent_dim, )
+            kp: proportional gain
+            ki: integral gain
+            kd: derivative gain
+        Returns:
+            tau: control input
+            control_info: dictionary with control information
+        """
+        assert self.input_nonlinearity is None, "Mapping into collocated coordinates is only implemented for dynamics affine in control."
+        assert self.latent_dim >= self.input_dim, "Mapping into collocated coordinates is only implemented for systems with latent_dim >= input_dim."
+        assert ki == 0.0, "Integral control is not implemented yet."
+
+        z = x[..., : self.latent_dim]
+        z_d = x[..., self.latent_dim :]
+
+        # extract the matrices from the neural network
+        bias = self.get_variable("params", "bias")
+        lambda_w = self.get_variable("params", "lambda_w")
+        Lambda_w = generate_positive_definite_matrix_from_params(
+            self.latent_dim,
+            lambda_w,
+            diag_shift=self.diag_shift,
+            diag_eps=self.diag_eps,
+        )
+
+        # extract the V matrix from the neural network
+        V = self.get_variable("params", "V")
+        # compute the Jacobian of the map into collocated coordinates
+        J_h = jnp.concatenate(
+            [
+                V.T,
+                jnp.concatenate(
+                    [
+                        jnp.zeros((self.latent_dim - self.input_dim, self.input_dim)),
+                        jnp.eye(self.latent_dim - self.input_dim),
+                    ],
+                    axis=1,
+                ),
+            ],
+            axis=0,
+        )
+        J_h_inv = jnp.linalg.inv(J_h)
+        
+        # map into collocated coordinates
+        zeta = J_h @ z
+        zeta_d = J_h @ z_d
+        zeta_des = J_h @ z_des
+
+        # compute error in the collocated coordinates
+        error_zeta = zeta_des - zeta
+
+        # compute the feedback term
+        tau_zeta_fb = kp * error_zeta - kd * zeta_d
+
+        if self.use_w_coordinates:
+            Lambda_zeta = J_h_inv.T @ Lambda_w @ J_h_inv
+            # compute the feedforward term
+            tau_zeta_ff = Lambda_zeta @ zeta + J_h_inv.T @ jnp.tanh(z_des + bias)
+        else:
+            # extract the matrices from the neural network
+            b_w = self.get_variable("params", "b_w")
+            B_w = generate_positive_definite_matrix_from_params(
+                self.latent_dim,
+                b_w,
+                diag_shift=self.diag_shift,
+                diag_eps=self.diag_eps,
+            )
+
+            W = jnp.linalg.inv(B_w)
+            Lambda = Lambda_w @ B_w
+            Lambda_zeta = J_h_inv.T @ Lambda @ J_h_inv
+
+            # compute the feedforward term
+            tau_zeta_ff = Lambda_zeta @ zeta + J_h_inv.T @ jnp.tanh(W @ z_des + bias)
+
+        # compute the torque in latent space
+        tau_zeta = jnp.zeros_like(zeta_des)
+        if self.apply_feedforward_term:
+            tau_zeta = tau_zeta + tau_zeta_ff
+        if self.apply_feedback_term:
+            tau_zeta = tau_zeta + tau_zeta_fb
+
+        # take the first input_dim rows as the control input
+        tau = tau_zeta[:self.input_dim]
+
+        control_info = dict(
+            tau=tau,
+            tau_zeta=tau_zeta,
+            tau_zeta_ff=tau_zeta_ff,
+            tau_zeta_fb=tau_zeta_fb,
+            zeta=zeta,
+            zeta_d=zeta_d,
+            zeta_des=zeta_des,
+        )
+
+        return tau, control_info

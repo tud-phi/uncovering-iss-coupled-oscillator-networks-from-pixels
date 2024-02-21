@@ -1,4 +1,3 @@
-from flax.core import FrozenDict
 import flax.linen as nn
 
 from functools import partial
@@ -27,7 +26,6 @@ from src.models.neural_odes import (
     MambaOde,
     MlpOde,
 )
-from src.models.neural_odes.utils import generate_positive_definite_matrix_from_params
 from src.models.dynamics_autoencoder import DynamicsAutoencoder
 from src.rendering import render_planar_pcs
 from src.rollout import rollout_ode, rollout_ode_with_latent_space_control
@@ -57,8 +55,9 @@ q_des = jnp.array([jnp.pi, 1.25 * jnp.pi])
 # control settings
 apply_feedforward_term = True
 apply_feedback_term = True
+use_collocated_form = True
 # gains
-kp, kd = 1e0, 0.0
+kp, ki, kd = 1e0, 0e0, 0e0
 
 batch_size = 10
 norm_layer = nn.LayerNorm
@@ -240,6 +239,10 @@ if __name__ == "__main__":
             tau: control input
             control_info: dictionary with control information
         """
+        if use_collocated_form:
+            setpoint_regulation_fn = dynamics_model.setpoint_regulation_collocated_form_fn
+        else:
+            setpoint_regulation_fn = dynamics_model.setpoint_regulation_control_fn
         # compute the control input
         tau, control_info = dynamics_model.apply(
             {"params": state.params["dynamics"]},
@@ -247,7 +250,7 @@ if __name__ == "__main__":
             z_des,
             kp=kp,
             kd=kd,
-            method=dynamics_model.setpoint_regulation_control_fn,
+            method=setpoint_regulation_fn,
         )
         return tau, control_info
 
@@ -353,6 +356,27 @@ if __name__ == "__main__":
     plt.savefig(ckpt_dir / "latent_vs_time.pdf")
     plt.show()
 
+    # plot collocated coordinates
+    if "zeta_ts" in sim_ts:
+        fig, ax = plt.subplots(1, 1, figsize=figsize, num="Actuation coordinate vs. time")
+        for i in range(n_z):
+            ax.plot(ts, sim_ts["zeta_ts"][..., i], color=colors[i], label=fr"$\zeta_{i}$")
+            ax.plot(
+                ts,
+                sim_ts["zeta_des_ts"][..., i],
+                linestyle="dashed",
+                color=colors[i],
+                label=rf"$\zeta_{i}^d$",
+            )
+        ax.set_xlabel("Time [s]")
+        ax.set_ylabel(r"Actuation coordinate $\zeta$")
+        ax.set_title("Actuation coordinate vs. time")
+        ax.legend()
+        plt.grid(True)
+        plt.box(True)
+        plt.savefig(ckpt_dir / "collocated_vs_time.pdf")
+        plt.show()
+
     # plot the control inputs
     fig, ax = plt.subplots(1, 1, figsize=figsize, num="Control input vs. time")
     ax.plot(ts, sim_ts["tau_ts"][..., 0], color=colors[0], label=r"$u_1$")
@@ -365,29 +389,44 @@ if __name__ == "__main__":
     plt.box(True)
     plt.savefig(ckpt_dir / "control_input_vs_time.pdf")
     plt.show()
-    # plot the latent-space torques
+    # plot the feedforward and feedback torques
     fig, ax = plt.subplots(1, 1, figsize=figsize, num="Latent-space torques vs. time")
     for i in range(n_z):
-        ax.plot(
-            ts,
-            sim_ts["tau_z_ff_ts"][..., i],
-            color=colors[i],
-            label=r"$\tau_{z,ff," + str(i) + "}$",
-        )
-        ax.plot(
-            ts,
-            sim_ts["tau_z_fb_ts"][..., i],
-            linestyle="dotted",
-            color=colors[i],
-            label=r"$\tau_{z,fb," + str(i) + "}$",
-        )
+        if use_collocated_form:
+            ax.plot(
+                ts,
+                sim_ts["tau_zeta_ff_ts"][..., i],
+                color=colors[i],
+                label=r"$\tau_{\zeta,ff," + str(i) + "}$",
+            )
+            ax.plot(
+                ts,
+                sim_ts["tau_zeta_fb_ts"][..., i],
+                linestyle="dotted",
+                color=colors[i],
+                label=r"$\tau_{\zeta,fb," + str(i) + "}$",
+            )
+        else:
+            ax.plot(
+                ts,
+                sim_ts["tau_z_ff_ts"][..., i],
+                color=colors[i],
+                label=r"$\tau_{z,ff," + str(i) + "}$",
+            )
+            ax.plot(
+                ts,
+                sim_ts["tau_z_fb_ts"][..., i],
+                linestyle="dotted",
+                color=colors[i],
+                label=r"$\tau_{z,fb," + str(i) + "}$",
+            )
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Torques")
-    ax.set_title("Latent-space torques over time")
+    ax.set_title("Torques over time")
     ax.legend()
     plt.grid(True)
     plt.box(True)
-    plt.savefig(ckpt_dir / "latent_space_torques_vs_time.pdf")
+    plt.savefig(ckpt_dir / "ff_fb_torques_vs_time.pdf")
     plt.show()
 
     # plot the energy over time
