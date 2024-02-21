@@ -61,8 +61,7 @@ elif ae_type == "beta_vae":
     if dynamics_model_name == "node-con":
         experiment_id = "2024-02-14_18-34-27"
     elif dynamics_model_name == "node-w-con":
-        experiment_id = "2024-02-14_22-52-37"
-        experiment_id = "2024-02-20_14-53-13"
+        experiment_id = "2024-02-21_13-34-53"
     else:
         raise NotImplementedError(
             f"beta_vae with node_type '{dynamics_model_name}' not implemented yet."
@@ -210,51 +209,6 @@ if __name__ == "__main__":
     )
     forward_fn_learned = jit(task_callables_rollout_learned.forward_fn)
 
-    """
-    def setpoint_regulation_control_fn(
-        dynamics_params: Union[Dict, FrozenDict],
-        zw: Array,
-        zw_d: Array,
-        zw_des: Array,
-        kp: float = 0.0,
-        kd: float = 1e-4,
-    ) -> Array:
-        \"""
-        Control function for setpoint regulation.
-        Args:
-            nn_params: neural network parameters
-            zw: current latent state
-            zw_des: desired latent state
-        Returns:
-            tau: control input
-        \"""
-        # this only works for the node-w-con dynamics
-        assert dynamics_model_name == "node-w-con", "This control function only works for the node-w-con dynamics."
-
-        # extract the matrices from the neural network
-        lambda_w = dynamics_params["lambda_w"]
-        Lambda_w = generate_positive_definite_matrix_from_params(
-            n_z,
-            lambda_w,
-            diag_shift=nn_model.dynamics.diag_shift,
-            diag_eps=nn_model.dynamics.diag_eps,
-        )
-        bias = dynamics_params["bias"]
-        V = dynamics_params["V"]
-
-        # compute error in the latent space
-        error_z = zw_des - zw
-        # compute the feedback term
-        tau_z_fb = kp * error_z - kd * zw_d
-        # compute the feedforward term
-        tau_z_ff = Lambda_w @ zw_des + jnp.tanh(zw_des + bias)
-
-        print("tau_z_ff:", tau_z_ff, "tau_z_fb:", tau_z_fb)
-
-        # compute the control input
-        tau = jnp.linalg.pinv(V) @ (tau_z_fb + tau_z_ff)
-        return tau
-    """
 
     def control_fn(t: Array, x: Array) -> Tuple[Array, Dict[str, Array]]:
         """
