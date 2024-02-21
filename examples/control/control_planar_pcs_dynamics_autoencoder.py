@@ -53,7 +53,7 @@ dynamics_model_name = "node-w-con"
 n_z = 8
 
 # specify desired configuration
-q_des = jnp.array([jnp.pi, 1.25*jnp.pi])
+q_des = jnp.array([jnp.pi, 1.25 * jnp.pi])
 # control settings
 apply_feedforward_term = True
 apply_feedback_term = True
@@ -230,7 +230,6 @@ if __name__ == "__main__":
     )
     forward_fn_learned = jit(task_callables_rollout_learned.forward_fn)
 
-
     def control_fn(t: Array, x: Array) -> Tuple[Array, Dict[str, Array]]:
         """
         Control function for the setpoint regulation.
@@ -318,7 +317,13 @@ if __name__ == "__main__":
     q_des_ts = jnp.tile(q_des, reps=(len(ts), 1))
     for i in range(n_q):
         ax.plot(ts, sim_ts["x_ts"][..., i], color=colors[i], label=f"$q_{i}$")
-        ax.plot(ts, q_des_ts[..., i], linestyle="dashed", color=colors[i], label=rf"$q_{i}^d$")
+        ax.plot(
+            ts,
+            q_des_ts[..., i],
+            linestyle="dashed",
+            color=colors[i],
+            label=rf"$q_{i}^d$",
+        )
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Configuration $q$")
     ax.legend()
@@ -332,7 +337,13 @@ if __name__ == "__main__":
     z_des_ts = jnp.tile(z_des, reps=(len(ts), 1))
     for i in range(n_z):
         ax.plot(ts, sim_ts["xi_ts"][..., i], color=colors[i], label=f"$z_{i}$")
-        ax.plot(ts, z_des_ts[..., i], linestyle="dashed", color=colors[i], label=rf"$z_{i}^d$")
+        ax.plot(
+            ts,
+            z_des_ts[..., i],
+            linestyle="dashed",
+            color=colors[i],
+            label=rf"$z_{i}^d$",
+        )
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Latent $z$")
     ax.set_title("Latent vs. time")
@@ -357,8 +368,19 @@ if __name__ == "__main__":
     # plot the latent-space torques
     fig, ax = plt.subplots(1, 1, figsize=figsize, num="Latent-space torques vs. time")
     for i in range(n_z):
-        ax.plot(ts, sim_ts["tau_z_ff_ts"][..., i], color=colors[i], label=r"$\tau_{z,ff," + str(i) + "}$")
-        ax.plot(ts, sim_ts["tau_z_fb_ts"][..., i], linestyle="dotted", color=colors[i], label=r"$\tau_{z,fb," + str(i) + "}$")
+        ax.plot(
+            ts,
+            sim_ts["tau_z_ff_ts"][..., i],
+            color=colors[i],
+            label=r"$\tau_{z,ff," + str(i) + "}$",
+        )
+        ax.plot(
+            ts,
+            sim_ts["tau_z_fb_ts"][..., i],
+            linestyle="dotted",
+            color=colors[i],
+            label=r"$\tau_{z,fb," + str(i) + "}$",
+        )
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Torques")
     ax.set_title("Latent-space torques over time")

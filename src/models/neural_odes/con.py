@@ -150,7 +150,7 @@ class ConOde(NeuralOdeBase):
             x_d = jnp.concatenate([z_d, z_dd], axis=-1)
 
         return x_d
-    
+
     def energy_fn(self, x: Array) -> Array:
         """
         Compute the energy of the system.
@@ -204,7 +204,7 @@ class ConOde(NeuralOdeBase):
 
         # compute the potential energy
         U = (
-            0.5 * zw[None, :] @ Lambda_w @ zw[:, None] 
+            0.5 * zw[None, :] @ Lambda_w @ zw[:, None]
             + jnp.sum(jnp.log(jnp.cosh(zw + bias)))
         ).squeeze()
         # compute the kinetic energy
