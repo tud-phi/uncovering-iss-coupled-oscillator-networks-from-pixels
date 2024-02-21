@@ -338,7 +338,11 @@ if __name__ == "__main__":
 
     # rollout dynamics
     print("Rollout...")
-    q0 = 0.5 * jnp.tile(jnp.array([1.0, -1.0]), reps=int(jnp.ceil(n_q / 2)))[:n_q] * dataset_metadata["x0_max"][:n_q]
+    q0 = (
+        0.5
+        * jnp.tile(jnp.array([1.0, -1.0]), reps=int(jnp.ceil(n_q / 2)))[:n_q]
+        * dataset_metadata["x0_max"][:n_q]
+    )
     x0 = jnp.concatenate([q0, jnp.zeros((n_q,))])
     tau = jnp.zeros((n_tau,))
     print("x0:", x0)

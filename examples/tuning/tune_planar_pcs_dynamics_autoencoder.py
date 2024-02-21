@@ -144,7 +144,11 @@ if __name__ == "__main__":
             autoencoder_model = Autoencoder(
                 latent_dim=n_z, img_shape=img_shape, norm_layer=nn.LayerNorm
             )
-        if dynamics_model_name in ["node-general-mlp", "node-mechanical-mlp", "node-mechanical-mlp-s"]:
+        if dynamics_model_name in [
+            "node-general-mlp",
+            "node-mechanical-mlp",
+            "node-mechanical-mlp-s",
+        ]:
             if dynamics_model_name == "node-mechanical-mlp-s":
                 # small mlp model
                 num_mlp_layers, mlp_hidden_dim = 2, 24

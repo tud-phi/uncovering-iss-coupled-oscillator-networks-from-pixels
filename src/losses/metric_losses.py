@@ -96,9 +96,7 @@ def contrastive_loss(x1: Array, x2: Array, gamma: float, margin: Array) -> Array
     return loss
 
 
-def batch_time_contrastive_loss(
-    z_bt: Array, margin: float, rng: Array
-) -> Array:
+def batch_time_contrastive_loss(z_bt: Array, margin: float, rng: Array) -> Array:
     """
     Batch contrastive loss.
     This brings all the time-consecutive latent samples in z_bt up to within a certain distance of each other.

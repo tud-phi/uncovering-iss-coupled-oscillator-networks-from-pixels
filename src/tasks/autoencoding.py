@@ -215,9 +215,7 @@ def task_factory(
         elif rec_loss_type == "mse":
             # supervised MSE loss on the reconstructed image
             if weight_on_foreground is None:
-                rec_loss = jnp.mean(
-                    jnp.square(preds["img_ts"] - batch["rendering_ts"])
-                )
+                rec_loss = jnp.mean(jnp.square(preds["img_ts"] - batch["rendering_ts"]))
             else:
                 # allows to equally weigh the importance of correctly reconstructing the foreground and background
                 rec_loss = masked_mse_loss(
@@ -235,9 +233,7 @@ def task_factory(
             latent_dim = preds["q_ts"].shape[-1]
 
             (img_target_bt,) = assemble_input(batch)
-            img_pred_bt = preds["img_ts"].reshape(
-                (-1, *preds["img_ts"].shape[2:])
-            )
+            img_pred_bt = preds["img_ts"].reshape((-1, *preds["img_ts"].shape[2:]))
             q_pred_bt = preds["q_ts"].reshape((-1, latent_dim))
 
             # Wasserstein Autoencoder MMD loss
@@ -292,9 +288,7 @@ def task_factory(
 
         metrics = {
             "mse_q": jnp.mean(jnp.square(error_q)),
-            "mse_rec": jnp.mean(
-                jnp.square(preds["img_ts"] - batch["rendering_ts"])
-            ),
+            "mse_rec": jnp.mean(jnp.square(preds["img_ts"] - batch["rendering_ts"])),
         }
 
         # if requested, normalize the configuration loss by dividing by (q0_max - q0_min)

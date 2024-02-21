@@ -370,8 +370,7 @@ def task_factory(
         # supervised MSE loss on the reconstructed image of the dynamic predictions
         mse_rec_dynamic = jnp.mean(
             jnp.square(
-                preds["img_dynamic_ts"]
-                - batch["rendering_ts"][:, start_time_idx:]
+                preds["img_dynamic_ts"] - batch["rendering_ts"][:, start_time_idx:]
             )
         )
 
@@ -423,8 +422,7 @@ def task_factory(
             ),
             "mse_rec_dynamic": jnp.mean(
                 jnp.square(
-                    preds["img_dynamic_ts"]
-                    - batch["rendering_ts"][:, start_time_idx:]
+                    preds["img_dynamic_ts"] - batch["rendering_ts"][:, start_time_idx:]
                 )
             ),
         }

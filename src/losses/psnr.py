@@ -8,7 +8,7 @@ def peak_signal_to_noise_ratio(
     target: Array,
     data_min: Union[float, Array] = 0.0,
     data_max: Union[float, Array] = 1.0,
-    eps: float = 1e-8
+    eps: float = 1e-8,
 ) -> Array:
     # normalize to the minimum being at 0
     delta_input = input - data_min

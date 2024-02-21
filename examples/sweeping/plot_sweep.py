@@ -29,9 +29,18 @@ def main():
     test_results = sweep_results["test"]
 
     # Plot the RMSE of the reconstruction vs the number of latent variables
-    fig, ax = plt.subplots(1, 1, figsize=figsize, num="RMSE of reconstruction vs. number of latent variables")
-    ax.plot(sweep_results["n_z"], train_results["rmse_rec_static"], label="RMSE rec static")
-    ax.plot(sweep_results["n_z"], test_results["rmse_rec_dynamic"], label="RMSE rec dynamic")
+    fig, ax = plt.subplots(
+        1,
+        1,
+        figsize=figsize,
+        num="RMSE of reconstruction vs. number of latent variables",
+    )
+    ax.plot(
+        sweep_results["n_z"], train_results["rmse_rec_static"], label="RMSE rec static"
+    )
+    ax.plot(
+        sweep_results["n_z"], test_results["rmse_rec_dynamic"], label="RMSE rec dynamic"
+    )
     ax.set_xlabel("$n_z$")
     ax.set_ylabel("RMSE of reconstruction")
     ax.legend()
@@ -41,9 +50,18 @@ def main():
     plt.show()
 
     # plot the SSIM of the reconstruction vs the number of latent variables
-    fig, ax = plt.subplots(1, 1, figsize=figsize, num="SSIM of reconstruction vs. number of latent variables")
-    ax.plot(sweep_results["n_z"], train_results["ssim_rec_static"], label="SSIM rec static")
-    ax.plot(sweep_results["n_z"], test_results["ssim_rec_dynamic"], label="SSIM rec dynamic")
+    fig, ax = plt.subplots(
+        1,
+        1,
+        figsize=figsize,
+        num="SSIM of reconstruction vs. number of latent variables",
+    )
+    ax.plot(
+        sweep_results["n_z"], train_results["ssim_rec_static"], label="SSIM rec static"
+    )
+    ax.plot(
+        sweep_results["n_z"], test_results["ssim_rec_dynamic"], label="SSIM rec dynamic"
+    )
     ax.set_xlabel("$n_z$")
     ax.set_ylabel("SSIM of reconstruction")
     ax.legend()
@@ -53,8 +71,17 @@ def main():
     plt.show()
 
     # plot number of trainable parameters vs number of latent variables
-    fig, ax = plt.subplots(1, 1, figsize=figsize, num="Number of trainable parameters vs. number of latent variables")
-    ax.plot(sweep_results["n_z"], sweep_results["num_trainable_params"]["dynamics"], label="Trainable parameters of dynamics model")
+    fig, ax = plt.subplots(
+        1,
+        1,
+        figsize=figsize,
+        num="Number of trainable parameters vs. number of latent variables",
+    )
+    ax.plot(
+        sweep_results["n_z"],
+        sweep_results["num_trainable_params"]["dynamics"],
+        label="Trainable parameters of dynamics model",
+    )
     ax.set_xlabel("$n_z$")
     ax.set_ylabel("Number of trainable parameters")
     ax.legend()
@@ -64,9 +91,22 @@ def main():
     plt.show()
 
     # plot the RMSE of the reconstruction vs the number of trainable parameters
-    fig, ax = plt.subplots(1, 1, figsize=figsize, num="RMSE of reconstruction vs. number of trainable parameters")
-    ax.plot(sweep_results["num_trainable_params"]["dynamics"], train_results["rmse_rec_static"], label="RMSE rec static")
-    ax.plot(sweep_results["num_trainable_params"]["dynamics"], test_results["rmse_rec_dynamic"], label="RMSE rec dynamic")
+    fig, ax = plt.subplots(
+        1,
+        1,
+        figsize=figsize,
+        num="RMSE of reconstruction vs. number of trainable parameters",
+    )
+    ax.plot(
+        sweep_results["num_trainable_params"]["dynamics"],
+        train_results["rmse_rec_static"],
+        label="RMSE rec static",
+    )
+    ax.plot(
+        sweep_results["num_trainable_params"]["dynamics"],
+        test_results["rmse_rec_dynamic"],
+        label="RMSE rec dynamic",
+    )
     ax.set_xlabel("Number of trainable parameters")
     ax.set_ylabel("RMSE of reconstruction")
     ax.legend()

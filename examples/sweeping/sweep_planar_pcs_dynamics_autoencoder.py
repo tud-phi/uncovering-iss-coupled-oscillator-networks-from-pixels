@@ -31,7 +31,10 @@ from src.models.dynamics_autoencoder import DynamicsAutoencoder
 from src.tasks import dynamics_autoencoder
 from src.training.dataset_utils import load_dataset, load_dummy_neural_network_input
 from src.training.loops import run_eval, run_training
-from src.training.train_state_utils import count_number_of_trainable_params, restore_train_state
+from src.training.train_state_utils import (
+    count_number_of_trainable_params,
+    restore_train_state,
+)
 
 
 def concat_or_none(x, y, **kwargs):
@@ -245,7 +248,7 @@ if __name__ == "__main__":
             psnr_rec_dynamic=zero_array,
             ssim_rec_static=zero_array,
             ssim_rec_dynamic=zero_array,
-        )
+        ),
     )
     for n_z in n_z_range:
         for seed in seed_range:
@@ -263,12 +266,18 @@ if __name__ == "__main__":
                 normalize=True,
                 grayscale=True,
             )
-            train_ds, val_ds, test_ds = datasets["train"], datasets["val"], datasets["test"]
+            train_ds, val_ds, test_ds = (
+                datasets["train"],
+                datasets["val"],
+                datasets["test"],
+            )
 
             # extract the robot parameters from the dataset
             robot_params = dataset_metadata["system_params"]
             # size of torques
-            n_tau = train_ds.element_spec["tau"].shape[-1]  # dimension of the control input=
+            n_tau = train_ds.element_spec["tau"].shape[
+                -1
+            ]  # dimension of the control input=
             # image shape
             img_shape = train_ds.element_spec["rendering_ts"].shape[-3:]  # image shape
 
@@ -281,7 +290,11 @@ if __name__ == "__main__":
                 autoencoder_model = Autoencoder(
                     latent_dim=n_z, img_shape=img_shape, norm_layer=nn.LayerNorm
                 )
-            if dynamics_model_name in ["node-general-mlp", "node-mechanical-mlp", "node-mechanical-mlp-s"]:
+            if dynamics_model_name in [
+                "node-general-mlp",
+                "node-mechanical-mlp",
+                "node-mechanical-mlp-s",
+            ]:
                 dynamics_model = MlpOde(
                     latent_dim=n_z,
                     input_dim=n_tau,
@@ -402,7 +415,9 @@ if __name__ == "__main__":
                 logdir=logdir_run,
             )
             train_metrics = state.metrics.compute()
-            print(f"Final training metrics for n_z={n_z}, seed={seed}:\n", train_metrics)
+            print(
+                f"Final training metrics for n_z={n_z}, seed={seed}:\n", train_metrics
+            )
 
             # count the number of trainable parameters
             params_count = count_number_of_trainable_params(state, verbose=False)
@@ -434,8 +449,12 @@ if __name__ == "__main__":
             )
 
             # update sweep results
-            sweep_results["n_z"] = concat_or_none(sweep_results["n_z"], onp.array(n_z)[None, ...], axis=0)
-            sweep_results["seed"] = concat_or_none(sweep_results["seed"], onp.array(seed)[None, ...], axis=0)
+            sweep_results["n_z"] = concat_or_none(
+                sweep_results["n_z"], onp.array(n_z)[None, ...], axis=0
+            )
+            sweep_results["seed"] = concat_or_none(
+                sweep_results["seed"], onp.array(seed)[None, ...], axis=0
+            )
             sweep_results["num_trainable_params"]["total"] = concat_or_none(
                 sweep_results["num_trainable_params"]["total"],
                 onp.array(params_count["total"])[None, ...],

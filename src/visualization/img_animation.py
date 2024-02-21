@@ -65,6 +65,8 @@ def animate_pred_vs_target_image_pyplot(
     show: bool = False,
     step_skip: int = 1,
     bgr_to_rgb: bool = False,
+    label_pred: str = "Prediction",
+    label_target: str = "Reconstruction",
 ):
     """
     Creates an animation of the predicted vs. target images using matplotlib.
@@ -82,9 +84,7 @@ def animate_pred_vs_target_image_pyplot(
     frames = onp.arange(0, t_ts.shape[0], step=step_skip)
 
     # create the figure
-    fig, axes = plt.subplots(
-        1, 2, num="Prediction vs. target images", figsize=(6, 4), dpi=200
-    )
+    fig, axes = plt.subplots(1, 2, figsize=(6, 4), dpi=200)
 
     if bgr_to_rgb:
         img_pred_ts = cv2.cvtColor(img_pred_ts, cv2.COLOR_BGR2RGB)
@@ -96,8 +96,8 @@ def animate_pred_vs_target_image_pyplot(
         x=0.5, y=0.1, s="", color="black", fontsize=11, ha="center", va="center"
     )
 
-    axes[0].set_title("Prediction")
-    axes[1].set_title("Reconstruction")
+    axes[0].set_title(label_pred)
+    axes[1].set_title(label_target)
     for ax in axes.flatten():
         ax.set_axis_off()
         ax.grid(False)
