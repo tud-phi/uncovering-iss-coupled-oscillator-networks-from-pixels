@@ -11,10 +11,10 @@ from pathlib import Path
 
 """
 node-mechanical-mlp: sweep_id = "2024-02-19_10-42-33"
-node-mechanical-mlp-s: sweep_id = "2024-02-19_17-30-21"
+node-mechanical-mlp-s: sweep_id = "2024-02-21_09-03-52"
 node-w-con: sweep_id = "2024-02-19_00-38-28"
 """
-sweep_id = "2024-02-19_17-30-21"
+sweep_id = "2024-02-21_09-03-52"
 
 # plotting settings
 figsize = (8, 6)
