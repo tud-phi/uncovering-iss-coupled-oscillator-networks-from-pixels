@@ -106,19 +106,29 @@ elif ae_type == "beta_vae":
         loss_weights = dict(
             mse_z=0.10188200495675905,
             mse_rec_static=1.0,
-            mse_rec_dynamic=3.3080609062995894,,
+            mse_rec_dynamic=3.3080609062995894,
             beta=0.0001718351163778155,
         )
         weight_decay = 9.534255318218664e-06
         """
-        base_lr = 0.00948905454174363
-        loss_weights = dict(
-            mse_z=0.25452411365868755,
-            mse_rec_static=1.0,
-            mse_rec_dynamic=10.716251946521883,
-            beta=0.0001000304459146119,
-        )
-        weight_decay = 2.9642914376858733e-05
+        if n_z > 4:
+            base_lr = 0.009575159163417718
+            loss_weights = dict(
+                mse_z=0.10188200495675905,
+                mse_rec_static=1.0,
+                mse_rec_dynamic=3.3080609062995894,
+                beta=0.0001718351163778155,
+            )
+            weight_decay = 9.534255318218664e-06
+        else:
+            base_lr = 0.00948905454174363
+            loss_weights = dict(
+                mse_z=0.25452411365868755,
+                mse_rec_static=1.0,
+                mse_rec_dynamic=10.716251946521883,
+                beta=0.0001000304459146119,
+            )
+            weight_decay = 2.9642914376858733e-05
     elif dynamics_model_name == "node-lnn":
         base_lr = 0.002922002372648181
         loss_weights = dict(
