@@ -150,6 +150,71 @@ class ConOde(NeuralOdeBase):
             x_d = jnp.concatenate([z_d, z_dd], axis=-1)
 
         return x_d
+    
+    def energy_fn(self, x: Array) -> Array:
+        """
+        Compute the energy of the system.
+        Args:
+            x: latent state of shape (2* latent_dim, )
+        Returns:
+            V: energy of the system
+        """
+        # extract the matrices from the neural network
+        bias = self.get_variable("params", "bias")
+        lambda_w = self.get_variable("params", "lambda_w")
+        Lambda_w = generate_positive_definite_matrix_from_params(
+            self.latent_dim,
+            lambda_w,
+            diag_shift=self.diag_shift,
+            diag_eps=self.diag_eps,
+        )
+
+        if self.use_w_coordinates:
+            zw = x[..., : self.latent_dim]
+            zw_d = x[..., self.latent_dim :]
+
+            # constructing Bw_inv as a positive definite matrix
+            b_w_inv = self.get_variable("params", "b_w_inv")
+            B_w_inv = generate_positive_definite_matrix_from_params(
+                self.latent_dim,
+                b_w_inv,
+                diag_shift=self.diag_shift,
+                diag_eps=self.diag_eps,
+            )
+
+            # computing B_w from B_w_inv
+            B_w = jnp.linalg.inv(B_w_inv)
+        else:
+            z = x[..., : self.latent_dim]
+            z_d = x[..., self.latent_dim :]
+
+            # constructing Bw as a positive definite matrix
+            # vector of parameters for triangular matrix
+            b_w = self.get_variable("params", "b_w")
+            B_w = generate_positive_definite_matrix_from_params(
+                self.latent_dim, b_w, diag_shift=self.diag_shift, diag_eps=self.diag_eps
+            )
+
+            # compute W
+            W = jnp.linalg.inv(B_w)
+
+            # map the latent variables to the w-coordinates
+            zw = W @ z
+            zw_d = W @ z_d
+        
+
+        # compute the potential energy
+        U = (
+            0.5 * zw[None, :] @ Lambda_w @ zw[:, None] 
+            + jnp.log(jnp.cosh(zw + bias))
+        )
+        # compute the kinetic energy
+        T = 0.5 * zw_d[None, :] @ B_w @ zw_d[:, None]
+
+        # compute the total energy
+        V = T + U
+
+        return V
 
     def setpoint_regulation_control_fn(
         self,
