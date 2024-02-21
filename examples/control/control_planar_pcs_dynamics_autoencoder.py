@@ -11,10 +11,12 @@ import jax.numpy as jnp
 import jsrm
 from jsrm.integration import ode_with_forcing_factory
 from jsrm.systems import planar_pcs
+import matplotlib.pyplot as plt
 import numpy as onp
 from pathlib import Path
 import tensorflow as tf
 from typing import Dict, Tuple, Union
+import warnings
 
 from src.models.autoencoders import Autoencoder, VAE
 from src.models.neural_odes import (
@@ -48,7 +50,15 @@ system_type = "pcc_ns-2"
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 dynamics_model_name = "node-w-con"
 # latent space shape
-n_z = 4
+n_z = 8
+
+# specify desired configuration
+q_des = jnp.array([jnp.pi, 1.25*jnp.pi])
+# control settings
+apply_feedforward_term = True
+apply_feedback_term = True
+# gains
+kp, kd = 1e0, 0.0
 
 batch_size = 10
 norm_layer = nn.LayerNorm
@@ -91,6 +101,10 @@ ckpt_dir = (
     Path("logs").resolve() / f"{system_type}_dynamics_autoencoder" / experiment_id
 )
 
+# plotting setttings
+figsize = (8, 6)
+colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+
 
 if __name__ == "__main__":
     datasets, dataset_info, dataset_metadata = load_dataset(
@@ -104,6 +118,11 @@ if __name__ == "__main__":
 
     # extract the robot parameters from the dataset
     robot_params = dataset_metadata["system_params"]
+    # TODO: move the damping to the controller
+    robot_params["D"] = 5 * robot_params["D"]
+    warnings.warn(
+        "The damping parameter D is scaled by 1e1 to improve the numerical stability."
+    )
     print(f"Robot parameters: {robot_params}")
     # dimension of the configuration space
     n_q = train_ds.element_spec["x_ts"].shape[-1] // 2
@@ -150,6 +169,8 @@ if __name__ == "__main__":
             latent_dim=n_z,
             input_dim=n_tau,
             use_w_coordinates=dynamics_model_name == "node-w-con",
+            apply_feedforward_term=apply_feedforward_term,
+            apply_feedback_term=apply_feedback_term,
         )
     else:
         raise ValueError(f"Unknown dynamics_model_name: {dynamics_model_name}")
@@ -225,14 +246,13 @@ if __name__ == "__main__":
             {"params": state.params["dynamics"]},
             x,
             z_des,
-            kp=0.0,
-            kd=0.0,
+            kp=kp,
+            kd=kd,
             method=dynamics_model.setpoint_regulation_control_fn,
         )
         return tau, control_info
 
     # render target image
-    q_des = jnp.zeros((n_q,))
     target_img = rendering_fn(q_des)
     # normalize the target image
     # convert rendering image to grayscale
@@ -292,3 +312,57 @@ if __name__ == "__main__":
         label_pred="Actual behavior",
         label_target="Desired behavior",
     )
+
+    # plot evolution of configuration space
+    fig, ax = plt.subplots(1, 1, figsize=figsize, num="Configuration vs. time")
+    q_des_ts = jnp.tile(q_des, reps=(len(ts), 1))
+    for i in range(n_q):
+        ax.plot(ts, sim_ts["x_ts"][..., i], color=colors[i], label=f"$q_{i}$")
+        ax.plot(ts, q_des_ts[..., i], linestyle="dashed", color=colors[i], label=rf"$q_{i}^d$")
+    ax.set_xlabel("Time [s]")
+    ax.set_ylabel("Configuration $q$")
+    ax.legend()
+    ax.set_title("Configuration vs. time")
+    plt.grid(True)
+    plt.box(True)
+    plt.savefig(ckpt_dir / "configuration_vs_time.pdf")
+    plt.show()
+    # plot evolution of latent state
+    fig, ax = plt.subplots(1, 1, figsize=figsize, num="Latent vs. time")
+    z_des_ts = jnp.tile(z_des, reps=(len(ts), 1))
+    for i in range(n_z):
+        ax.plot(ts, sim_ts["xi_ts"][..., i], color=colors[i], label=f"$z_{i}$")
+        ax.plot(ts, z_des_ts[..., i], linestyle="dashed", color=colors[i], label=rf"$z_{i}^d$")
+    ax.set_xlabel("Time [s]")
+    ax.set_ylabel("Latent $z$")
+    ax.set_title("Latent vs. time")
+    ax.legend()
+    plt.grid(True)
+    plt.box(True)
+    plt.savefig(ckpt_dir / "latent_vs_time.pdf")
+    plt.show()
+
+    # plot the control inputs
+    fig, ax = plt.subplots(1, 1, figsize=figsize, num="Control input vs. time")
+    ax.plot(ts, sim_ts["tau_ts"][..., 0], color=colors[0], label=r"$u_1$")
+    ax.plot(ts, sim_ts["tau_ts"][..., 1], color=colors[1], label=r"$u_2$")
+    ax.set_xlabel("Time [s]")
+    ax.set_ylabel(r"Control input $u$")
+    ax.set_title("Control input vs. time")
+    ax.legend()
+    plt.grid(True)
+    plt.box(True)
+    plt.savefig(ckpt_dir / "control_input_vs_time.pdf")
+    plt.show()
+    # plot the latent-space torques
+    fig, ax = plt.subplots(1, 1, figsize=figsize, num="Latent-space torques vs. time")
+    for i in range(n_z):
+        ax.plot(ts, sim_ts["tau_z_ff_ts"][..., i], color=colors[i], label=r"$\tau_{z,ff," + str(i) + "}$")
+        ax.plot(ts, sim_ts["tau_z_fb_ts"][..., i], linestyle="dotted", color=colors[i], label=r"$\tau_{z,fb," + str(i) + "}$")
+    ax.set_xlabel("Time [s]")
+    ax.set_ylabel("Torques")
+    ax.set_title("Latent-space torques over time")
+    ax.legend()
+    plt.grid(True)
+    plt.box(True)
+    plt.show()
