@@ -290,7 +290,7 @@ class ConOde(NeuralOdeBase):
 
         if self.input_nonlinearity is None:
             # compute the control input
-            tau = jnp.linalg.pinv(V) @ jnp.arctanh(tau_z)
+            tau = jnp.linalg.pinv(V) @ tau_z
         elif type(self.input_nonlinearity) is nn.tanh:
             # clip the control input in the range [-1, 1]
             tau_z_clipped = jnp.clip(tau_z, -1.0, 1.0)
