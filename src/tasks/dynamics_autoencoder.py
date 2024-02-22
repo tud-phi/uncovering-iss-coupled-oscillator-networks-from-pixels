@@ -42,6 +42,8 @@ def task_factory(
     solver: AbstractSolver = Dopri5(),
     latent_velocity_source: str = "latent-space-finite-differences",
     num_past_timesteps: int = 2,
+    static_decoding_noise_std: float = 0.0,
+    dynamic_decoding_noise_std: float = 0.0,
     interpret_discrete_hidden_state_as_displacement: bool = False,
     compute_psnr: bool = False,
     compute_ssim: bool = False,
@@ -71,6 +73,8 @@ def task_factory(
         latent_velocity_source: the source of the latent velocity. Only used for the neural ODE.
             Can be either "latent-space-finite-differences", or "image-space-finite-differences".
         num_past_timesteps: the number of past timesteps to use for the discrete forward dynamics.
+        static_decoding_noise_std: the standard deviation to add to the latent representation before decoding to the static image
+        dynamic_decoding_noise_std: the standard deviation to add to the latent representation before decoding to the dynamic image
         interpret_discrete_hidden_state_as_displacement: whether to interpret the hidden state of the discrete forward dynamics
             as differences (i.e., deltas) between actual physical states. It has been shown that this can improve the
             performance of RNNs, see:
@@ -363,17 +367,33 @@ def task_factory(
             (-1, *z_dynamic_pred_bt.shape[2:])
         )
 
+        # add noise to the latent representations to make the decoder more robust
+        if training is True and (static_decoding_noise_std > 0.0 or dynamic_decoding_noise_std > 0.0):
+            # split the random key
+            rng, rng_static_decoding_noise, rng_dynamic_decoding_noise = random.split(rng, 3)
+
+            # sample noise from a normal distribution
+            decoder_static_input = z_static_pred_flat_bt + random.normal(
+                rng_static_decoding_noise, z_static_pred_flat_bt.shape
+            ) * static_decoding_noise_std
+            decoder_dynamic_input = z_dynamic_pred_flat_bt + random.normal(
+                rng_dynamic_decoding_noise, z_dynamic_pred_flat_bt.shape
+            ) * dynamic_decoding_noise_std
+        else:
+            decoder_static_input = z_static_pred_flat_bt
+            decoder_dynamic_input = z_dynamic_pred_flat_bt
+
         # send the rolled-out latent representations through the decoder
         # output will be of shape batch_dim * time_dim x width x height x channels
         img_static_pred_flat_bt = nn_model.apply(
             {"params": nn_params},
-            z_static_pred_flat_bt,
+            decoder_static_input,
             method=decode_fn,
             **decode_kwargs,
         )
         img_dynamic_pred_flat_bt = nn_model.apply(
             {"params": nn_params},
-            z_dynamic_pred_flat_bt,
+            decoder_dynamic_input,
             method=decode_fn,
             **decode_kwargs,
         )

@@ -62,6 +62,7 @@ num_mlp_layers, mlp_hidden_dim, mlp_nonlinearity_name = 4, 20, "leaky_relu"
 cornn_gamma, cornn_epsilon = 1.0, 1.0
 lnn_learn_dissipation = True
 diag_shift, diag_eps = 1e-6, 2e-6
+static_decoding_noise_std, dynamic_decoding_noise_std = 0.0, 0.0
 if ae_type == "wae":
     raise NotImplementedError(f"ae_type '{ae_type}' not implemented yet.")
 elif ae_type == "beta_vae":
@@ -357,6 +358,8 @@ if __name__ == "__main__":
         solver=solver_class(),
         latent_velocity_source=latent_velocity_source,
         num_past_timesteps=num_past_timesteps,
+        static_decoding_noise_std=static_decoding_noise_std,
+        dynamic_decoding_noise_std=dynamic_decoding_noise_std,
     )
 
     # run the training loop
