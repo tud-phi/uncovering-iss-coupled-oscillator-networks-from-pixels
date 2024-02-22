@@ -55,9 +55,12 @@ q_des = jnp.array([jnp.pi, 1.25 * jnp.pi])
 # control settings
 apply_feedforward_term = True
 apply_feedback_term = True
-use_collocated_form = True
+use_collocated_form = False
 # gains
-kp, ki, kd = 1e0, 0e0, 0e0
+if use_collocated_form:
+    kp, ki, kd = 1e-3, 0e0, 0e0
+else:
+    kp, ki, kd = 1e0, 0e0, 0e0
 
 batch_size = 10
 norm_layer = nn.LayerNorm
