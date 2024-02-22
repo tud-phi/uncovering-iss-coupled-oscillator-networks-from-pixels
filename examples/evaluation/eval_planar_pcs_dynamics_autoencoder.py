@@ -54,7 +54,7 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
 ]
 """
-dynamics_model_name = "node-mechanical-mlp"
+dynamics_model_name = "node-w-con"
 # latent space shape
 n_z = 4
 # simulation time step
@@ -83,7 +83,12 @@ elif ae_type == "beta_vae":
     elif dynamics_model_name == "node-con":
         experiment_id = "2024-02-14_18-34-27"
     elif dynamics_model_name == "node-w-con":
-        experiment_id = "2024-02-14_22-52-37"
+        if n_z == 4:
+            experiment_id = "2024-02-14_22-52-37"
+        elif n_z == 2:
+            experiment_id = "2024-02-22_14-11-21"
+        else:
+            raise ValueError(f"No experiment_id for n_z={n_z}")
     elif dynamics_model_name == "discrete-mlp":
         experiment_id = "2024-02-14_17-45-30"
         num_mlp_layers, mlp_hidden_dim = 4, 95

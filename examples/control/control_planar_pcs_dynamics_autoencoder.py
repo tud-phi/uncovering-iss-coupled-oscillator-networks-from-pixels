@@ -53,12 +53,12 @@ n_z = 8
 n_q = 2
 
 # initial configuration
-q0 = jnp.pi * jnp.array([2.0, -2.0])
+q0 = jnp.pi * jnp.array([0.0, -0.0])
 # specify desired configuration
 # q_des = jnp.array([jnp.pi, 1.25 * jnp.pi])
 q_des = jnp.pi * jnp.array([0.0, 0.0])
 # control settings
-apply_feedforward_term = False
+apply_feedforward_term = True
 apply_feedback_term = True
 use_collocated_form = True
 # gains
@@ -80,7 +80,12 @@ elif ae_type == "beta_vae":
     if dynamics_model_name == "node-con":
         experiment_id = "2024-02-14_18-34-27"
     elif dynamics_model_name == "node-w-con":
-        experiment_id = "2024-02-21_13-34-53"
+        if n_z == 8:
+            experiment_id = "2024-02-21_13-34-53"
+        elif n_z == 2:
+            experiment_id = "2024-02-22_14-11-21"
+        else:
+            raise ValueError(f"No experiment_id for n_z={n_z}")
     else:
         raise NotImplementedError(
             f"beta_vae with node_type '{dynamics_model_name}' not implemented yet."
