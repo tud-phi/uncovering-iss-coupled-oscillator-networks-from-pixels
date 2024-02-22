@@ -376,10 +376,10 @@ def task_factory(
 
             # sample noise from a normal distribution
             decoder_static_input = z_static_pred_flat_bt + random.normal(
-                rng_static_decoding_noise, z_static_pred_flat_bt.shape
+                rng_static_decoding_noise, z_static_pred_flat_bt.shape, dtype=z_static_pred_flat_bt.dtype
             ) * static_decoding_noise_std
             decoder_dynamic_input = z_dynamic_pred_flat_bt + random.normal(
-                rng_dynamic_decoding_noise, z_dynamic_pred_flat_bt.shape
+                rng_dynamic_decoding_noise, z_dynamic_pred_flat_bt.shape, dtype=z_dynamic_pred_flat_bt.dtype
             ) * dynamic_decoding_noise_std
         else:
             decoder_static_input = z_static_pred_flat_bt
