@@ -378,7 +378,7 @@ class ConOde(NeuralOdeBase):
         if self.use_w_coordinates:
             Lambda_zeta = J_h_inv.T @ Lambda_w @ J_h_inv
             # compute the feedforward term
-            tau_zeta_ff = Lambda_zeta @ zeta + J_h_inv.T @ jnp.tanh(z_des + bias)
+            tau_zeta_ff = Lambda_zeta @ zeta_des + J_h_inv.T @ jnp.tanh(z_des + bias)
         else:
             # extract the matrices from the neural network
             b_w = self.get_variable("params", "b_w")
@@ -394,7 +394,7 @@ class ConOde(NeuralOdeBase):
             Lambda_zeta = J_h_inv.T @ Lambda @ J_h_inv
 
             # compute the feedforward term
-            tau_zeta_ff = Lambda_zeta @ zeta + J_h_inv.T @ jnp.tanh(W @ z_des + bias)
+            tau_zeta_ff = Lambda_zeta @ zeta_des + J_h_inv.T @ jnp.tanh(W @ z_des + bias)
 
         # compute the torque in latent space
         tau_zeta = jnp.zeros_like(zeta_des)
