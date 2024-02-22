@@ -260,6 +260,7 @@ def task_factory(
 
             # extract the rolled-out latent representations
             z_dynamic_pred_bt = sol_bt.ys[..., :n_z].astype(jnp.float32)
+            z_d_dynamic_pred_bt = sol_bt.ys[..., n_z:].astype(jnp.float32)
 
             # extract the rolled-out states
             x_dynamic_pred_bt = sol_bt.ys.astype(jnp.float32)
@@ -355,6 +356,7 @@ def task_factory(
                 in_axes=(0, 0),
                 out_axes=0,
             )(z_past_bt, tau_bt.astype(jnp.float32))
+            z_d_dynamic_pred_bt = jnp.zeros_like(z_dynamic_pred_bt)
         else:
             raise ValueError(f"Unknown dynamics_type: {dynamics_type}")
 
@@ -391,6 +393,9 @@ def task_factory(
             img_static_ts=img_static_pred_bt,
             z_dynamic_ts=z_dynamic_pred_bt,
             img_dynamic_ts=img_dynamic_pred_bt,
+            xi_dynamic_ts=jnp.concatenate(
+                (z_dynamic_pred_bt, z_d_dynamic_pred_bt), axis=-1
+            ),
         )
 
         if ae_type == "beta_vae":
