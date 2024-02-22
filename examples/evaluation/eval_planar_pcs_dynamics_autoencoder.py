@@ -54,7 +54,7 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
 ]
 """
-dynamics_model_name = "node-mechanical-mlp"
+dynamics_model_name = "node-w-con"
 # latent space shape
 n_z = 4
 # simulation time step
@@ -83,7 +83,12 @@ elif ae_type == "beta_vae":
     elif dynamics_model_name == "node-con":
         experiment_id = "2024-02-14_18-34-27"
     elif dynamics_model_name == "node-w-con":
-        experiment_id = "2024-02-14_22-52-37"
+        if n_z == 4:
+            experiment_id = "2024-02-14_22-52-37"
+        elif n_z == 2:
+            experiment_id = "2024-02-22_14-11-21"
+        else:
+            raise ValueError(f"No experiment_id for n_z={n_z}")
     elif dynamics_model_name == "discrete-mlp":
         experiment_id = "2024-02-14_17-45-30"
         num_mlp_layers, mlp_hidden_dim = 4, 95
@@ -346,17 +351,19 @@ if __name__ == "__main__":
     x0 = jnp.concatenate([q0, jnp.zeros((n_q,))])
     tau = jnp.zeros((n_tau,))
     print("x0:", x0)
-    rollout_data_ts = ode_rollout_fn(x0=x0, tau=tau)
+    sim_ts = ode_rollout_fn(x0=x0, tau=tau)
     rollout_batch = dict(
         t_ts=ts_rollout[None, ...],
-        x_ts=rollout_data_ts["x_ts"][None, ...],
+        x_ts=sim_ts["x_ts"][None, ...],
         tau=tau[None, ...],
-        rendering_ts=rollout_data_ts["rendering_ts"][None, :],
+        rendering_ts=sim_ts["rendering_ts"][None, :],
     )
     preds = forward_fn_learned(rollout_batch, state.params)
     # extract both the target and the predicted images
     img_pred_ts = preds["img_dynamic_ts"][0]
-    img_target_ts = rollout_data_ts["rendering_ts"][start_time_idx:]
+    img_target_ts = sim_ts["rendering_ts"][start_time_idx:]
+    # extract the latent state trajectory
+    xi_ts = preds["xi_dynamic_ts"][0]
 
     # animate the rollout
     print("Animate the rollout...")
@@ -368,3 +375,23 @@ if __name__ == "__main__":
         step_skip=1,
         show=True,
     )
+
+    if dynamics_model_name in ["node-con", "node-w-con"]:
+        # plot the energy over time
+        fig, ax = plt.subplots(1, 1, figsize=(8, 6), num="Energy vs. time")
+        V_ts = jax.vmap(
+            partial(
+                dynamics_model.apply,
+                {"params": state.params["dynamics"]},
+                method=dynamics_model.energy_fn,
+            )
+        )(xi_ts)
+        ax.plot(ts_rollout[start_time_idx:], V_ts, label="Energy")
+        ax.set_xlabel("Time [s]")
+        ax.set_ylabel("Energy")
+        ax.set_title("Energy vs. time")
+        ax.legend()
+        plt.grid(True)
+        plt.box(True)
+        plt.savefig(ckpt_dir / "energy_vs_time.pdf")
+        plt.show()
