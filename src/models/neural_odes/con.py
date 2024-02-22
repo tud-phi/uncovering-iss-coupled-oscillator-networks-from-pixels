@@ -218,21 +218,33 @@ class ConOde(NeuralOdeBase):
     def setpoint_regulation_control_fn(
         self,
         x: Array,
+        control_state: Dict[str, Array],
+        dt: Union[float, Array],
         z_des: Array,
         kp: Union[float, Array] = 0.0,
+        ki: Union[float, Array] = 0.0,
         kd: Union[float, Array] = 0.0,
-    ) -> Tuple[Array, Dict[str, Array]]:
+        gamma: Union[float, Array] = 1.0,
+    ) -> Tuple[Array, Dict[str, Array], Dict[str, Array]]:
         """
-        Control function for setpoint regulation.
+        P-satI-D feedback together with potential force compensation in the latent variables.
         Args:
             x: latent state of shape (2* latent_dim, )
+            control_state: dictionary with the controller's stateful information. Contains entry with key "e_int" for the integral error.
+            dt: time step
             z_des: desired latent state of shape (latent_dim, )
-            kp: proportional gain
-            kd: derivative gain
+            kp: proportional gain. Scalar or array of shape (latent_dim, )
+            ki: integral gain. Scalar or array of shape (latent_dim, )
+            kd: derivative gain. Scalar or array of shape (latent_dim, )
+            gamma: horizontal compression factor of the hyperbolic tangent. Array of shape () or (latent_dim, )
         Returns:
             tau: control input
+            control_state: dictionary with the controller's stateful information. Contains entry with key "e_int" for the integral error.
             control_info: dictionary with control information
         """
+        z = x[..., : self.latent_dim]
+        z_d = x[..., self.latent_dim :]
+
         # extract the matrices from the neural network
         bias = self.get_variable("params", "bias")
         lambda_w = self.get_variable("params", "lambda_w")
@@ -243,14 +255,13 @@ class ConOde(NeuralOdeBase):
             diag_eps=self.diag_eps,
         )
 
-        if self.use_w_coordinates:
-            zw = x[..., : self.latent_dim]
-            zw_d = x[..., self.latent_dim :]
+        # compute error in the latent space
+        error_z = z_des - z
 
-            # compute error in the latent space
-            error_zw = z_des - zw
-            # compute the feedback term
-            tau_z_fb = kp * error_zw - kd * zw_d
+        # compute the feedback term
+        tau_z_fb = kp * error_z + ki * control_state["e_int"] - kd * z_d
+
+        if self.use_w_coordinates:
             # compute the feedforward term
             tau_z_ff = Lambda_w @ z_des + jnp.tanh(z_des + bias)
         else:
@@ -269,11 +280,6 @@ class ConOde(NeuralOdeBase):
             W = jnp.linalg.inv(B_w)
             Lambda = Lambda_w @ B_w
 
-            # compute error in the latent space
-            error_z = z_des - z
-
-            # compute the feedback term
-            tau_z_fb = kp * error_z - kd * z_d
             # compute the feedforward term
             tau_z_ff = Lambda @ z_des + jnp.tanh(W @ z_des + bias)
 
@@ -300,38 +306,48 @@ class ConOde(NeuralOdeBase):
                 "Only the inverse of the hyperbolic tangent is implemented"
             )
 
+        # update the integral error
+        control_state["e_int"] += jnp.tanh(gamma * error_z) * dt
+
         control_info = dict(
             tau=tau,
             tau_z=tau_z,
             tau_z_ff=tau_z_ff,
             tau_z_fb=tau_z_fb,
+            e_int=control_state["e_int"],
         )
 
-        return tau, control_info
+        return tau, control_state, control_info
     
     def setpoint_regulation_collocated_form_fn(
         self,
         x: Array,
+        control_state: Dict[str, Array],
+        dt: Union[float, Array],
         z_des: Array,
         kp: Union[float, Array] = 0.0,
         ki: Union[float, Array] = 0.0,
         kd: Union[float, Array] = 0.0,
-    ) -> Tuple[Array, Dict[str, Array]]:
+        gamma: Union[float, Array] = 1.0,
+    ) ->  Tuple[Array, Dict[str, Array], Dict[str, Array]]:
         """
         P-satI-D feedback together with potential force compensation in the collocated variables.
         Args:
             x: latent state of shape (2* latent_dim, )
+            control_state: dictionary with the controller's stateful information. Contains entry with key "e_int" for the integral error.
+            dt: time step
             z_des: desired latent state of shape (latent_dim, )
-            kp: proportional gain
-            ki: integral gain
-            kd: derivative gain
+            kp: proportional gain. Scalar or array of shape (latent_dim, )
+            ki: integral gain. Scalar or array of shape (latent_dim, )
+            kd: derivative gain. Scalar or array of shape (latent_dim, )
+            gamma: horizontal compression factor of the hyperbolic tangent. Array of shape () or (latent_dim, )
         Returns:
             tau: control input
+            control_state: dictionary with the controller's stateful information. Contains entry with key "e_int" for the integral error.
             control_info: dictionary with control information
         """
         assert self.input_nonlinearity is None, "Mapping into collocated coordinates is only implemented for dynamics affine in control."
         assert self.latent_dim >= self.input_dim, "Mapping into collocated coordinates is only implemented for systems with latent_dim >= input_dim."
-        assert ki == 0.0, "Integral control is not implemented yet."
 
         z = x[..., : self.latent_dim]
         z_d = x[..., self.latent_dim :]
@@ -373,7 +389,7 @@ class ConOde(NeuralOdeBase):
         error_zeta = zeta_des - zeta
 
         # compute the feedback term
-        tau_zeta_fb = kp * error_zeta - kd * zeta_d
+        tau_zeta_fb = kp * error_zeta + ki * control_state["e_int"] - kd * zeta_d
 
         if self.use_w_coordinates:
             Lambda_zeta = J_h_inv.T @ Lambda_w @ J_h_inv
@@ -406,6 +422,9 @@ class ConOde(NeuralOdeBase):
         # take the first input_dim rows as the control input
         tau = tau_zeta[:self.input_dim]
 
+        # update the integral error
+        control_state["e_int"] += jnp.tanh(gamma * error_zeta) * dt
+
         control_info = dict(
             tau=tau,
             tau_zeta=tau_zeta,
@@ -414,6 +433,7 @@ class ConOde(NeuralOdeBase):
             zeta=zeta,
             zeta_d=zeta_d,
             zeta_des=zeta_des,
+            e_int=control_state["e_int"],
         )
 
-        return tau, control_info
+        return tau, control_state, control_info

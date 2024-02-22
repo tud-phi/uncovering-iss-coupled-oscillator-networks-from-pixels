@@ -115,6 +115,7 @@ def rollout_ode_with_latent_space_control(
     latent_dim: int,
     solver: AbstractSolver = Dopri5(),
     control_fn: Optional[Callable] = None,
+    control_state_init: Optional[Dict[str, Any]] = None,
     grayscale_rendering: bool = True,
     normalize_rendering: bool = True,
 ) -> Dict[str, Array]:
@@ -136,7 +137,7 @@ def rollout_ode_with_latent_space_control(
         solver: Diffrax solver to use for the simulation.
         control_fn (Optional[Callable]): Function to compute the control input to the system. It should have the
             following signature:
-                control_fn(t, x) -> tau, control_info.
+                control_fn(t, x, control_state) -> tau, control_state, control_info.
             If None, no control is applied.
         grayscale_rendering: Whether to convert the rendering image to grayscale.
         normalize_rendering: Whether to normalize the rendering image to [0, 1].
@@ -156,6 +157,10 @@ def rollout_ode_with_latent_space_control(
     n_tau = input_dim
     # time step
     dt = ts[1] - ts[0]
+    
+    # initial control state
+    if control_state_init is None:
+        control_state_init = dict()
 
     # initial velocity
     q_d = x0[n_q:]
@@ -198,9 +203,9 @@ def rollout_ode_with_latent_space_control(
         return x1
 
     def sim_step_fn(
-        carry: Dict[str, Array],
+        carry: Dict,
         input: Dict[str, Array],
-    ) -> Tuple[Dict[str, Array], Dict[str, Array]]:
+    ) -> Tuple[Dict, Dict[str, Array]]:
         # extract the current state from the carry dictionary
         t_curr = carry["t"]
         x_curr = carry["x"]
@@ -239,7 +244,7 @@ def rollout_ode_with_latent_space_control(
 
         if control_fn is not None:
             # compute the control input
-            tau, control_info = control_fn(t_curr, xi_curr)
+            tau, control_state, control_info = control_fn(t_curr, xi_curr, carry["control_state"])
             control_info_ts = {f"{k}_ts": v for k, v in control_info.items()}
             step_data = step_data | control_info_ts
         else:
@@ -250,13 +255,14 @@ def rollout_ode_with_latent_space_control(
         x_next = discrete_forward_dynamics_fn(t_curr, t_curr + dt, x_curr, tau)
 
         # update the carry array
-        carry = dict(t=input["ts"], x=x_next)
+        carry = dict(t=input["ts"], x=x_next, control_state=control_state)
 
         return carry, step_data
 
     carry = dict(
         t=ts[0] - dt,
         x=x0,
+        control_state=control_state_init,
     )
 
     input_ts = dict(ts=ts)

@@ -49,18 +49,25 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 dynamics_model_name = "node-w-con"
 # latent space shape
 n_z = 8
+# number of configuration space dimensions
+n_q = 2
 
+# initial configuration
+q0 = jnp.pi * jnp.array([2.0, -2.0])
 # specify desired configuration
-q_des = jnp.array([jnp.pi, 1.25 * jnp.pi])
+# q_des = jnp.array([jnp.pi, 1.25 * jnp.pi])
+q_des = jnp.pi * jnp.array([0.0, 0.0])
 # control settings
-apply_feedforward_term = True
+apply_feedforward_term = False
 apply_feedback_term = True
-use_collocated_form = False
+use_collocated_form = True
 # gains
 if use_collocated_form:
     kp, ki, kd = 1e-3, 0e0, 0e0
+    psatid_gamma = 1.0
 else:
-    kp, ki, kd = 1e0, 0e0, 0e0
+    kp, ki, kd = 1e0, 2e0, 0e0
+    psatid_gamma = 0.5
 
 batch_size = 10
 norm_layer = nn.LayerNorm
@@ -230,32 +237,44 @@ if __name__ == "__main__":
         metrics_collection_cls=metrics_collection_cls,
         init_fn=nn_model.initialize_all_weights,
     )
-    forward_fn_learned = jit(task_callables_rollout_learned.forward_fn)
+    dynamics_model_bound = dynamics_model.bind(
+        {"params": state.params["dynamics"]}
+    )
 
-    def control_fn(t: Array, x: Array) -> Tuple[Array, Dict[str, Array]]:
+    def control_fn(t: Array, x: Array, control_state: Dict[str, Array]) -> Tuple[Array, Dict[str, Array], Dict[str, Array]]:
         """
         Control function for the setpoint regulation.
         Args:
             t: current time
             x: current state of the system
+            control_state: dictionary with the controller's stateful information. Contains entry with key "e_int" for the integral error.
         Returns:
             tau: control input
+            control_state: dictionary with the controller's stateful information. Contains entry with key "e_int" for the integral error.
             control_info: dictionary with control information
         """
         if use_collocated_form:
-            setpoint_regulation_fn = dynamics_model.setpoint_regulation_collocated_form_fn
+            setpoint_regulation_fn = dynamics_model_bound.setpoint_regulation_collocated_form_fn
         else:
-            setpoint_regulation_fn = dynamics_model.setpoint_regulation_control_fn
-        # compute the control input
-        tau, control_info = dynamics_model.apply(
-            {"params": state.params["dynamics"]},
+            setpoint_regulation_fn = dynamics_model_bound.setpoint_regulation_control_fn
+        tau, control_state, control_info = setpoint_regulation_fn(
             x,
-            z_des,
+            control_state,
+            dt=control_dt,
+            z_des=z_des,
             kp=kp,
+            ki=ki,
             kd=kd,
+            gamma=psatid_gamma,
+        )
+        # compute the control input
+        """
+        tau, control_state, control_info = dynamics_model.apply(
+            {"params": state.params["dynamics"]},
             method=setpoint_regulation_fn,
         )
-        return tau, control_info
+        """
+        return tau, control_state, control_info
 
     # render target image
     target_img = rendering_fn(q_des)
@@ -274,11 +293,6 @@ if __name__ == "__main__":
     z_des = z_des_bt[0, :]
 
     # set initial condition for closed-loop simulation
-    q0 = (
-        0.1
-        * jnp.tile(jnp.array([1.0, -1.0]), reps=int(jnp.ceil(n_q / 2)))[:n_q]
-        * dataset_metadata["x0_max"][:n_q]
-    )
     x0 = jnp.concatenate([q0, jnp.zeros((n_q,))])
 
     # start closed-loop simulation
@@ -299,6 +313,7 @@ if __name__ == "__main__":
         input_dim=n_tau,
         latent_dim=n_z,
         control_fn=jit(control_fn),
+        control_state_init={"e_int": jnp.zeros((n_z,))},
     )
 
     # extract both the ground-truth and the statically predicted images
