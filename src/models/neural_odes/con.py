@@ -189,7 +189,9 @@ class ConOde(NeuralOdeBase):
                 diag_shift=self.diag_shift,
                 diag_eps=self.diag_eps,
             )
-            W = B_w_inv
+
+            # compute jacobian mapping from z to zw coordinates
+            J_w = B_w_inv
 
             # computing B_w from B_w_inv
             B_w = jnp.linalg.inv(B_w_inv)
@@ -201,27 +203,29 @@ class ConOde(NeuralOdeBase):
                 self.latent_dim, b_w, diag_shift=self.diag_shift, diag_eps=self.diag_eps
             )
 
-            # compute W
-            W = jnp.linalg.inv(B_w)
+            # compute jacobian mapping from z to zw coordinates
+            J_w = jnp.linalg.inv(B_w)
 
         match coordinate:
             case "z":
                 terms = dict(
-                    B=jnp.identity(self.latent_dim),
-                    W=W,
+                    B=jnp.eye(self.latent_dim),
+                    W=J_w,
                     bias=bias,
-                    Lambda=Lambda_w @ W,
-                    E=E_w @ W,
+                    Lambda=Lambda_w @ J_w,
+                    E=E_w @ J_w,
                     V=V,
+                    J_w=J_w,
                 )
             case "zw":
                 terms = dict(
                     B=B_w,
-                    W=W,
+                    W=jnp.eye(self.latent_dim),
                     bias=bias,
                     Lambda=Lambda_w,
                     E=E_w,
                     V=V,
+                    J_w=J_w,
                 )
             case "zeta":
                 assert self.input_nonlinearity is None, "Mapping into collocated coordinates is only implemented for dynamics affine in control."
@@ -244,7 +248,7 @@ class ConOde(NeuralOdeBase):
                 # compute the inverse of the Jacobian
                 J_h_inv = jnp.linalg.inv(J_h)
 
-                # map terms into collocated coordinates
+                # map terms from w into collocated coordinates
                 B_zeta = J_h_inv.T @ B_w @ J_h_inv
                 Lambda_zeta = J_h_inv.T @ Lambda_w @ J_h_inv
                 E_zeta = J_h_inv.T @ E_w @ J_h_inv
@@ -257,11 +261,12 @@ class ConOde(NeuralOdeBase):
 
                 terms = dict(
                     B=B_zeta,
-                    W=W,
+                    W=J_h_inv,
                     bias=bias,
                     Lambda=Lambda_zeta,
                     E=E_zeta,
                     V=V_zeta,
+                    J_w=J_w,
                     J_h=J_h,
                     J_h_inv=J_h_inv,
                 )
@@ -271,33 +276,28 @@ class ConOde(NeuralOdeBase):
         return terms
 
 
-    def energy_fn(self, x: Array) -> Array:
+    def energy_fn(self, x: Array, coordinate: str = "z") -> Array:
         """
         Compute the energy of the system.
         Args:
-            x: latent state of shape (2* latent_dim, )
+            x: state of shape (2* latent_dim, )
+            coordinate: coordinates in the state x is expressed. Can be ["z", "zw", "zeta"]
         Returns:
             V: energy of the system of shape ()
         """
-        terms = self.get_terms(coordinate="zw")
+        terms = self.get_terms(coordinate=coordinate)
 
-        if self.use_w_coordinates:
-            zw = x[..., : self.latent_dim]
-            zw_d = x[..., self.latent_dim :]
-        else:
-            z = x[..., : self.latent_dim]
-            z_d = x[..., self.latent_dim :]
-            # map the latent variables to the w-coordinates
-            zw = terms["W"] @ z
-            zw_d = terms["W"] @ z_d
+        z = x[..., : self.latent_dim]
+        z_d = x[..., self.latent_dim :]
+
+        # compute the kinetic energy
+        T = (0.5 * z_d[None, :] @ terms["B"] @ z_d[:, None]).squeeze()
 
         # compute the potential energy
         U = (
-            0.5 * zw[None, :] @ terms["Lambda"] @ zw[:, None]
-            + jnp.sum(jnp.log(jnp.cosh(zw + terms["bias"])))
+            0.5 * z[None, :] @ terms["Lambda"] @ z[:, None]
+            + jnp.sum(jnp.log(jnp.cosh(terms["W"] @ z + terms["bias"])))
         ).squeeze()
-        # compute the kinetic energy
-        T = (0.5 * zw_d[None, :] @ terms["B"] @ zw_d[:, None]).squeeze()
 
         # compute the total energy
         V = T + U
@@ -334,22 +334,19 @@ class ConOde(NeuralOdeBase):
         z = x[..., : self.latent_dim]
         z_d = x[..., self.latent_dim :]
 
+        if self.use_w_coordinates:
+            terms = self.get_terms(coordinate="zw")
+        else:
+            terms = self.get_terms(coordinate="z")
+
         # compute error in the latent space
         error_z = z_des - z
 
         # compute the feedback term
         tau_z_fb = kp * error_z + ki * control_state["e_int"] - kd * z_d
 
-        if self.use_w_coordinates:
-            terms = self.get_terms(coordinate="zw")
-
-            # compute the feedforward term
-            tau_z_ff = terms["Lambda"] @ z_des + jnp.tanh(z_des + terms["bias"])
-        else:
-            terms = self.get_terms(coordinate="z")
-
-            # compute the feedforward term
-            tau_z_ff = terms["Lambda"] @ z_des + jnp.tanh(terms["W"] @ z_des + terms["bias"])
+        # compute the feedforward term
+        tau_z_ff = terms["Lambda"] @ z_des + jnp.tanh(terms["W"] @ z_des + terms["bias"])
 
         # compute the torque in latent space
         tau_z = jnp.zeros_like(z_des)
@@ -417,16 +414,25 @@ class ConOde(NeuralOdeBase):
         assert self.input_nonlinearity is None, "Mapping into collocated coordinates is only implemented for dynamics affine in control."
         assert self.latent_dim >= self.input_dim, "Mapping into collocated coordinates is only implemented for systems with latent_dim >= input_dim."
 
-        z = x[..., : self.latent_dim]
-        z_d = x[..., self.latent_dim :]
-
         terms = self.get_terms(coordinate="zeta")
+
+        if self.use_w_coordinates:
+            zw = x[..., : self.latent_dim]
+            zw_d = x[..., self.latent_dim :]
+            zw_des = z_des
+        else:
+            z = x[..., : self.latent_dim]
+            z_d = x[..., self.latent_dim :]
+
+            # map into w-coordinates
+            zw, zw_d = terms["J_w"] @ z, terms["J_w"] @ z_d
+            zw_des = terms["J_w"] @ z_des
+
         J_h, J_h_inv = terms["J_h"], terms["J_h_inv"]
         
         # map into collocated coordinates
-        zeta = J_h @ z
-        zeta_d = J_h @ z_d
-        zeta_des = J_h @ z_des
+        zeta, zeta_d = J_h @ zw, J_h @ zw_d
+        zeta_des = J_h @ zw_des
 
         # compute error in the collocated coordinates
         error_zeta = zeta_des - zeta
@@ -435,7 +441,7 @@ class ConOde(NeuralOdeBase):
         tau_zeta_fb = kp * error_zeta + ki * control_state["e_int"] - kd * zeta_d
 
         # compute the feedforward term
-        tau_zeta_ff = terms["Lambda"] @ zeta_des + J_h_inv.T @ jnp.tanh(z_des + terms["bias"])
+        tau_zeta_ff = terms["Lambda"] @ zeta_des + J_h_inv.T @ jnp.tanh(terms["W"] @ zeta_des + terms["bias"])
 
         # compute the torque in latent space
         tau_zeta = jnp.zeros_like(zeta_des)

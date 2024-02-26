@@ -247,8 +247,8 @@ if __name__ == "__main__":
     )
 
     if n_z == 2:
-        # plot the potential energy landscape
-        fig, ax = plt.subplots(1, 1, figsize=figsize, num="Potential energy landscape")
+        # plot the potential energy landscape in the original latent space
+        fig, ax = plt.subplots(1, 1, figsize=figsize, num="Potential energy landscape in z-coordinates")
         z1_range = jnp.linspace(-1.0, 1.0, 100)
         z2_range = jnp.linspace(-1.0, 1.0, 100)
         z1_grid, z2_grid = jnp.meshgrid(z1_range, z2_range)
@@ -258,7 +258,7 @@ if __name__ == "__main__":
             jnp.zeros_like(z_grid)
         ], axis=-1)
         U_grid = jax.vmap(
-            dynamics_model_bound.energy_fn,
+            partial(dynamics_model_bound.energy_fn, coordinate="z"),
         )(xi_grid.reshape(-1, xi_grid.shape[-1])).reshape(xi_grid.shape[:2])
         cs = ax.contourf(z1_grid, z2_grid, U_grid, levels=100)
         plt.colorbar(cs)
@@ -269,6 +269,53 @@ if __name__ == "__main__":
         plt.box(True)
         plt.savefig(ckpt_dir / "potential_energy_landscape_z.pdf")
         plt.show()
+
+        # plot the potential energy in the w-coordinates
+        fig, ax = plt.subplots(1, 1, figsize=figsize, num="Potential energy landscape in zw-coordinates")
+        zw1_range = jnp.linspace(-1.0, 1.0, 100)
+        zw2_range = jnp.linspace(-1.0, 1.0, 100)
+        zw1_grid, zw2_grid = jnp.meshgrid(zw1_range, zw2_range)
+        zw_grid = jnp.stack([zw1_grid, zw2_grid], axis=-1)
+        xi_grid = jnp.concatenate([
+            zw_grid,
+            jnp.zeros_like(zw_grid)
+        ], axis=-1)
+        U_grid = jax.vmap(
+            partial(dynamics_model_bound.energy_fn, coordinate="zw"),
+        )(xi_grid.reshape(-1, xi_grid.shape[-1])).reshape(xi_grid.shape[:2])
+        cs = ax.contourf(zw1_grid, zw2_grid, U_grid, levels=100)
+        plt.colorbar(cs)
+        ax.set_xlabel(r"$z_{w,1}$")
+        ax.set_ylabel(r"$z_{w,2}$")
+        ax.set_title("Potential energy landscape of learned latent dynamics in w-coordinates")
+        plt.grid(True)
+        plt.box(True)
+        plt.savefig(ckpt_dir / "potential_energy_landscape_w.pdf")
+        plt.show()
+
+        # plot the potential energy in the collocated coordinates
+        fig, ax = plt.subplots(1, 1, figsize=figsize, num="Potential energy landscape in collocated coordinates")
+        zeta1_range = jnp.linspace(-1.0, 1.0, 100)
+        zeta2_range = jnp.linspace(-1.0, 1.0, 100)
+        zeta1_grid, zeta2_grid = jnp.meshgrid(zeta1_range, zeta2_range)
+        zeta_grid = jnp.stack([zeta1_grid, zeta2_grid], axis=-1)
+        xi_grid = jnp.concatenate([
+            zeta_grid,
+            jnp.zeros_like(zeta_grid)
+        ], axis=-1)
+        U_grid = jax.vmap(
+            partial(dynamics_model_bound.energy_fn, coordinate="zeta"),
+        )(xi_grid.reshape(-1, xi_grid.shape[-1])).reshape(xi_grid.shape[:2])
+        cs = ax.contourf(zeta1_grid, zeta2_grid, U_grid, levels=100)
+        plt.colorbar(cs)
+        ax.set_xlabel(r"$\zeta_1$")
+        ax.set_ylabel(r"$\zeta_2$")
+        ax.set_title("Potential energy landscape of learned latent dynamics in collocated coordinates")
+        plt.grid(True)
+        plt.box(True)
+        plt.savefig(ckpt_dir / "potential_energy_landscape_zeta.pdf")
+        plt.show()
+    
 
     def control_fn(t: Array, x: Array, control_state: Dict[str, Array]) -> Tuple[Array, Dict[str, Array], Dict[str, Array]]:
         """
