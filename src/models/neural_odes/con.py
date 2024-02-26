@@ -131,8 +131,8 @@ class ConOde(NeuralOdeBase):
 
             # compute everything in the orginal coordinates
             W = jnp.linalg.inv(B_w)
-            Lambda = Lambda_w @ B_w
-            E = E_w @ B_w
+            Lambda = Lambda_w @ W
+            E = E_w @ W
 
             # the latent variables are given in the input
             z = x[..., : self.latent_dim]
@@ -150,17 +150,19 @@ class ConOde(NeuralOdeBase):
             x_d = jnp.concatenate([z_d, z_dd], axis=-1)
 
         return x_d
-
-    def energy_fn(self, x: Array) -> Array:
+    
+    def get_terms(self, coordinate: str = "z") -> Dict[str, Array]:
         """
-        Compute the energy of the system.
+        Get the terms of the Equations of Motion.
         Args:
-            x: latent state of shape (2* latent_dim, )
+            coordinate: coordinates in which to express the terms. Can be ["z", "zw", "zeta"] 
         Returns:
-            V: energy of the system of shape ()
+            terms: dictionary with the terms of the EoM
         """
         # extract the matrices from the neural network
         bias = self.get_variable("params", "bias")
+
+        # Lambda_w
         lambda_w = self.get_variable("params", "lambda_w")
         Lambda_w = generate_positive_definite_matrix_from_params(
             self.latent_dim,
@@ -169,10 +171,16 @@ class ConOde(NeuralOdeBase):
             diag_eps=self.diag_eps,
         )
 
-        if self.use_w_coordinates:
-            zw = x[..., : self.latent_dim]
-            zw_d = x[..., self.latent_dim :]
+        # E_w
+        e_w = self.get_variable("params", "e_w")
+        E_w = generate_positive_definite_matrix_from_params(
+            self.latent_dim, e_w, diag_shift=self.diag_shift, diag_eps=self.diag_eps
+        )
 
+        # V
+        V = self.get_variable("params", "V")
+
+        if self.use_w_coordinates:
             # constructing Bw_inv as a positive definite matrix
             b_w_inv = self.get_variable("params", "b_w_inv")
             B_w_inv = generate_positive_definite_matrix_from_params(
@@ -181,13 +189,11 @@ class ConOde(NeuralOdeBase):
                 diag_shift=self.diag_shift,
                 diag_eps=self.diag_eps,
             )
+            W = B_w_inv
 
             # computing B_w from B_w_inv
             B_w = jnp.linalg.inv(B_w_inv)
         else:
-            z = x[..., : self.latent_dim]
-            z_d = x[..., self.latent_dim :]
-
             # constructing Bw as a positive definite matrix
             # vector of parameters for triangular matrix
             b_w = self.get_variable("params", "b_w")
@@ -198,17 +204,100 @@ class ConOde(NeuralOdeBase):
             # compute W
             W = jnp.linalg.inv(B_w)
 
+        match coordinate:
+            case "z":
+                terms = dict(
+                    B=jnp.identity(self.latent_dim),
+                    W=W,
+                    bias=bias,
+                    Lambda=Lambda_w @ W,
+                    E=E_w @ W,
+                    V=V,
+                )
+            case "zw":
+                terms = dict(
+                    B=B_w,
+                    W=W,
+                    bias=bias,
+                    Lambda=Lambda_w,
+                    E=E_w,
+                    V=V,
+                )
+            case "zeta":
+                assert self.input_nonlinearity is None, "Mapping into collocated coordinates is only implemented for dynamics affine in control."
+                assert self.latent_dim >= self.input_dim, "Mapping into collocated coordinates is only implemented for systems with latent_dim >= input_dim."
+                
+                # compute the Jacobian of the map into collocated coordinates
+                J_h = jnp.concatenate(
+                    [
+                        V.T,
+                        jnp.concatenate(
+                            [
+                                jnp.zeros((self.latent_dim - self.input_dim, self.input_dim)),
+                                jnp.eye(self.latent_dim - self.input_dim),
+                            ],
+                            axis=1,
+                        ),
+                    ],
+                    axis=0,
+                )
+                # compute the inverse of the Jacobian
+                J_h_inv = jnp.linalg.inv(J_h)
+
+                # map terms into collocated coordinates
+                B_zeta = J_h_inv.T @ B_w @ J_h_inv
+                Lambda_zeta = J_h_inv.T @ Lambda_w @ J_h_inv
+                E_zeta = J_h_inv.T @ E_w @ J_h_inv
+
+                # actuation matrix in collocated coordinates
+                V_zeta = jnp.concatenate([
+                    jnp.eye(self.input_dim),
+                    jnp.zeros((self.latent_dim - self.input_dim, self.input_dim))
+                ], axis=0)
+
+                terms = dict(
+                    B=B_zeta,
+                    W=W,
+                    bias=bias,
+                    Lambda=Lambda_zeta,
+                    E=E_zeta,
+                    V=V_zeta,
+                    J_h=J_h,
+                    J_h_inv=J_h_inv,
+                )
+            case _:
+                raise ValueError(f"Coordinate {coordinate} not supported.")
+            
+        return terms
+
+
+    def energy_fn(self, x: Array) -> Array:
+        """
+        Compute the energy of the system.
+        Args:
+            x: latent state of shape (2* latent_dim, )
+        Returns:
+            V: energy of the system of shape ()
+        """
+        terms = self.get_terms(coordinate="zw")
+
+        if self.use_w_coordinates:
+            zw = x[..., : self.latent_dim]
+            zw_d = x[..., self.latent_dim :]
+        else:
+            z = x[..., : self.latent_dim]
+            z_d = x[..., self.latent_dim :]
             # map the latent variables to the w-coordinates
-            zw = W @ z
-            zw_d = W @ z_d
+            zw = terms["W"] @ z
+            zw_d = terms["W"] @ z_d
 
         # compute the potential energy
         U = (
-            0.5 * zw[None, :] @ Lambda_w @ zw[:, None]
-            + jnp.sum(jnp.log(jnp.cosh(zw + bias)))
+            0.5 * zw[None, :] @ terms["Lambda"] @ zw[:, None]
+            + jnp.sum(jnp.log(jnp.cosh(zw + terms["bias"])))
         ).squeeze()
         # compute the kinetic energy
-        T = (0.5 * zw_d[None, :] @ B_w @ zw_d[:, None]).squeeze()
+        T = (0.5 * zw_d[None, :] @ terms["B"] @ zw_d[:, None]).squeeze()
 
         # compute the total energy
         V = T + U
@@ -245,16 +334,6 @@ class ConOde(NeuralOdeBase):
         z = x[..., : self.latent_dim]
         z_d = x[..., self.latent_dim :]
 
-        # extract the matrices from the neural network
-        bias = self.get_variable("params", "bias")
-        lambda_w = self.get_variable("params", "lambda_w")
-        Lambda_w = generate_positive_definite_matrix_from_params(
-            self.latent_dim,
-            lambda_w,
-            diag_shift=self.diag_shift,
-            diag_eps=self.diag_eps,
-        )
-
         # compute error in the latent space
         error_z = z_des - z
 
@@ -262,26 +341,15 @@ class ConOde(NeuralOdeBase):
         tau_z_fb = kp * error_z + ki * control_state["e_int"] - kd * z_d
 
         if self.use_w_coordinates:
+            terms = self.get_terms(coordinate="zw")
+
             # compute the feedforward term
-            tau_z_ff = Lambda_w @ z_des + jnp.tanh(z_des + bias)
+            tau_z_ff = terms["Lambda"] @ z_des + jnp.tanh(z_des + terms["bias"])
         else:
-            z = x[..., : self.latent_dim]
-            z_d = x[..., self.latent_dim :]
-
-            # extract the matrices from the neural network
-            b_w = self.get_variable("params", "b_w")
-            B_w = generate_positive_definite_matrix_from_params(
-                self.latent_dim,
-                b_w,
-                diag_shift=self.diag_shift,
-                diag_eps=self.diag_eps,
-            )
-
-            W = jnp.linalg.inv(B_w)
-            Lambda = Lambda_w @ B_w
+            terms = self.get_terms(coordinate="z")
 
             # compute the feedforward term
-            tau_z_ff = Lambda @ z_des + jnp.tanh(W @ z_des + bias)
+            tau_z_ff = terms["Lambda"] @ z_des + jnp.tanh(terms["W"] @ z_des + terms["bias"])
 
         # compute the torque in latent space
         tau_z = jnp.zeros_like(z_des)
@@ -291,7 +359,7 @@ class ConOde(NeuralOdeBase):
             tau_z = tau_z + tau_z_fb
 
         # extract the V matrix from the neural network
-        V = self.get_variable("params", "V")
+        V = terms["V"]
 
         if self.input_nonlinearity is None:
             # compute the control input
@@ -352,33 +420,8 @@ class ConOde(NeuralOdeBase):
         z = x[..., : self.latent_dim]
         z_d = x[..., self.latent_dim :]
 
-        # extract the matrices from the neural network
-        bias = self.get_variable("params", "bias")
-        lambda_w = self.get_variable("params", "lambda_w")
-        Lambda_w = generate_positive_definite_matrix_from_params(
-            self.latent_dim,
-            lambda_w,
-            diag_shift=self.diag_shift,
-            diag_eps=self.diag_eps,
-        )
-
-        # extract the V matrix from the neural network
-        V = self.get_variable("params", "V")
-        # compute the Jacobian of the map into collocated coordinates
-        J_h = jnp.concatenate(
-            [
-                V.T,
-                jnp.concatenate(
-                    [
-                        jnp.zeros((self.latent_dim - self.input_dim, self.input_dim)),
-                        jnp.eye(self.latent_dim - self.input_dim),
-                    ],
-                    axis=1,
-                ),
-            ],
-            axis=0,
-        )
-        J_h_inv = jnp.linalg.inv(J_h)
+        terms = self.get_terms(coordinate="zeta")
+        J_h, J_h_inv = terms["J_h"], terms["J_h_inv"]
         
         # map into collocated coordinates
         zeta = J_h @ z
@@ -391,26 +434,8 @@ class ConOde(NeuralOdeBase):
         # compute the feedback term
         tau_zeta_fb = kp * error_zeta + ki * control_state["e_int"] - kd * zeta_d
 
-        if self.use_w_coordinates:
-            Lambda_zeta = J_h_inv.T @ Lambda_w @ J_h_inv
-            # compute the feedforward term
-            tau_zeta_ff = Lambda_zeta @ zeta_des + J_h_inv.T @ jnp.tanh(z_des + bias)
-        else:
-            # extract the matrices from the neural network
-            b_w = self.get_variable("params", "b_w")
-            B_w = generate_positive_definite_matrix_from_params(
-                self.latent_dim,
-                b_w,
-                diag_shift=self.diag_shift,
-                diag_eps=self.diag_eps,
-            )
-
-            W = jnp.linalg.inv(B_w)
-            Lambda = Lambda_w @ B_w
-            Lambda_zeta = J_h_inv.T @ Lambda @ J_h_inv
-
-            # compute the feedforward term
-            tau_zeta_ff = Lambda_zeta @ zeta_des + J_h_inv.T @ jnp.tanh(W @ z_des + bias)
+        # compute the feedforward term
+        tau_zeta_ff = terms["Lambda"] @ zeta_des + J_h_inv.T @ jnp.tanh(z_des + terms["bias"])
 
         # compute the torque in latent space
         tau_zeta = jnp.zeros_like(zeta_des)
