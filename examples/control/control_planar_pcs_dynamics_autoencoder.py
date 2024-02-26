@@ -5,7 +5,7 @@ import jax
 
 jax.config.update("jax_enable_x64", True)
 jax.config.update("jax_platform_name", "cpu")  # set default device to 'cpu'
-from jax import Array, jit, random
+from jax import Array, grad, jit, random
 import jax.numpy as jnp
 import jsrm
 from jsrm.integration import ode_with_forcing_factory
@@ -30,7 +30,6 @@ from src.models.dynamics_autoencoder import DynamicsAutoencoder
 from src.rendering import render_planar_pcs
 from src.rollout import rollout_ode, rollout_ode_with_latent_space_control
 from src.training.dataset_utils import load_dataset, load_dummy_neural_network_input
-from src.training.loops import run_eval
 from src.tasks import dynamics_autoencoder
 from src.training.train_state_utils import restore_train_state
 from src.visualization.img_animation import (
@@ -260,7 +259,22 @@ if __name__ == "__main__":
         U_grid = jax.vmap(
             partial(dynamics_model_bound.energy_fn, coordinate="z"),
         )(xi_grid.reshape(-1, xi_grid.shape[-1])).reshape(xi_grid.shape[:2])
+        tau_pot = -jax.vmap(
+            grad(partial(dynamics_model_bound.energy_fn, coordinate="z")),
+        )(xi_grid.reshape(-1, xi_grid.shape[-1]))[..., :n_z].reshape(*xi_grid.shape[:2], -1)
+        # contour plot of the potential energy
         cs = ax.contourf(z1_grid, z2_grid, U_grid, levels=100)
+        # quiver plot of the potential energy gradient
+        ax.quiver(
+            z1_grid,
+            z2_grid,
+            tau_pot[..., 0],
+            tau_pot[..., 1],
+            angles="xy",
+            scale=None,
+            scale_units="xy",
+            color="white",
+        )
         plt.colorbar(cs)
         ax.set_xlabel(r"$z_1$")
         ax.set_ylabel(r"$z_2$")
@@ -283,7 +297,22 @@ if __name__ == "__main__":
         U_grid = jax.vmap(
             partial(dynamics_model_bound.energy_fn, coordinate="zw"),
         )(xi_grid.reshape(-1, xi_grid.shape[-1])).reshape(xi_grid.shape[:2])
+        tau_pot = -jax.vmap(
+            grad(partial(dynamics_model_bound.energy_fn, coordinate="zw")),
+        )(xi_grid.reshape(-1, xi_grid.shape[-1]))[..., :n_z].reshape(*xi_grid.shape[:2], -1)
+        # contour plot of the potential energy
         cs = ax.contourf(zw1_grid, zw2_grid, U_grid, levels=100)
+        # quiver plot of the potential energy gradient
+        ax.quiver(
+            zw1_grid,
+            zw2_grid,
+            tau_pot[..., 0],
+            tau_pot[..., 1],
+            angles="xy",
+            scale=None,
+            scale_units="xy",
+            color="white",
+        )
         plt.colorbar(cs)
         ax.set_xlabel(r"$z_{w,1}$")
         ax.set_ylabel(r"$z_{w,2}$")
@@ -306,7 +335,22 @@ if __name__ == "__main__":
         U_grid = jax.vmap(
             partial(dynamics_model_bound.energy_fn, coordinate="zeta"),
         )(xi_grid.reshape(-1, xi_grid.shape[-1])).reshape(xi_grid.shape[:2])
+        tau_pot = -jax.vmap(
+            grad(partial(dynamics_model_bound.energy_fn, coordinate="zeta")),
+        )(xi_grid.reshape(-1, xi_grid.shape[-1]))[..., :n_z].reshape(*xi_grid.shape[:2], -1)
+        # contour plot of the potential energy
         cs = ax.contourf(zeta1_grid, zeta2_grid, U_grid, levels=100)
+        # quiver plot of the potential energy gradient
+        ax.quiver(
+            zeta1_grid,
+            zeta2_grid,
+            tau_pot[..., 0],
+            tau_pot[..., 1],
+            angles="xy",
+            scale=None,
+            scale_units="xy",
+            color="white",
+        )
         plt.colorbar(cs)
         ax.set_xlabel(r"$\zeta_1$")
         ax.set_ylabel(r"$\zeta_2$")
