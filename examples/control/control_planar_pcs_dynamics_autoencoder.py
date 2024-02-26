@@ -246,6 +246,30 @@ if __name__ == "__main__":
         {"params": state.params["dynamics"]}
     )
 
+    if n_z == 2:
+        # plot the potential energy landscape
+        fig, ax = plt.subplots(1, 1, figsize=figsize, num="Potential energy landscape")
+        z1_range = jnp.linspace(-1.0, 1.0, 100)
+        z2_range = jnp.linspace(-1.0, 1.0, 100)
+        z1_grid, z2_grid = jnp.meshgrid(z1_range, z2_range)
+        z_grid = jnp.stack([z1_grid, z2_grid], axis=-1)
+        xi_grid = jnp.concatenate([
+            z_grid,
+            jnp.zeros_like(z_grid)
+        ], axis=-1)
+        U_grid = jax.vmap(
+            dynamics_model_bound.energy_fn,
+        )(xi_grid.reshape(-1, xi_grid.shape[-1])).reshape(xi_grid.shape[:2])
+        cs = ax.contourf(z1_grid, z2_grid, U_grid, levels=100)
+        plt.colorbar(cs)
+        ax.set_xlabel(r"$z_1$")
+        ax.set_ylabel(r"$z_2$")
+        ax.set_title("Potential energy landscape of learned latent dynamics")
+        plt.grid(True)
+        plt.box(True)
+        plt.savefig(ckpt_dir / "potential_energy_landscape_z.pdf")
+        plt.show()
+
     def control_fn(t: Array, x: Array, control_state: Dict[str, Array]) -> Tuple[Array, Dict[str, Array], Dict[str, Array]]:
         """
         Control function for the setpoint regulation.
