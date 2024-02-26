@@ -290,7 +290,7 @@ if __name__ == "__main__":
         ax.set_title("Potential energy landscape of learned latent dynamics in w-coordinates")
         plt.grid(True)
         plt.box(True)
-        plt.savefig(ckpt_dir / "potential_energy_landscape_w.pdf")
+        plt.savefig(ckpt_dir / "potential_energy_landscape_zw.pdf")
         plt.show()
 
         # plot the potential energy in the collocated coordinates
