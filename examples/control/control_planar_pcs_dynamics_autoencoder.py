@@ -367,7 +367,6 @@ if __name__ == "__main__":
 
     if n_q == 2:
         # plot the learned potential energy landscape in the configuration space
-        fig, ax = plt.subplots(1, 1, figsize=figsize, num="Learned potential energy landscape in configuration space")
         q1_range = jnp.linspace(q0_min[0], q0_max[0], 25)
         q2_range = jnp.linspace(q0_min[1], q0_max[1], 25)
         q1_grid, q2_grid = jnp.meshgrid(q1_range, q2_range)
