@@ -264,17 +264,18 @@ if __name__ == "__main__":
         U_grid = jax.vmap(
             partial(dynamics_model_bound.energy_fn, coordinate="z"),
         )(xi_grid.reshape(-1, xi_grid.shape[-1])).reshape(xi_grid.shape[:2])
-        tau_pot = -jax.vmap(
+        tau_pot_grid = -jax.vmap(
             grad(partial(dynamics_model_bound.energy_fn, coordinate="z")),
         )(xi_grid.reshape(-1, xi_grid.shape[-1]))[..., :n_z].reshape(*xi_grid.shape[:2], -1)
         # contour plot of the potential energy
         cs = ax.contourf(z1_grid, z2_grid, U_grid, levels=100)
         # quiver plot of the potential energy gradient
+        qv_skip = 10
         ax.quiver(
-            z1_grid,
-            z2_grid,
-            tau_pot[..., 0],
-            tau_pot[..., 1],
+            z1_grid[::qv_skip, ::qv_skip],
+            z2_grid[::qv_skip, ::qv_skip],
+            tau_pot_grid[::qv_skip, ::qv_skip, 0],
+            tau_pot_grid[::qv_skip, ::qv_skip, 1],
             angles="xy",
             scale=None,
             scale_units="xy",
@@ -302,17 +303,18 @@ if __name__ == "__main__":
         U_grid = jax.vmap(
             partial(dynamics_model_bound.energy_fn, coordinate="zw"),
         )(xi_grid.reshape(-1, xi_grid.shape[-1])).reshape(xi_grid.shape[:2])
-        tau_pot = -jax.vmap(
+        tau_pot_grid = -jax.vmap(
             grad(partial(dynamics_model_bound.energy_fn, coordinate="zw")),
         )(xi_grid.reshape(-1, xi_grid.shape[-1]))[..., :n_z].reshape(*xi_grid.shape[:2], -1)
         # contour plot of the potential energy
         cs = ax.contourf(zw1_grid, zw2_grid, U_grid, levels=100)
         # quiver plot of the potential energy gradient
+        qv_skip = 10
         ax.quiver(
-            zw1_grid,
-            zw2_grid,
-            tau_pot[..., 0],
-            tau_pot[..., 1],
+            zw1_grid[::qv_skip, ::qv_skip],
+            zw2_grid[::qv_skip, ::qv_skip],
+            tau_pot_grid[::qv_skip, ::qv_skip, 0],
+            tau_pot_grid[::qv_skip, ::qv_skip, 1],
             angles="xy",
             scale=None,
             scale_units="xy",
@@ -340,17 +342,18 @@ if __name__ == "__main__":
         U_grid = jax.vmap(
             partial(dynamics_model_bound.energy_fn, coordinate="zeta"),
         )(xi_grid.reshape(-1, xi_grid.shape[-1])).reshape(xi_grid.shape[:2])
-        tau_pot = -jax.vmap(
+        tau_pot_grid = -jax.vmap(
             grad(partial(dynamics_model_bound.energy_fn, coordinate="zeta")),
         )(xi_grid.reshape(-1, xi_grid.shape[-1]))[..., :n_z].reshape(*xi_grid.shape[:2], -1)
         # contour plot of the potential energy
         cs = ax.contourf(zeta1_grid, zeta2_grid, U_grid, levels=100)
         # quiver plot of the potential energy gradient
+        qv_skip = 10
         ax.quiver(
-            zeta1_grid,
-            zeta2_grid,
-            tau_pot[..., 0],
-            tau_pot[..., 1],
+            zeta1_grid[::qv_skip, ::qv_skip],
+            zeta2_grid[::qv_skip, ::qv_skip],
+            tau_pot_grid[::qv_skip, ::qv_skip, 0],
+            tau_pot_grid[::qv_skip, ::qv_skip, 1],
             angles="xy",
             scale=None,
             scale_units="xy",
