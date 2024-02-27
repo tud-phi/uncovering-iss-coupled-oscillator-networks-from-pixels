@@ -373,21 +373,44 @@ if __name__ == "__main__":
         q1_grid, q2_grid = jnp.meshgrid(q1_range, q2_range)
         q_grid = jnp.stack([q1_grid, q2_grid], axis=-1)
         U_grid = jnp.zeros(q_grid.shape[:2])
+        tau_pot_grid = jnp.zeros(q_grid.shape[:2] + (n_tau,))
+        terms = dynamics_model_bound.get_terms(coordinate="zeta")
         for i in range(q_grid.shape[0]):
             for j in range(q_grid.shape[1]):
                 q = q_grid[i, j]
                 img = rendering_fn(q)
                 img = jnp.array(preprocess_rendering(img, grayscale=True, normalize=True))
                 z = nn_model_bound.encode(img[None, ...])[0, ...]
-                xi = jnp.concatenate([z, jnp.zeros((n_z,))])
-                U = dynamics_model_bound.energy_fn(xi, coordinate="z")
+                zeta = terms["J_h"] @ terms["J_w"] @ z
+                xi = jnp.concatenate([zeta, jnp.zeros((n_z,))])
+                U = dynamics_model_bound.energy_fn(xi, coordinate="zeta")
+                tau_pot = -grad(partial(dynamics_model_bound.energy_fn, coordinate="zeta"))(xi)[..., :n_tau]
                 U_grid = U_grid.at[i, j].set(U)
+                tau_pot_grid = tau_pot_grid.at[i, j, :].set(tau_pot)
+        fig, axes = plt.subplots(1, 2, figsize=(12, 5), num="Learned potential energy landscape in configuration space")
         # contour plot of the potential energy
-        cs = ax.contourf(q1_grid, q2_grid, U_grid, levels=100)
-        plt.colorbar(cs)
-        ax.set_xlabel(r"$q_1$ [rad/m]")
-        ax.set_ylabel(r"$q_2$ [rad/m]")
-        ax.set_title("Learned potential energy landscape in configuration space")
+        cs = axes[0].contourf(q1_grid, q2_grid, U_grid, levels=100)
+        plt.colorbar(cs, ax=axes[0])
+        axes[0].set_xlabel(r"$q_1$ [rad/m]")
+        axes[0].set_ylabel(r"$q_2$ [rad/m]")
+        axes[0].set_title("Learned potential energy in $q$-space")
+        # quiver plot of the potential energy gradient
+        qv_skip = 3
+        qs = axes[1].quiver(
+            q1_grid[::qv_skip, ::qv_skip],
+            q2_grid[::qv_skip, ::qv_skip],
+            tau_pot_grid[::qv_skip, ::qv_skip, 0],
+            tau_pot_grid[::qv_skip, ::qv_skip, 1],
+            jnp.hypot(tau_pot_grid[::qv_skip, ::qv_skip, 0], tau_pot_grid[::qv_skip, ::qv_skip, 1]),
+            angles="xy",
+            scale=None,
+            scale_units="xy",
+        )
+        qk = axes[1].quiverkey(qs, 0.9, 0.9, 1, r"$1$", labelpos='E', coordinates='figure')
+        axes[1].set_xlabel(r"$q_1$ [rad/m]")
+        axes[1].set_ylabel(r"$q_2$ [rad/m]")
+        axes[1].set_title("Potential force in $q$-space")
+        plt.colorbar(qs, ax=axes[1])
         plt.grid(True)
         plt.box(True)
         plt.savefig(ckpt_dir / "potential_energy_landscape_q.pdf")
