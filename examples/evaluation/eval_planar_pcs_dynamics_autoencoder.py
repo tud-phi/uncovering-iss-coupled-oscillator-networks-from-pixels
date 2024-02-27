@@ -9,6 +9,7 @@ import jax.numpy as jnp
 import jsrm
 from jsrm.integration import ode_with_forcing_factory
 from jsrm.systems import planar_pcs
+import matplotlib.pyplot as plt
 import numpy as onp
 from pathlib import Path
 import tensorflow as tf
@@ -83,12 +84,15 @@ elif ae_type == "beta_vae":
     elif dynamics_model_name == "node-con":
         experiment_id = "2024-02-14_18-34-27"
     elif dynamics_model_name == "node-w-con":
-        if n_z == 4:
-            experiment_id = "2024-02-14_22-52-37"
-        elif n_z == 2:
-            experiment_id = "2024-02-22_14-11-21"
-        else:
-            raise ValueError(f"No experiment_id for n_z={n_z}")
+        match n_z:
+            case 2:
+                experiment_id = "2024-02-22_14-11-21"
+            case 4:
+                experiment_id = "2024-02-14_22-52-37"
+            case 8:
+                experiment_id = "2024-02-21_13-34-53"
+            case _:
+                raise ValueError(f"No experiment_id for n_z={n_z}")
     elif dynamics_model_name == "discrete-mlp":
         experiment_id = "2024-02-14_17-45-30"
         num_mlp_layers, mlp_hidden_dim = 4, 95

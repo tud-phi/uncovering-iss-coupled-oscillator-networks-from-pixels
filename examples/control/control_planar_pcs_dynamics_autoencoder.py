@@ -27,7 +27,7 @@ from src.models.neural_odes import (
     MlpOde,
 )
 from src.models.dynamics_autoencoder import DynamicsAutoencoder
-from src.rendering import render_planar_pcs
+from src.rendering import preprocess_rendering, render_planar_pcs
 from src.rollout import rollout_ode, rollout_ode_with_latent_space_control
 from src.training.dataset_utils import load_dataset, load_dummy_neural_network_input
 from src.tasks import dynamics_autoencoder
@@ -399,12 +399,7 @@ if __name__ == "__main__":
     # render target image
     target_img = rendering_fn(q_des)
     # normalize the target image
-    # convert rendering image to grayscale
-    target_img = tf.image.rgb_to_grayscale(target_img)
-    # normalize rendering image to [0, 1]
-    target_img = tf.cast(target_img, tf.float32) / 128.0 - 1.0
-    # convert image to jax array
-    target_img = jnp.array(target_img)
+    target_img = jnp.array(preprocess_rendering(target_img, grayscale=True, normalize=True))
     # encode the target image
     target_img_bt = target_img[None, ...]
     z_des_bt = nn_model.apply(

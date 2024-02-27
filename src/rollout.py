@@ -8,6 +8,8 @@ import tensorflow as tf
 from tqdm import tqdm
 from typing import Any, Callable, Dict, Optional, Tuple, Union
 
+from src.rendering.normalization import preprocess_rendering
+
 
 def rollout_ode(
     ode_fn: Callable,
@@ -88,14 +90,7 @@ def rollout_ode(
 
             # render the image
             img = rendering_fn(q)
-
-            if grayscale_rendering:
-                # convert rendering image to grayscale
-                img = tf.image.rgb_to_grayscale(img)
-
-            if normalize_rendering:
-                # normalize rendering image to [0, 1]
-                img = tf.cast(img, tf.float32) / 128.0 - 1.0
+            img = preprocess_rendering(img, grayscale=grayscale_rendering, normalize=normalize_rendering)
 
             rendering_ts.append(jnp.array(img))
 
@@ -217,12 +212,7 @@ def rollout_ode_with_latent_space_control(
 
         # render the image
         rendering_curr = rendering_fn(onp.array(q_curr))
-        if grayscale_rendering:
-            # convert rendering image to grayscale
-            rendering_curr = tf.image.rgb_to_grayscale(rendering_curr)
-        if normalize_rendering:
-            # normalize rendering image to [0, 1]
-            rendering_curr = tf.cast(rendering_curr, tf.float32) / 128.0 - 1.0
+        rendering_curr = preprocess_rendering(rendering_curr, grayscale=grayscale_rendering, normalize=normalize_rendering)
         # convert image to jax array
         rendering_curr = jnp.array(rendering_curr)
 
