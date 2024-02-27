@@ -19,7 +19,7 @@ class PlanarPcsDatasetConfig(tfds.core.BuilderConfig):
     q_d_max: Tuple = (10 * jnp.pi, 0.05, 0.1)
     num_simulations: int = 20000
     dt: float = 2e-2
-    sim_dt: float = 1e-3
+    sim_dt: float = 1e-4
     seed: int = 0
 
 
@@ -187,11 +187,11 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
 
         # set robot parameters
         strain_selector = jnp.array(self.builder_config.strain_selector)
-        rho = 1070 * jnp.ones(
+        rho = 600 * jnp.ones(
             (self.builder_config.num_segments,)
-        )  # Volumetric density of Dragon Skin 20 [kg/m^3]
+        )  # [kg/m^3]
         # damping matrix
-        D = 3e-5 * jnp.diag(
+        D = 1e-5 * jnp.diag(
             jnp.repeat(
                 jnp.array([[1e0, 1e3, 1e3]]), self.builder_config.num_segments, axis=0
             ).flatten(),
@@ -199,13 +199,13 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
         robot_params = {
             "th0": jnp.array(jnp.pi),  # initial orientation angle [rad]
             "l": 1e-1 * jnp.ones((self.builder_config.num_segments,)),
-            "r": 2e-2 * jnp.ones((self.builder_config.num_segments,)),
+            "r": 1e-2 * jnp.ones((self.builder_config.num_segments,)),
             "rho": rho,
             "g": jnp.array([0.0, -9.81]),
             # Elastic modulus [Pa]
-            "E": 2e2 * jnp.ones((self.builder_config.num_segments,)),
+            "E": 2e4 * jnp.ones((self.builder_config.num_segments,)),
             # Shear modulus [Pa]
-            "G": 1e2 * jnp.ones((self.builder_config.num_segments,)),
+            "G": 1e4 * jnp.ones((self.builder_config.num_segments,)),
             "D": D,
         }
         metadata = {
@@ -267,7 +267,7 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
         B, C, G, K, D, alpha = dynamical_matrices_fn(
             robot_params, q_max, jnp.zeros_like(q_d_max)
         )
-        tau_max = 1.1 * jnp.abs(G + K )
+        tau_max = 1.0 * jnp.abs(G + K )
         # tau_max = 0.3 * jnp.abs(G + K)
         print(f"tau_max = {tau_max}")
 
