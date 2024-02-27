@@ -408,11 +408,11 @@ if __name__ == "__main__":
             scale=None,
             scale_units="xy",
         )
-        qk = axes[1].quiverkey(qs, 0.9, 0.9, 1, r"$1$", labelpos='E', coordinates='figure')
+        qk = axes[1].quiverkey(qs, 0.9, 0.9, 1, r"$\tau: 1$ Nm", labelpos='E', coordinates='figure')
         axes[1].set_xlabel(r"$q_1$ [rad/m]")
         axes[1].set_ylabel(r"$q_2$ [rad/m]")
-        axes[1].set_title("Potential force in $q$-space")
-        plt.colorbar(qs, ax=axes[1])
+        axes[1].set_title("Learned potential force in $q$-space")
+        plt.colorbar(qs, ax=axes[1], label=r"$\tau$ [Nm]")
         plt.grid(True)
         plt.box(True)
         plt.savefig(ckpt_dir / "potential_energy_landscape_q.pdf")
