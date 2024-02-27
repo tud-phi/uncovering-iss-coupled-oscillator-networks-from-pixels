@@ -39,7 +39,7 @@ tf.random.set_seed(seed=seed)
 
 system_type = "pcc_ns-2"
 """ dynamics_model_name in [
-    "node-general-mlp", "node-mechanical-mlp", "node-cornn", "node-con", "node-lnn", "node-hippo-lss", "mambda-ode",
+    "node-general-mlp", "node-mechanical-mlp", "node-cornn", "node-con", "node-lnn", "node-hippo-lss", "node-mamba",
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
 ]
 """

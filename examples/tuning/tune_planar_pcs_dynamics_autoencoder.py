@@ -22,6 +22,7 @@ from src.models.discrete_forward_dynamics import (
 from src.models.neural_odes import (
     ConOde,
     CornnOde,
+    DconOde,
     LnnOde,
     LinearStateSpaceOde,
     MambaOde,
@@ -44,7 +45,7 @@ rng = random.PRNGKey(seed=seed)
 system_type = "pcc_ns-2"
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 """ dynamics_model_name in [
-    "node-general-mlp", "node-mechanical-mlp", "node-mechanical-mlp-s", "node-cornn", "node-con", "node-w-con", "node-lnn", "node-hippo-lss", "mambda-ode",
+    "node-general-mlp", "node-mechanical-mlp", "node-mechanical-mlp-s", "node-cornn", "node-con", "node-w-con", "node-dcon", "node-lnn", "node-hippo-lss", "node-mamba",
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
 ]
 """
@@ -186,6 +187,15 @@ if __name__ == "__main__":
                 latent_dim=n_z,
                 input_dim=n_tau,
                 use_w_coordinates=dynamics_model_name == "node-w-con",
+            )
+        elif dynamics_model_name == "node-dcon":
+            dcon_gamma = trial.suggest_float("dcon_gamma", 1e-2, 1e2, log=True)
+            dcon_epsilon = trial.suggest_float("dcon_epsilon", 1e-2, 1e2, log=True)
+            dynamics_model = DconOde(
+                latent_dim=n_z,
+                input_dim=n_tau,
+                gamma=dcon_gamma,
+                epsilon=dcon_epsilon,
             )
         elif dynamics_model_name == "node-lnn":
             learn_dissipation = trial.suggest_categorical(
