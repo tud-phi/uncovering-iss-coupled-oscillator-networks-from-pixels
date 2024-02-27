@@ -191,7 +191,7 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             (self.builder_config.num_segments,)
         )  # Volumetric density of Dragon Skin 20 [kg/m^3]
         # damping matrix
-        D = 5e-6 * jnp.diag(
+        D = 3e-5 * jnp.diag(
             jnp.repeat(
                 jnp.array([[1e0, 1e3, 1e3]]), self.builder_config.num_segments, axis=0
             ).flatten(),
@@ -267,8 +267,9 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
         B, C, G, K, D, alpha = dynamical_matrices_fn(
             robot_params, q_max, jnp.zeros_like(q_d_max)
         )
-        # tau_max = 1.1 * jnp.abs(G + K )
-        tau_max = 0.3 * jnp.abs(G + K)
+        tau_max = 1.1 * jnp.abs(G + K )
+        # tau_max = 0.3 * jnp.abs(G + K)
+        print(f"tau_max = {tau_max}")
 
         # collect the dataset
         yield from collect_dataset(
