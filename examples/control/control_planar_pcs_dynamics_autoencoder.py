@@ -143,6 +143,8 @@ if __name__ == "__main__":
     n_tau = train_ds.element_spec["tau"].shape[-1]  # dimension of the control input
     # image shape
     img_shape = train_ds.element_spec["rendering_ts"].shape[-3:]  # image shape
+    # limits of the configuration space
+    q0_min, q0_max = dataset_metadata["x0_min"][:n_q], dataset_metadata["x0_max"][:n_q]
 
     # get the dynamics function
     strain_basis, forward_kinematics_fn, dynamical_matrices_fn = planar_pcs.factory(
@@ -240,6 +242,9 @@ if __name__ == "__main__":
         nn_dummy_input=nn_dummy_input,
         metrics_collection_cls=metrics_collection_cls,
         init_fn=nn_model.initialize_all_weights,
+    )
+    nn_model_bound = nn_model.bind(
+        {"params": state.params}
     )
     dynamics_model_bound = dynamics_model.bind(
         {"params": state.params["dynamics"]}
@@ -359,7 +364,34 @@ if __name__ == "__main__":
         plt.box(True)
         plt.savefig(ckpt_dir / "potential_energy_landscape_zeta.pdf")
         plt.show()
-    
+
+    if n_q == 2:
+        # plot the learned potential energy landscape in the configuration space
+        fig, ax = plt.subplots(1, 1, figsize=figsize, num="Learned potential energy landscape in configuration space")
+        q1_range = jnp.linspace(q0_min[0], q0_max[0], 25)
+        q2_range = jnp.linspace(q0_min[1], q0_max[1], 25)
+        q1_grid, q2_grid = jnp.meshgrid(q1_range, q2_range)
+        q_grid = jnp.stack([q1_grid, q2_grid], axis=-1)
+        U_grid = jnp.zeros(q_grid.shape[:2])
+        for i in range(q_grid.shape[0]):
+            for j in range(q_grid.shape[1]):
+                q = q_grid[i, j]
+                img = rendering_fn(q)
+                img = jnp.array(preprocess_rendering(img, grayscale=True, normalize=True))
+                z = nn_model_bound.encode(img[None, ...])[0, ...]
+                xi = jnp.concatenate([z, jnp.zeros((n_z,))])
+                U = dynamics_model_bound.energy_fn(xi, coordinate="z")
+                U_grid = U_grid.at[i, j].set(U)
+        # contour plot of the potential energy
+        cs = ax.contourf(q1_grid, q2_grid, U_grid, levels=100)
+        plt.colorbar(cs)
+        ax.set_xlabel(r"$q_1$ [rad/m]")
+        ax.set_ylabel(r"$q_2$ [rad/m]")
+        ax.set_title("Learned potential energy landscape in configuration space")
+        plt.grid(True)
+        plt.box(True)
+        plt.savefig(ckpt_dir / "potential_energy_landscape_q.pdf")
+        plt.show()
 
     def control_fn(t: Array, x: Array, control_state: Dict[str, Array]) -> Tuple[Array, Dict[str, Array], Dict[str, Array]]:
         """
@@ -401,11 +433,7 @@ if __name__ == "__main__":
     # normalize the target image
     target_img = jnp.array(preprocess_rendering(target_img, grayscale=True, normalize=True))
     # encode the target image
-    target_img_bt = target_img[None, ...]
-    z_des_bt = nn_model.apply(
-        {"params": state.params}, target_img_bt, method=nn_model.encode
-    )
-    z_des = z_des_bt[0, :]
+    z_des = nn_model_bound.encode(target_img[None, ...])[0, ...]
 
     # set initial condition for closed-loop simulation
     x0 = jnp.concatenate([q0, jnp.zeros((n_q,))])
