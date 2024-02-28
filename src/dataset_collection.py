@@ -93,6 +93,7 @@ def collect_dataset(
             sim_dt=sim_dt,
             x0_min=x0_min,
             x0_max=x0_max,
+            tau_max=tau_max,
         )
     )
     print("Metadata:\n", metadata)
