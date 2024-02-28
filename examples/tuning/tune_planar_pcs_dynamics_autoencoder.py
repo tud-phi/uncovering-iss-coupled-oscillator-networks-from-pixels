@@ -191,11 +191,15 @@ if __name__ == "__main__":
         elif dynamics_model_name == "node-dcon":
             dcon_gamma = trial.suggest_float("dcon_gamma", 1e-2, 1e2, log=True)
             dcon_epsilon = trial.suggest_float("dcon_epsilon", 1e-2, 1e2, log=True)
+            num_mlp_layers = trial.suggest_int("num_mlp_layers", 2, 6)
+            mlp_hidden_dim = trial.suggest_int("mlp_hidden_dim", 4, 96)
             dynamics_model = DconOde(
                 latent_dim=n_z,
                 input_dim=n_tau,
                 gamma=dcon_gamma,
                 epsilon=dcon_epsilon,
+                num_layers=num_mlp_layers,
+                hidden_dim=mlp_hidden_dim,
             )
         elif dynamics_model_name == "node-lnn":
             learn_dissipation = trial.suggest_categorical(

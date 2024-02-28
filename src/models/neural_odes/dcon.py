@@ -50,6 +50,9 @@ class DconOde(NeuralOdeBase):
     gamma: float = 1.0
     epsilon: float = 1.0
 
+    num_layers: int = 5
+    hidden_dim: int = 32
+
     param_dtype: Any = jnp.float32
 
     # control settings
