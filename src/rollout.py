@@ -208,13 +208,11 @@ def rollout_ode_with_latent_space_control(
         input: Dict[str, Array],
     ) -> Tuple[Dict, Dict[str, Array]]:
         # extract the current state from the carry dictionary
+        t_prior = carry["t_prior"]
         t_curr = carry["t"]
         x_curr = carry["x"]
         q_curr = x_curr[:n_q]
         q_d_curr = x_curr[n_q:]
-
-        # compute time step
-        dt = input["ts"] - t_curr
 
         # render the image
         img_curr = rendering_fn(onp.array(q_curr))
@@ -230,14 +228,14 @@ def rollout_ode_with_latent_space_control(
                 # apply finite differences to the latent space to get the latent velocity
                 z_d_curr = jnp.gradient(
                     jnp.stack([carry["xi_prior"][:n_z], z_curr], axis=0),
-                    dt,
+                    t_curr - t_prior,
                     axis=0
                 )[0]
             case "image-space-finite-differences":
                 # apply finite differences to the image space to get the image velocity
                 img_d_curr = jnp.gradient(
                     jnp.stack([carry["img_prior"], img_curr], axis=0),
-                    dt,
+                    t_curr - t_prior,
                     axis=0
                 )[0].astype(img_curr.dtype)
 
@@ -277,12 +275,14 @@ def rollout_ode_with_latent_space_control(
             step_data["tau_ts"] = tau
 
         # perform integration
-        x_next = discrete_forward_dynamics_fn(t_curr, t_curr + dt, x_curr, tau)
+        t_next = input["ts"]
+        x_next = discrete_forward_dynamics_fn(t_curr, t_next, x_curr, tau)
 
         # update the carry array for the next time step
         carry = dict(
-            t=input["ts"],
+            t=t_next,
             x=x_next,
+            t_prior=t_curr,
             img_prior=img_curr,
             xi_prior=xi_curr,
             control_state=control_state
@@ -304,14 +304,15 @@ def rollout_ode_with_latent_space_control(
     z_prior_init = encode_fn(img_prior_init[None, ...])[0]
     xi_prior_init = jnp.concatenate((z_prior_init, jnp.zeros((n_z,))), axis=0)
     carry = dict(
-        t=ts[0],  # TODO: check that we are processing the time correctly
+        t=ts[0],
         x=x0,
+        t_prior=ts[0] - ts[1],
         img_prior=img_prior_init,
         xi_prior=xi_prior_init,
         control_state=control_state_init,
     )
 
-    input_ts = dict(ts=ts)
+    input_ts = dict(ts=ts[1:])
 
     _sim_ts = []
     for time_idx in (pbar := tqdm(range(ts.shape[0]))):
@@ -323,5 +324,7 @@ def rollout_ode_with_latent_space_control(
 
     # define labels dict
     sim_ts = {k: jnp.stack([step_data[k] for step_data in _sim_ts]) for k in _sim_ts[0]}
+
+    print("ts", sim_ts["ts"])
 
     return sim_ts
