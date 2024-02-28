@@ -1,7 +1,7 @@
 __all__ = ["rollout_ode", "rollout_ode_with_latent_space_control"]
 from diffrax import AbstractSolver, diffeqsolve, Dopri5, ODETerm, SaveAt
 from functools import partial
-from jax import Array, jit, lax, random
+from jax import Array, jit, jvp, lax
 import jax.numpy as jnp
 import numpy as onp
 import tensorflow as tf
@@ -110,7 +110,8 @@ def rollout_ode_with_latent_space_control(
     latent_dim: int,
     solver: AbstractSolver = Dopri5(),
     control_fn: Optional[Callable] = None,
-    control_state_init: Optional[Dict[str, Any]] = None,
+    control_state_init: Optional[Dict[str, Array]] = None,
+    latent_velocity_source: str = "image-space-finite-differences",
     grayscale_rendering: bool = True,
     normalize_rendering: bool = True,
 ) -> Dict[str, Array]:
@@ -134,6 +135,11 @@ def rollout_ode_with_latent_space_control(
             following signature:
                 control_fn(t, x, control_state) -> tau, control_state, control_info.
             If None, no control is applied.
+        control_state_init (Optional[Dict[str, Array]]): Initial control state.
+        latent_velocity_source: Source of the latent velocity. It can be one of the following:
+            - "image-space-finite-differences": Finite differences in the image space.
+            - "latent-space-finite-differences": Finite differences in the latent space.
+            - "latent-space-integration": Integrating the latent dynamics.
         grayscale_rendering: Whether to convert the rendering image to grayscale.
         normalize_rendering: Whether to normalize the rendering image to [0, 1].
     Returns:
@@ -211,24 +217,52 @@ def rollout_ode_with_latent_space_control(
         dt = input["ts"] - t_curr
 
         # render the image
-        rendering_curr = rendering_fn(onp.array(q_curr))
-        rendering_curr = preprocess_rendering(rendering_curr, grayscale=grayscale_rendering, normalize=normalize_rendering)
+        img_curr = rendering_fn(onp.array(q_curr))
+        img_curr = preprocess_rendering(img_curr, grayscale=grayscale_rendering, normalize=normalize_rendering)
         # convert image to jax array
-        rendering_curr = jnp.array(rendering_curr)
+        img_curr = jnp.array(img_curr)
 
         # encode the image
-        z_curr_bt = encode_fn(rendering_curr[None, ...])
-        z_curr = z_curr_bt[0]
-        # TODO: implement the estimation of the latent velocity
-        z_d_curr = jnp.zeros((n_z,))
+        z_curr = encode_fn(img_curr[None, ...])[0]
+
+        match latent_velocity_source:
+            case "latent-space-finite-differences":
+                # apply finite differences to the latent space to get the latent velocity
+                z_d_curr = jnp.gradient(
+                    jnp.stack([carry["xi_prior"][:n_z], z_curr], axis=0),
+                    dt,
+                    axis=0
+                )[0]
+            case "image-space-finite-differences":
+                # apply finite differences to the image space to get the image velocity
+                img_d_curr = jnp.gradient(
+                    jnp.stack([carry["img_prior"], img_curr], axis=0),
+                    dt,
+                    axis=0
+                )[0].astype(img_curr.dtype)
+
+                # computing the jacobian-vector product is more efficient
+                # than first computing the jacobian and then performing a matrix multiplication
+                _, z_d_bt = jvp(
+                    encode_fn,
+                    (img_curr[None, ...],),
+                    (img_d_curr[None, ...],),
+                )
+                z_d_curr = z_d_bt[0]
+            case _:
+                raise ValueError(
+                    f"latent_velocity_source must be either 'direct-finite-differences' "
+                    f"or 'image-space-finite-differences', but is {latent_velocity_source}"
+                )
+
         # current latent state
         xi_curr = jnp.concatenate((z_curr, z_d_curr), axis=0)
 
         # save the current state and the state transition data
         step_data = dict(
-            t_ts=carry["t"],
+            ts=t_curr,
             x_ts=x_curr,
-            rendering_ts=rendering_curr,
+            rendering_ts=img_curr,
             xi_ts=xi_curr,
         )
 
@@ -239,19 +273,41 @@ def rollout_ode_with_latent_space_control(
             step_data = step_data | control_info_ts
         else:
             tau = jnp.zeros((n_tau,))
+            control_state = carry["control_state"]
             step_data["tau_ts"] = tau
 
         # perform integration
         x_next = discrete_forward_dynamics_fn(t_curr, t_curr + dt, x_curr, tau)
 
-        # update the carry array
-        carry = dict(t=input["ts"], x=x_next, control_state=control_state)
+        # update the carry array for the next time step
+        carry = dict(
+            t=input["ts"],
+            x=x_next,
+            img_prior=img_curr,
+            xi_prior=xi_curr,
+            control_state=control_state
+        )
 
         return carry, step_data
 
+    # initialize carry
+    # render the image
+    img_prior_init = rendering_fn(onp.array(x0[:n_q]))
+    if grayscale_rendering:
+        # convert rendering image to grayscale
+        img_prior_init = tf.image.rgb_to_grayscale(img_prior_init)
+    if normalize_rendering:
+        # normalize rendering image to [0, 1]
+        img_prior_init = tf.cast(img_prior_init, tf.float32) / 128.0 - 1.0
+    # convert image to jax array
+    img_prior_init = jnp.array(img_prior_init)
+    z_prior_init = encode_fn(img_prior_init[None, ...])[0]
+    xi_prior_init = jnp.concatenate((z_prior_init, jnp.zeros((n_z,))), axis=0)
     carry = dict(
-        t=ts[0] - dt,
+        t=ts[0],  # TODO: check that we are processing the time correctly
         x=x0,
+        img_prior=img_prior_init,
+        xi_prior=xi_prior_init,
         control_state=control_state_init,
     )
 

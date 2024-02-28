@@ -502,7 +502,7 @@ if __name__ == "__main__":
     )
 
     # plot evolution of configuration space
-    fig, ax = plt.subplots(1, 1, figsize=figsize, num="Configuration vs. time")
+    fig, ax = plt.subplots(1, 1, figsize=figsize, num="Configuration vs time")
     q_des_ts = jnp.tile(q_des, reps=(len(ts), 1))
     for i in range(n_q):
         ax.plot(ts, sim_ts["x_ts"][..., i], color=colors[i], label=f"$q_{i}$")
@@ -522,7 +522,7 @@ if __name__ == "__main__":
     plt.savefig(ckpt_dir / "configuration_vs_time.pdf")
     plt.show()
     # plot evolution of latent state
-    fig, ax = plt.subplots(1, 1, figsize=figsize, num="Latent vs. time")
+    fig, ax = plt.subplots(1, 1, figsize=figsize, num="Latent vs time")
     z_des_ts = jnp.tile(z_des, reps=(len(ts), 1))
     for i in range(n_z):
         ax.plot(ts, sim_ts["xi_ts"][..., i], color=colors[i], label=f"$z_{i}$")
@@ -541,10 +541,22 @@ if __name__ == "__main__":
     plt.box(True)
     plt.savefig(ckpt_dir / "latent_vs_time.pdf")
     plt.show()
+    # plot the estimated latent velocity
+    fig, ax = plt.subplots(1, 1, figsize=figsize, num="Latent velocity vs time")
+    for i in range(n_z):
+        ax.plot(ts, sim_ts["xi_ts"][..., n_z + i], color=colors[i], label=fr"$\dot{{z}}_{i}$")
+    ax.set_xlabel("Time [s]")
+    ax.set_ylabel("Latent velocity $\dot{z}$")
+    ax.set_title("Latent velocity vs. time")
+    ax.legend()
+    plt.grid(True)
+    plt.box(True)
+    plt.savefig(ckpt_dir / "latent_velocity_vs_time.pdf")
+    plt.show()
 
     # plot collocated coordinates
     if "zeta_ts" in sim_ts:
-        fig, ax = plt.subplots(1, 1, figsize=figsize, num="Actuation coordinate vs. time")
+        fig, ax = plt.subplots(1, 1, figsize=figsize, num="Actuation coordinate vs time")
         for i in range(n_z):
             ax.plot(ts, sim_ts["zeta_ts"][..., i], color=colors[i], label=fr"$\zeta_{i}$")
             ax.plot(
@@ -564,7 +576,7 @@ if __name__ == "__main__":
         plt.show()
 
     # plot the control inputs
-    fig, ax = plt.subplots(1, 1, figsize=figsize, num="Control input vs. time")
+    fig, ax = plt.subplots(1, 1, figsize=figsize, num="Control input vs time")
     ax.plot(ts, sim_ts["tau_ts"][..., 0], color=colors[0], label=r"$u_1$")
     ax.plot(ts, sim_ts["tau_ts"][..., 1], color=colors[1], label=r"$u_2$")
     ax.set_xlabel("Time [s]")
@@ -576,7 +588,7 @@ if __name__ == "__main__":
     plt.savefig(ckpt_dir / "control_input_vs_time.pdf")
     plt.show()
     # plot the feedforward and feedback torques
-    fig, ax = plt.subplots(1, 1, figsize=figsize, num="Latent-space torques vs. time")
+    fig, ax = plt.subplots(1, 1, figsize=figsize, num="Latent-space torques vs time")
     for i in range(n_z):
         if use_collocated_form:
             ax.plot(
@@ -616,7 +628,7 @@ if __name__ == "__main__":
     plt.show()
 
     # plot the energy over time
-    fig, ax = plt.subplots(1, 1, figsize=figsize, num="Energy vs. time")
+    fig, ax = plt.subplots(1, 1, figsize=figsize, num="Energy vs time")
     V_ts = jax.vmap(
         partial(
             dynamics_model.apply,
