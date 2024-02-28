@@ -631,9 +631,8 @@ if __name__ == "__main__":
     fig, ax = plt.subplots(1, 1, figsize=figsize, num="Energy vs time")
     V_ts = jax.vmap(
         partial(
-            dynamics_model.apply,
-            {"params": state.params["dynamics"]},
-            method=dynamics_model.energy_fn,
+            dynamics_model_bound.energy_fn,
+            coordinate="zw" if dynamics_model_bound.use_w_coordinates else "z",
         )
     )(sim_ts["xi_ts"])
     ax.plot(ts, V_ts, color=colors[0], label="Energy")

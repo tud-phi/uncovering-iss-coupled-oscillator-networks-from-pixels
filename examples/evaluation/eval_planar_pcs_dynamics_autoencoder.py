@@ -295,6 +295,14 @@ if __name__ == "__main__":
         init_fn=nn_model.initialize_all_weights,
     )
 
+    # bind params to the models
+    nn_model_bound = nn_model.bind(
+        {"params": state.params}
+    )
+    dynamics_model_bound = dynamics_model.bind(
+        {"params": state.params["dynamics"]}
+    )
+
     print("Run testing...")
     state, test_history = run_eval(test_ds, state, task_callables)
     test_metrics = state.metrics.compute()
@@ -385,9 +393,8 @@ if __name__ == "__main__":
         fig, ax = plt.subplots(1, 1, figsize=(8, 6), num="Energy vs. time")
         V_ts = jax.vmap(
             partial(
-                dynamics_model.apply,
-                {"params": state.params["dynamics"]},
-                method=dynamics_model.energy_fn,
+                dynamics_model_bound.energy_fn,
+                coordinate="zw" if dynamics_model_bound.use_w_coordinates else "z",
             )
         )(xi_ts)
         ax.plot(ts_rollout[start_time_idx:], V_ts, label="Energy")
