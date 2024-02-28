@@ -325,6 +325,4 @@ def rollout_ode_with_latent_space_control(
     # define labels dict
     sim_ts = {k: jnp.stack([step_data[k] for step_data in _sim_ts]) for k in _sim_ts[0]}
 
-    print("ts", sim_ts["ts"])
-
     return sim_ts
