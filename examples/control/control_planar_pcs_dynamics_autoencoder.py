@@ -53,22 +53,36 @@ n_q = 2
 # whether to use real or learned dynamics
 simulate_with_learned_dynamics = False
 
+# simulation settings
+sim_duration = 10.0  # s
 # initial configuration
-q0 = jnp.pi * jnp.array([0.0, -0.0])
+q0 = jnp.pi * jnp.array([2.0, -2.0])
 # specify desired configuration
 # q_des = jnp.array([jnp.pi, 1.25 * jnp.pi])
-q_des = jnp.pi * jnp.array([0.0, 0.0])
+q_des = jnp.pi * jnp.array([-1.0, 0.5])
 # control settings
 apply_feedforward_term = True
 apply_feedback_term = True
 use_collocated_form = True
 # gains
-if use_collocated_form:
-    kp, ki, kd = 1e-3, 0e0, 0e0
-    psatid_gamma = 1.0
+if simulate_with_learned_dynamics:
+    if n_z == 2:
+        if apply_feedforward_term is False:
+            kp, ki, kd = 1e-3, 1.3e-1, 5e-3
+            psatid_gamma = 1.0
+        else:
+            kp, ki, kd = 1e-3, 1e-3, 1e-3
+            psatid_gamma = 1.0
+    else:
+        kp, ki, kd = 0e0, 0e0, 0e-2
+        psatid_gamma = 1.0
 else:
-    kp, ki, kd = 1e0, 2e0, 0e0
-    psatid_gamma = 0.5
+    if use_collocated_form:
+        kp, ki, kd = 1e-3, 0e0, 0e0
+        psatid_gamma = 1.0
+    else:
+        kp, ki, kd = 1e0, 2e0, 0e0
+        psatid_gamma = 0.5
 
 batch_size = 10
 norm_layer = nn.LayerNorm
@@ -205,7 +219,6 @@ if __name__ == "__main__":
     )
 
     # define settings for the closed-loop simulation
-    sim_duration = 3.0  # s
     control_dt = 1e-2  # control and time step of 1e-2 s
     sim_dt = 1e-3 * control_dt  # simulation time step of 1e-5 s
     ts = jnp.linspace(0.0, sim_duration, num=int(sim_duration / control_dt))
