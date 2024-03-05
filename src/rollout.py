@@ -16,9 +16,11 @@ def rollout_ode(
     ts: Array,
     sim_dt: Union[float, Array],
     x0: Array,
-    tau: Array,
     rendering_fn: Optional[Callable] = None,
     solver: AbstractSolver = Dopri5(),
+    tau: Optional[Array] = None,
+    control_fn: Optional[Callable] = None,
+    control_state_init: Optional[Dict[str, Array]] = None,
     grayscale_rendering: bool = True,
     normalize_rendering: bool = True,
     show_progress: bool = False,
@@ -31,10 +33,15 @@ def rollout_ode(
         ts: Time steps to rollout the system dynamics.
         sim_dt: Time step used for simulation [s].
         x0: Initial state of the system.
-        tau: Control input to the system.
         rendering_fn: Function to render the state of the system. It should have the following signature:
             rendering_fn(q) -> img. If None, no rendering is performed.
         solver: Diffrax solver to use for the simulation.
+        tau: Control input to the system. If None, control_fn needs to be provided.
+        control_fn (Optional[Callable]): Function to compute the control input to the system. It should have the
+            following signature:
+                control_fn(t, x, control_state) -> tau, control_state, control_info.
+            If None, tau needs to be provided.
+        control_state_init (Optional[Dict[str, Array]]): Initial control state.
         grayscale_rendering: Whether to convert the rendering image to grayscale.
         normalize_rendering: Whether to normalize the rendering image to [0, 1].
         show_progress: Whether to show the progress bar.
@@ -46,6 +53,10 @@ def rollout_ode(
             - rendering_ts: Rendered images of the system configurations along the rollout. If rendering_fn is None, this
                 key is not present.
     """
+    assert (
+        tau is not None or control_fn is not None,
+    ), "Either tau or control_fn must be provided."
+
     # dimension of the state space
     n_x = x0.shape[0]
     # dimension of configuration space
@@ -57,23 +68,70 @@ def rollout_ode(
     ode_term = ODETerm(ode_fn)
 
     # simulate
-    sol = diffeqsolve(
-        ode_term,
-        solver=solver,
-        t0=ts[0],
-        t1=ts[-1],
-        dt0=sim_dt,
-        y0=x0,
-        args=tau,
-        max_steps=None,
-        saveat=SaveAt(ts=ts),
-    )
+    if control_fn is None:
+        sol = diffeqsolve(
+            ode_term,
+            solver=solver,
+            t0=ts[0],
+            t1=ts[-1],
+            dt0=sim_dt,
+            y0=x0,
+            args=tau,
+            max_steps=None,
+            saveat=SaveAt(ts=ts),
+        )
 
-    # states along the simulation
-    x_ts = sol.ys
+        # states along the simulation
+        x_ts = sol.ys
 
-    # define labels dict
-    data_ts = dict(t_ts=ts, x_ts=x_ts, tau=tau)
+        # define labels dict
+        tau_ts = jnp.tile(tau[None, ...], (ts.shape[0], 1))
+        data_ts = dict(t_ts=ts, x_ts=x_ts, tau_ts=tau_ts)
+    else:
+        # initial control state
+        if control_state_init is None:
+            control_state_init = dict()
+
+        def sim_step_fn(
+            carry: Dict,
+            input: Dict[str, Array],
+        ) -> Tuple[Dict, Dict[str, Array]]:
+            # extract the current state from the carry dictionary
+            t_curr = carry["t"]
+            x_curr = carry["x"]
+            control_state = carry["control_state"]
+
+            # save the current state and the state transition data
+            step_data = dict(ts=t_curr, x_ts=x_curr)
+
+            # compute the control input
+            tau, control_state, control_info = control_fn(t_curr, x_curr, control_state)
+            control_info_ts = {f"{k}_ts": v for k, v in control_info.items()}
+            step_data = step_data | control_info_ts
+            step_data["tau_ts"] = tau
+
+            # perform integration
+            t_next = input["ts"]
+            x_next = diffeqsolve(
+                ode_term,
+                solver=solver,
+                t0=t_curr,
+                t1=t_next,
+                dt0=sim_dt,
+                y0=x_curr,
+                args=tau,
+                max_steps=None,
+            ).ys[-1]
+
+            # update the carry array for the next time step
+            carry = dict(t=t_next, x=x_next, control_state=control_state)
+
+            return carry, step_data
+
+        # perform the scan
+        carry = dict(t=ts[0], x=x0, control_state=control_state_init)
+        input_ts = dict(ts=jnp.concatenate([ts[1:], (2*ts[-1] - ts[-2])[None]]))
+        carry, data_ts = lax.scan(sim_step_fn, carry, input_ts)
 
     if rendering_fn is not None:
         rendering_ts = []
@@ -86,11 +144,12 @@ def rollout_ode(
                     f"Rendering configuration at time step {time_idx + 1} / {ts.shape[0]}"
                 )
             # configuration for current time step
-            q = x_ts[time_idx, :n_q]
+            q = data_ts["x_ts"][time_idx, :n_q]
 
             # render the image
             img = rendering_fn(q)
-            img = preprocess_rendering(img, grayscale=grayscale_rendering, normalize=normalize_rendering)
+            if grayscale_rendering is True or normalize_rendering is True:
+                img = preprocess_rendering(img, grayscale=grayscale_rendering, normalize=normalize_rendering)
 
             rendering_ts.append(jnp.array(img))
 
@@ -221,7 +280,7 @@ def rollout_ode_with_latent_space_control(
         img_curr = jnp.array(img_curr)
 
         # encode the image
-        z_curr = encode_fn(img_curr[None, ...])[0]
+        z_curr = encode_fn(img_curr)
 
         match latent_velocity_source:
             case "latent-space-finite-differences":
@@ -241,12 +300,11 @@ def rollout_ode_with_latent_space_control(
 
                 # computing the jacobian-vector product is more efficient
                 # than first computing the jacobian and then performing a matrix multiplication
-                _, z_d_bt = jvp(
+                _, z_d_curr = jvp(
                     encode_fn,
-                    (img_curr[None, ...],),
-                    (img_d_curr[None, ...],),
+                    (img_curr,),
+                    (img_d_curr,),
                 )
-                z_d_curr = z_d_bt[0]
             case _:
                 raise ValueError(
                     f"latent_velocity_source must be either 'direct-finite-differences' "
@@ -301,7 +359,7 @@ def rollout_ode_with_latent_space_control(
         img_prior_init = tf.cast(img_prior_init, tf.float32) / 128.0 - 1.0
     # convert image to jax array
     img_prior_init = jnp.array(img_prior_init)
-    z_prior_init = encode_fn(img_prior_init[None, ...])[0]
+    z_prior_init = encode_fn(img_prior_init)
     xi_prior_init = jnp.concatenate((z_prior_init, jnp.zeros((n_z,))), axis=0)
     carry = dict(
         t=ts[0],
@@ -312,10 +370,10 @@ def rollout_ode_with_latent_space_control(
         control_state=control_state_init,
     )
 
-    input_ts = dict(ts=ts[1:])
+    input_ts = dict(ts=jnp.concatenate([ts[1:], (2*ts[-1] - ts[-2])[None]]))
 
     _sim_ts = []
-    for time_idx in (pbar := tqdm(range(ts.shape[0]))):
+    for time_idx in (pbar := tqdm(range(input_ts["ts"].shape[0]))):
         pbar.set_description(f"Simulating time step {time_idx + 1} / {ts.shape[0]}")
         input = {k: v[time_idx] for k, v in input_ts.items()}
 

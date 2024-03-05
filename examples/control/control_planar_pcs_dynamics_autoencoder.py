@@ -50,6 +50,8 @@ dynamics_model_name = "node-w-con"
 n_z = 8
 # number of configuration space dimensions
 n_q = 2
+# whether to use real or learned dynamics
+simulate_with_learned_dynamics = False
 
 # initial configuration
 q0 = jnp.pi * jnp.array([0.0, -0.0])
@@ -249,6 +251,20 @@ if __name__ == "__main__":
     dynamics_model_bound = dynamics_model.bind(
         {"params": state.params["dynamics"]}
     )
+
+    def encode_fn(img: Array) -> Array:
+        return partial(
+            nn_model.apply,
+            {"params": state.params},
+            method=nn_model.encode,
+        )(img[None, ...])[0, ...]
+
+    def decode_fn(z: Array) -> Array:
+        return partial(
+            nn_model.apply,
+            {"params": state.params},
+            method=nn_model.decode,
+        )(z[None, ...])[0, ...]
 
     if n_z == 2:
         # plot the potential energy landscape in the original latent space
@@ -463,26 +479,57 @@ if __name__ == "__main__":
     # set initial condition for closed-loop simulation
     x0 = jnp.concatenate([q0, jnp.zeros((n_q,))])
 
-    # start closed-loop simulation
-    print("Simulating closed-loop dynamics...")
-    sim_ts = rollout_ode_with_latent_space_control(
-        ode_fn=ode_fn,
-        rendering_fn=rendering_fn,
-        encode_fn=jit(
-            partial(
-                nn_model.apply,
-                {"params": state.params},
-                method=nn_model.encode,
-            )
-        ),
-        ts=ts,
-        sim_dt=sim_dt,
-        x0=x0,
-        input_dim=n_tau,
-        latent_dim=n_z,
-        control_fn=jit(control_fn),
-        control_state_init={"e_int": jnp.zeros((n_z,))},
-    )
+    if simulate_with_learned_dynamics is True:
+        # render the initial condition
+        img0 = rendering_fn(q0)
+        # normalize the initial image
+        img0 = jnp.array(preprocess_rendering(img0, grayscale=True, normalize=True))
+        # encode the initial condition
+        z0 = nn_model_bound.encode(img0[None, ...])[0, ...]
+
+        def learned_ode_fn(t: Array, x: Array, tau: Array) -> Array:
+            """
+            Learned ODE function for the closed-loop simulation.
+            Args:
+                t: current time
+                x: current state of the system
+                tau: control input
+            Returns:
+                x_d: time derivative of the state
+            """
+            return dynamics_model_bound(x, tau)
+
+        # start closed-loop simulation of learned dynamics with control
+        print("Simulating learned closed-loop dynamics...")
+        xi0 = jnp.concatenate([z0, jnp.zeros((n_z,))])
+        sim_ts = rollout_ode(
+            ode_fn=learned_ode_fn,
+            rendering_fn=jit(decode_fn),
+            ts=ts,
+            sim_dt=sim_dt,
+            x0=xi0,
+            control_fn=jit(control_fn),
+            control_state_init={"e_int": jnp.zeros((n_z,))},
+            grayscale_rendering=False,
+            normalize_rendering=False,
+        )
+        xi_ts = sim_ts["x_ts"]
+    else:
+        # start closed-loop simulation of real dynamics with latent space control
+        print("Simulating real closed-loop dynamics...")
+        sim_ts = rollout_ode_with_latent_space_control(
+            ode_fn=ode_fn,
+            rendering_fn=rendering_fn,
+            encode_fn=jit(encode_fn),
+            ts=ts,
+            sim_dt=sim_dt,
+            x0=x0,
+            input_dim=n_tau,
+            latent_dim=n_z,
+            control_fn=jit(control_fn),
+            control_state_init={"e_int": jnp.zeros((n_z,))},
+        )
+        xi_ts = sim_ts["xi_ts"]
 
     # extract both the ground-truth and the statically predicted images
     img_ts = onp.array(sim_ts["rendering_ts"])
@@ -501,31 +548,33 @@ if __name__ == "__main__":
         label_target="Desired behavior",
     )
 
-    # plot evolution of configuration space
-    fig, ax = plt.subplots(1, 1, figsize=figsize, num="Configuration vs time")
-    q_des_ts = jnp.tile(q_des, reps=(len(ts), 1))
-    for i in range(n_q):
-        ax.plot(ts, sim_ts["x_ts"][..., i], color=colors[i], label=f"$q_{i}$")
-        ax.plot(
-            ts,
-            q_des_ts[..., i],
-            linestyle="dashed",
-            color=colors[i],
-            label=rf"$q_{i}^d$",
-        )
-    ax.set_xlabel("Time [s]")
-    ax.set_ylabel("Configuration $q$")
-    ax.legend()
-    ax.set_title("Configuration vs. time")
-    plt.grid(True)
-    plt.box(True)
-    plt.savefig(ckpt_dir / "configuration_vs_time.pdf")
-    plt.show()
+    if simulate_with_learned_dynamics is False:
+        # plot evolution of configuration space
+        fig, ax = plt.subplots(1, 1, figsize=figsize, num="Configuration vs time")
+        q_des_ts = jnp.tile(q_des, reps=(len(ts), 1))
+        for i in range(n_q):
+            ax.plot(ts, sim_ts["x_ts"][..., i], color=colors[i], label=f"$q_{i}$")
+            ax.plot(
+                ts,
+                q_des_ts[..., i],
+                linestyle="dashed",
+                color=colors[i],
+                label=rf"$q_{i}^d$",
+            )
+        ax.set_xlabel("Time [s]")
+        ax.set_ylabel("Configuration $q$")
+        ax.legend()
+        ax.set_title("Configuration vs. time")
+        plt.grid(True)
+        plt.box(True)
+        plt.savefig(ckpt_dir / "configuration_vs_time.pdf")
+        plt.show()
+
     # plot evolution of latent state
     fig, ax = plt.subplots(1, 1, figsize=figsize, num="Latent vs time")
     z_des_ts = jnp.tile(z_des, reps=(len(ts), 1))
     for i in range(n_z):
-        ax.plot(ts, sim_ts["xi_ts"][..., i], color=colors[i], label=f"$z_{i}$")
+        ax.plot(ts, xi_ts[..., i], color=colors[i], label=f"$z_{i}$")
         ax.plot(
             ts,
             z_des_ts[..., i],
@@ -544,7 +593,7 @@ if __name__ == "__main__":
     # plot the estimated latent velocity
     fig, ax = plt.subplots(1, 1, figsize=figsize, num="Latent velocity vs time")
     for i in range(n_z):
-        ax.plot(ts, sim_ts["xi_ts"][..., n_z + i], color=colors[i], label=fr"$\dot{{z}}_{i}$")
+        ax.plot(ts, xi_ts[..., n_z + i], color=colors[i], label=fr"$\dot{{z}}_{i}$")
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Latent velocity $\dot{z}$")
     ax.set_title("Latent velocity vs. time")
@@ -634,7 +683,7 @@ if __name__ == "__main__":
             dynamics_model_bound.energy_fn,
             coordinate="zw" if dynamics_model_bound.use_w_coordinates else "z",
         )
-    )(sim_ts["xi_ts"])
+    )(xi_ts)
     ax.plot(ts, V_ts, color=colors[0], label="Energy")
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Energy")
