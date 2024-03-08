@@ -11,6 +11,7 @@ jax-models
 jsrm
 matplotlib
 natsort
+nbodyx
 numpy
 opencv-python
 optax
