@@ -15,8 +15,8 @@ class PlanarPcsDatasetConfig(tfds.core.BuilderConfig):
     origin_uv: Tuple[int, int] = (32, 8)
     num_segments: int = 1
     strain_selector: Optional[Tuple] = (None,)
-    q_max: Tuple = (10 * jnp.pi, 0.05, 0.1)
-    q_d_max: Tuple = (10 * jnp.pi, 0.05, 0.1)
+    q0_max: Tuple = (10 * jnp.pi, 0.05, 0.1)
+    q_d0_max: Tuple = (10 * jnp.pi, 0.05, 0.1)
     num_simulations: int = 20000
     dt: float = 2e-2
     sim_dt: float = 1e-4
@@ -40,8 +40,8 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             horizon_dim=11,
             num_segments=1,
             strain_selector=(True, False, False),
-            q_max=(10 * jnp.pi,),
-            q_d_max=(0.2 * jnp.pi,),
+            q0_max=(10 * jnp.pi,),
+            q_d0_max=(0.2 * jnp.pi,),
         ),
         PlanarPcsDatasetConfig(
             name="cs_64x64px",
@@ -57,8 +57,8 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             origin_uv=(16, 4),
             num_segments=2,
             strain_selector=(True, False, False, True, False, False),
-            q_max=(5 * jnp.pi, 5 * jnp.pi),
-            q_d_max=(5 * jnp.pi, 5 * jnp.pi),
+            q0_max=(5 * jnp.pi, 5 * jnp.pi),
+            q_d0_max=(5 * jnp.pi, 5 * jnp.pi),
             sim_dt=1e-4,
         ),
         PlanarPcsDatasetConfig(
@@ -70,8 +70,8 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             origin_uv=(16, 4),
             num_segments=2,
             strain_selector=(True, False, False, True, False, False),
-            q_max=(5 * jnp.pi, 5 * jnp.pi),
-            q_d_max=(5 * jnp.pi, 5 * jnp.pi),
+            q0_max=(5 * jnp.pi, 5 * jnp.pi),
+            q_d0_max=(5 * jnp.pi, 5 * jnp.pi),
             num_simulations=10000,
             sim_dt=1e-4,
         ),
@@ -81,8 +81,8 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             state_dim=4,
             num_segments=2,
             strain_selector=(True, False, False, True, False, False),
-            q_max=(5 * jnp.pi, 5 * jnp.pi),
-            q_d_max=(5 * jnp.pi, 5 * jnp.pi),
+            q0_max=(5 * jnp.pi, 5 * jnp.pi),
+            q_d0_max=(5 * jnp.pi, 5 * jnp.pi),
         ),
         PlanarPcsDatasetConfig(
             name="pcc_ns-3_64x64px",
@@ -100,8 +100,8 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
                 False,
                 False,
             ),
-            q_max=(3.33 * jnp.pi, 3.33 * jnp.pi, 3.33 * jnp.pi),
-            q_d_max=(3.33 * jnp.pi, 3.33 * jnp.pi, 3.33 * jnp.pi),
+            q0_max=(3.33 * jnp.pi, 3.33 * jnp.pi, 3.33 * jnp.pi),
+            q_d0_max=(3.33 * jnp.pi, 3.33 * jnp.pi, 3.33 * jnp.pi),
         ),
     ]
     # pytype: enable=wrong-keyword-args
