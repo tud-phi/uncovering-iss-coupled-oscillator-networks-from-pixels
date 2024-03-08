@@ -376,8 +376,9 @@ if __name__ == "__main__":
         * dataset_metadata["x0_max"][:n_q]
     )
     x0 = jnp.concatenate([q0, jnp.zeros((n_q,))])
-    tau = jnp.zeros((n_tau,))
-    print("x0:", x0)
+    # tau = jnp.zeros((n_tau,))
+    tau = -0.5 * dataset_metadata["tau_max"]
+    print("x0:", x0, "tau:", tau)
     sim_ts = ode_rollout_fn(x0=x0, tau=tau)
     rollout_batch = dict(
         t_ts=ts_rollout[None, ...],
