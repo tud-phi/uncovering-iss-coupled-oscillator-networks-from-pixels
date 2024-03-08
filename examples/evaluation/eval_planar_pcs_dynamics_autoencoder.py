@@ -49,13 +49,14 @@ rng = random.PRNGKey(seed=seed)
 tf.random.set_seed(seed=seed)
 
 system_type = "pcc_ns-2"
+long_horizon_dataset = True
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 """ dynamics_model_name in [
     "node-general-mlp", "node-mechanical-mlp", "node-cornn", "node-con", "node-w-con", "node-lnn", "node-hippo-lss", "node-mamba",
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
 ]
 """
-dynamics_model_name = "node-w-con"
+dynamics_model_name = "node-mechanical-mlp"
 # latent space shape
 n_z = 4
 # simulation time step
@@ -71,44 +72,54 @@ num_mlp_layers, mlp_hidden_dim, mlp_nonlinearity_name = 4, 20, "leaky_relu"
 cornn_gamma, cornn_epsilon = 1.0, 1.0
 lnn_learn_dissipation = True
 diag_shift, diag_eps = 1e-6, 2e-6
-if ae_type == "wae":
-    raise NotImplementedError
-elif ae_type == "beta_vae":
-    if dynamics_model_name == "node-mechanical-mlp":
-        experiment_id = "2024-02-13_16-27-39"
-        num_mlp_layers, mlp_hidden_dim = 4, 52
-        mlp_nonlinearity_name = "elu"
-    elif dynamics_model_name == "node-cornn":
-        experiment_id = "2024-02-14_18-17-49"
-        cornn_gamma, cornn_epsilon = 35.60944428175452, 0.05125440449424828
-    elif dynamics_model_name == "node-con":
-        experiment_id = "2024-02-14_18-34-27"
-    elif dynamics_model_name == "node-w-con":
-        match n_z:
-            case 2:
-                experiment_id = "2024-02-22_14-11-21"
-            case 4:
-                experiment_id = "2024-02-14_22-52-37"
-            case 8:
-                experiment_id = "2024-02-21_13-34-53"
-            case _:
-                raise ValueError(f"No experiment_id for n_z={n_z}")
-    elif dynamics_model_name == "discrete-mlp":
-        experiment_id = "2024-02-14_17-45-30"
-        num_mlp_layers, mlp_hidden_dim = 4, 95
-        mlp_nonlinearity_name = "elu"
-    elif dynamics_model_name == "discrete-elman-rnn":
-        experiment_id = "2024-02-13_17-19-57"
-    elif dynamics_model_name == "discrete-gru-rnn":
-        experiment_id = "2024-02-13_17-28-13"
-    elif dynamics_model_name == "discrete-mamba":
-        experiment_id = "2024-02-13_17-42-29"
-    else:
-        raise NotImplementedError(
-            f"beta_vae with node_type '{dynamics_model_name}' not implemented yet."
-        )
+if long_horizon_dataset:
+    match dynamics_model_name:
+        case "node-mechanical-mlp":
+            n_z = 8
+            experiment_id = "2024-03-08_10-42-05"
+            num_mlp_layers, mlp_hidden_dim = 5, 21
+            mlp_nonlinearity_name = "tanh"
+        case _:
+            raise ValueError(f"No experiment_id for dynamics_model_name={dynamics_model_name}")
 else:
-    raise NotImplementedError
+    if ae_type == "wae":
+        raise NotImplementedError
+    elif ae_type == "beta_vae":
+        if dynamics_model_name == "node-mechanical-mlp":
+            experiment_id = "2024-02-13_16-27-39"
+            num_mlp_layers, mlp_hidden_dim = 4, 52
+            mlp_nonlinearity_name = "elu"
+        elif dynamics_model_name == "node-cornn":
+            experiment_id = "2024-02-14_18-17-49"
+            cornn_gamma, cornn_epsilon = 35.60944428175452, 0.05125440449424828
+        elif dynamics_model_name == "node-con":
+            experiment_id = "2024-02-14_18-34-27"
+        elif dynamics_model_name == "node-w-con":
+            match n_z:
+                case 2:
+                    experiment_id = "2024-02-22_14-11-21"
+                case 4:
+                    experiment_id = "2024-02-14_22-52-37"
+                case 8:
+                    experiment_id = "2024-02-21_13-34-53"
+                case _:
+                    raise ValueError(f"No experiment_id for n_z={n_z}")
+        elif dynamics_model_name == "discrete-mlp":
+            experiment_id = "2024-02-14_17-45-30"
+            num_mlp_layers, mlp_hidden_dim = 4, 95
+            mlp_nonlinearity_name = "elu"
+        elif dynamics_model_name == "discrete-elman-rnn":
+            experiment_id = "2024-02-13_17-19-57"
+        elif dynamics_model_name == "discrete-gru-rnn":
+            experiment_id = "2024-02-13_17-28-13"
+        elif dynamics_model_name == "discrete-mamba":
+            experiment_id = "2024-02-13_17-42-29"
+        else:
+            raise NotImplementedError(
+                f"beta_vae with node_type '{dynamics_model_name}' not implemented yet."
+            )
+    else:
+        raise NotImplementedError
 
 # identify the number of segments
 if system_type == "cc":
@@ -134,8 +145,12 @@ ckpt_dir = (
 
 
 if __name__ == "__main__":
+    if long_horizon_dataset:
+        dataset_name = f"planar_pcs/{system_type}_32x32px_h-101"
+    else:
+        dataset_name = f"planar_pcs/{system_type}_32x32px"
     datasets, dataset_info, dataset_metadata = load_dataset(
-        f"planar_pcs/{system_type}_32x32px",
+        dataset_name,
         seed=seed,
         batch_size=batch_size,
         normalize=True,
