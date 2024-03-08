@@ -39,15 +39,16 @@ rng = random.PRNGKey(seed=seed)
 tf.random.set_seed(seed=seed)
 
 system_type = "pcc_ns-2"
+long_horizon_dataset = True
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 """ dynamics_model_name in [
     "node-general-mlp", "node-mechanical-mlp", "node-cornn", "node-con", "node-w-con", "node-lnn", "node-hippo-lss", "node-mamba",
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
 ]
 """
-dynamics_model_name = "node-w-con"
+dynamics_model_name = "node-mechanical-mlp"
 # size of latent space
-n_z = 4
+n_z = 8
 # simulation time step
 sim_dt = 1e-2
 
@@ -62,56 +63,65 @@ num_mlp_layers, mlp_hidden_dim, mlp_nonlinearity_name = 4, 20, "leaky_relu"
 cornn_gamma, cornn_epsilon = 1.0, 1.0
 lnn_learn_dissipation = True
 diag_shift, diag_eps = 1e-6, 2e-6
-if ae_type == "wae":
-    raise NotImplementedError(f"ae_type '{ae_type}' not implemented yet.")
-elif ae_type == "beta_vae":
-    if dynamics_model_name == "node-general-mlp":
-        base_lr = 0.004245278743015398
-        loss_weights = dict(
-            mse_z=0.011179320698028615,
-            mse_rec_static=1.0,
-            mse_rec_dynamic=189.07672802272313,
-            beta=0.00020732900159342376,
-        )
-        weight_decay = 7.942186445089656e-06
-        num_mlp_layers = 4
-        mlp_hidden_dim = 40
-        raise NotImplementedError
-    elif dynamics_model_name == "node-mechanical-mlp":
-        base_lr = 0.009549630971301099
-        loss_weights = dict(
-            mse_z=0.15036907451864656,
-            mse_rec_static=1.0,
-            mse_rec_dynamic=16.356448652349172,
-            beta=0.00014574221959894125,
-        )
-        weight_decay = 5.1572222268612065e-05
-        num_mlp_layers, mlp_hidden_dim = 4, 52
-        mlp_nonlinearity_name = "elu"
-    elif dynamics_model_name == "node-cornn":
-        base_lr = 0.0032720052876344437
-        loss_weights = dict(
-            mse_z=0.44777585091731187,
-            mse_rec_static=1.0,
-            mse_rec_dynamic=2.511229022994574,
-            beta=0.00011714626957666846,
-        )
-        weight_decay = 1.8390286588494643e-05
-        cornn_gamma, cornn_epsilon = 35.60944428175452, 0.05125440449424828
-    elif dynamics_model_name in ["node-con", "node-w-con"]:
-        """ node-w-con with n_z > 4
-        rmse_rec_dynamic_val = 0.14014695584774017
-        n_z = 17
-        base_lr = 0.009575159163417718
-        loss_weights = dict(
-            mse_z=0.10188200495675905,
-            mse_rec_static=1.0,
-            mse_rec_dynamic=3.3080609062995894,
-            beta=0.0001718351163778155,
-        )
-        weight_decay = 9.534255318218664e-06
-        """
-        if n_z > 4:
+if long_horizon_dataset:
+    if ae_type == "beta_vae":
+        match dynamics_model_name:
+            case "node-mechanical-mlp":
+                base_lr = 0.007137268676917664
+                loss_weights = dict(
+                    mse_z=0.17701201082200202,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=50.808302047597074,
+                    beta=0.002678889167847793,
+                )
+                weight_decay = 4.5818408762378344e-05
+                num_mlp_layers, mlp_hidden_dim = 5, 21
+                mlp_nonlinearity_name = "tanh"
+            case _:
+                raise NotImplementedError(f"beta_vae with dynamics_model_name '{dynamics_model_name}' not implemented yet.")
+    else:
+        raise NotImplementedError(f"ae_type '{ae_type}' not implemented yet.")
+else:
+    if ae_type == "wae":
+        raise NotImplementedError(f"ae_type '{ae_type}' not implemented yet.")
+    elif ae_type == "beta_vae":
+        if dynamics_model_name == "node-general-mlp":
+            base_lr = 0.004245278743015398
+            loss_weights = dict(
+                mse_z=0.011179320698028615,
+                mse_rec_static=1.0,
+                mse_rec_dynamic=189.07672802272313,
+                beta=0.00020732900159342376,
+            )
+            weight_decay = 7.942186445089656e-06
+            num_mlp_layers = 4
+            mlp_hidden_dim = 40
+            raise NotImplementedError
+        elif dynamics_model_name == "node-mechanical-mlp":
+            base_lr = 0.009549630971301099
+            loss_weights = dict(
+                mse_z=0.15036907451864656,
+                mse_rec_static=1.0,
+                mse_rec_dynamic=16.356448652349172,
+                beta=0.00014574221959894125,
+            )
+            weight_decay = 5.1572222268612065e-05
+            num_mlp_layers, mlp_hidden_dim = 4, 52
+            mlp_nonlinearity_name = "elu"
+        elif dynamics_model_name == "node-cornn":
+            base_lr = 0.0032720052876344437
+            loss_weights = dict(
+                mse_z=0.44777585091731187,
+                mse_rec_static=1.0,
+                mse_rec_dynamic=2.511229022994574,
+                beta=0.00011714626957666846,
+            )
+            weight_decay = 1.8390286588494643e-05
+            cornn_gamma, cornn_epsilon = 35.60944428175452, 0.05125440449424828
+        elif dynamics_model_name in ["node-con", "node-w-con"]:
+            """ node-w-con with n_z > 4
+            rmse_rec_dynamic_val = 0.14014695584774017
+            n_z = 17
             base_lr = 0.009575159163417718
             loss_weights = dict(
                 mse_z=0.10188200495675905,
@@ -120,85 +130,95 @@ elif ae_type == "beta_vae":
                 beta=0.0001718351163778155,
             )
             weight_decay = 9.534255318218664e-06
-        else:
-            base_lr = 0.00948905454174363
+            """
+            if n_z > 4:
+                base_lr = 0.009575159163417718
+                loss_weights = dict(
+                    mse_z=0.10188200495675905,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=3.3080609062995894,
+                    beta=0.0001718351163778155,
+                )
+                weight_decay = 9.534255318218664e-06
+            else:
+                base_lr = 0.00948905454174363
+                loss_weights = dict(
+                    mse_z=0.25452411365868755,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=10.716251946521883,
+                    beta=0.0001000304459146119,
+                )
+                weight_decay = 2.9642914376858733e-05
+        elif dynamics_model_name == "node-lnn":
+            base_lr = 0.002922002372648181
             loss_weights = dict(
-                mse_z=0.25452411365868755,
+                mse_z=0.45534786191007814,
                 mse_rec_static=1.0,
-                mse_rec_dynamic=10.716251946521883,
-                beta=0.0001000304459146119,
+                mse_rec_dynamic=8.181311383245621,
+                beta=0.012987943339071037,
             )
-            weight_decay = 2.9642914376858733e-05
-    elif dynamics_model_name == "node-lnn":
-        base_lr = 0.002922002372648181
-        loss_weights = dict(
-            mse_z=0.45534786191007814,
-            mse_rec_static=1.0,
-            mse_rec_dynamic=8.181311383245621,
-            beta=0.012987943339071037,
-        )
-        weight_decay = 7.869361804893107e-06
-        lnn_learn_dissipation = True
-        num_mlp_layers, mlp_hidden_dim, mlp_nonlinearity_name = 6, 9, "sigmoid"
-        diag_shift, diag_eps = 2.3522236095556114e-06, 0.0019146626034900816
-    elif dynamics_model_name in [
-        "node-general-lss",
-        "node-mechanical-lss",
-        "node-hippo-lss",
-    ]:
-        base_lr = 0.009140398915788182
-        loss_weights = dict(
-            mse_z=0.3540013026659153,
-            mse_rec_static=1.0,
-            mse_rec_dynamic=3.8239959063309903,
-            beta=0.0004775274363009053,
-        )
-        weight_decay = 5.409956968011885e-06
-        raise NotImplementedError
-    elif dynamics_model_name == "discrete-mlp":
-        base_lr = 0.008868218513411644
-        loss_weights = dict(
-            mse_z=0.41624019460716366,
-            mse_rec_static=1.0,
-            mse_rec_dynamic=407.1895196862229,
-            beta=0.03405228893154261,
-        )
-        weight_decay = 0.00018061847705335356
-        num_mlp_layers, mlp_hidden_dim = 4, 95
-        mlp_nonlinearity_name = "elu"
-    elif dynamics_model_name == "discrete-elman-rnn":
-        base_lr = 0.009562362872368196
-        loss_weights = dict(
-            mse_z=0.4515819661074938,
-            mse_rec_static=1.0,
-            mse_rec_dynamic=45.25873190730584,
-            beta=0.001817925663163544,
-        )
-        weight_decay = 0.00015443793550364007
-    elif dynamics_model_name == "discrete-gru-rnn":
-        base_lr = 0.0061904901667741855
-        loss_weights = dict(
-            mse_z=0.0791729093402154,
-            mse_rec_static=1.0,
-            mse_rec_dynamic=34.12991695226881,
-            beta=0.00022655846366566662,
-        )
-        weight_decay = 0.0001519957156945279
-    elif dynamics_model_name == "discrete-mamba":
-        base_lr = 0.00870873016301107
-        loss_weights = dict(
-            mse_z=0.28214113853521156,
-            mse_rec_static=1.0,
-            mse_rec_dynamic=33.60427838050405,
-            beta=0.0007276292657337367,
-        )
-        weight_decay = 2.360420656597323e-05
+            weight_decay = 7.869361804893107e-06
+            lnn_learn_dissipation = True
+            num_mlp_layers, mlp_hidden_dim, mlp_nonlinearity_name = 6, 9, "sigmoid"
+            diag_shift, diag_eps = 2.3522236095556114e-06, 0.0019146626034900816
+        elif dynamics_model_name in [
+            "node-general-lss",
+            "node-mechanical-lss",
+            "node-hippo-lss",
+        ]:
+            base_lr = 0.009140398915788182
+            loss_weights = dict(
+                mse_z=0.3540013026659153,
+                mse_rec_static=1.0,
+                mse_rec_dynamic=3.8239959063309903,
+                beta=0.0004775274363009053,
+            )
+            weight_decay = 5.409956968011885e-06
+            raise NotImplementedError
+        elif dynamics_model_name == "discrete-mlp":
+            base_lr = 0.008868218513411644
+            loss_weights = dict(
+                mse_z=0.41624019460716366,
+                mse_rec_static=1.0,
+                mse_rec_dynamic=407.1895196862229,
+                beta=0.03405228893154261,
+            )
+            weight_decay = 0.00018061847705335356
+            num_mlp_layers, mlp_hidden_dim = 4, 95
+            mlp_nonlinearity_name = "elu"
+        elif dynamics_model_name == "discrete-elman-rnn":
+            base_lr = 0.009562362872368196
+            loss_weights = dict(
+                mse_z=0.4515819661074938,
+                mse_rec_static=1.0,
+                mse_rec_dynamic=45.25873190730584,
+                beta=0.001817925663163544,
+            )
+            weight_decay = 0.00015443793550364007
+        elif dynamics_model_name == "discrete-gru-rnn":
+            base_lr = 0.0061904901667741855
+            loss_weights = dict(
+                mse_z=0.0791729093402154,
+                mse_rec_static=1.0,
+                mse_rec_dynamic=34.12991695226881,
+                beta=0.00022655846366566662,
+            )
+            weight_decay = 0.0001519957156945279
+        elif dynamics_model_name == "discrete-mamba":
+            base_lr = 0.00870873016301107
+            loss_weights = dict(
+                mse_z=0.28214113853521156,
+                mse_rec_static=1.0,
+                mse_rec_dynamic=33.60427838050405,
+                beta=0.0007276292657337367,
+            )
+            weight_decay = 2.360420656597323e-05
+        else:
+            raise NotImplementedError(
+                f"beta_vae with node_type '{dynamics_model_name}' not implemented yet."
+            )
     else:
-        raise NotImplementedError(
-            f"beta_vae with node_type '{dynamics_model_name}' not implemented yet."
-        )
-else:
-    raise NotImplementedError(f"ae_type '{ae_type}' not implemented yet.")
+        raise NotImplementedError(f"ae_type '{ae_type}' not implemented yet.")
 
 # identify the number of segments
 if system_type == "cc":
@@ -222,8 +242,12 @@ logdir = (
 logdir.mkdir(parents=True, exist_ok=True)
 
 if __name__ == "__main__":
+    if long_horizon_dataset:
+        dataset_name = f"planar_pcs/{system_type}_32x32px_h-101"
+    else:
+        dataset_name = f"planar_pcs/{system_type}_32x32px"
     datasets, dataset_info, dataset_metadata = load_dataset(
-        f"planar_pcs/{system_type}_32x32px",
+        dataset_name,
         seed=seed,
         batch_size=batch_size,
         normalize=True,
