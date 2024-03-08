@@ -188,14 +188,14 @@ class Pendulum(tfds.core.GeneratorBasedBuilder):
         plt.show()
 
         # set initial conditions
-        state_init_min = jnp.zeros((2 * num_links,))
-        state_init_max = jnp.zeros((2 * num_links,))
-        state_init_min = state_init_min.at[:num_links].set(-jnp.pi)
-        state_init_max = state_init_max.at[:num_links].set(jnp.pi)
+        x0_min = jnp.zeros((2 * num_links,))
+        x0_max = jnp.zeros((2 * num_links,))
+        x0_min = x0_min.at[:num_links].set(-jnp.pi)
+        x0_max = x0_max.at[:num_links].set(jnp.pi)
         # maximum magnitude of the initial joint velocity [rad/s]
-        max_q_d_0 = jnp.pi * jnp.ones((num_links,))
-        state_init_min = state_init_min.at[num_links:].set(-max_q_d_0)
-        state_init_max = state_init_max.at[num_links:].set(max_q_d_0)
+        q_d0_max = jnp.pi * jnp.ones((num_links,))
+        x0_min = x0_min.at[num_links:].set(-q_d0_max)
+        x0_max = x0_max.at[num_links:].set(q_d0_max)
 
         # define maximum external torque
         tau_max = 2 * jnp.cumsum(
@@ -212,8 +212,8 @@ class Pendulum(tfds.core.GeneratorBasedBuilder):
             num_simulations=self.builder_config.num_simulations,
             horizon_dim=self.builder_config.horizon_dim,
             dt=jnp.array(self.builder_config.dt),
-            x0_min=state_init_min,
-            x0_max=state_init_max,
+            x0_min=x0_min,
+            x0_max=x0_max,
             dataset_dir=str(self.data_path),
             solver=diffrax.Dopri5(),
             sim_dt=jnp.array(self.builder_config.sim_dt),

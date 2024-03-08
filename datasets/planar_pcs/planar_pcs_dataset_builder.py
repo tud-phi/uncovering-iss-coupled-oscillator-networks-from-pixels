@@ -258,14 +258,14 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
         plt.show()
 
         # set initial conditions
-        q_max = jnp.array(self.builder_config.q_max)
-        q_d_max = jnp.array(self.builder_config.q_d_max)
-        state_init_min = jnp.concatenate([-q_max, -q_d_max], axis=0)
-        state_init_max = jnp.concatenate([q_max, q_d_max], axis=0)
+        q0_max = jnp.array(self.builder_config.q_max)
+        q_d0_max = jnp.array(self.builder_config.q_d_max)
+        x0_min = jnp.concatenate([-q0_max, -q_d0_max], axis=0)
+        x0_max = jnp.concatenate([q0_max, q_d0_max], axis=0)
 
         # define maximum torque as some scaling of the steady-state torques acting at (q_max, q_d_max)
         B, C, G, K, D, alpha = dynamical_matrices_fn(
-            robot_params, q_max, jnp.zeros_like(q_d_max)
+            robot_params, q0_max, jnp.zeros_like(q_d0_max)
         )
         tau_max = 1.0 * jnp.abs(G + K )
         # tau_max = 0.3 * jnp.abs(G + K)
@@ -281,8 +281,8 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             num_simulations=self.builder_config.num_simulations,
             horizon_dim=self.builder_config.horizon_dim,
             dt=jnp.array(self.builder_config.dt),
-            x0_min=state_init_min,
-            x0_max=state_init_max,
+            x0_min=x0_min,
+            x0_max=x0_max,
             dataset_dir=str(self.data_path),
             solver=diffrax.Dopri5(),
             sim_dt=jnp.array(self.builder_config.sim_dt),
