@@ -49,6 +49,12 @@ tfds build datasets/pendulum --data_dir data/tensorflow_datasets --config single
 tfds build datasets/planar_pcs --data_dir data/tensorflow_datasets --config cc_64x64px --overwrite
 ```
 
+### N-Body problem
+
+```bash
+tfds build datasets/nbody_problem --data_dir data/tensorflow_datasets --config nb-2_h-101_32x32px --overwrite
+```
+
 ## Tips & Tricks
 
 ### GPU memory allocation
