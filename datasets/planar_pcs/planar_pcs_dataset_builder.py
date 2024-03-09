@@ -1,4 +1,5 @@
 """planar_pcs dataset."""
+
 import dataclasses
 from jax import Array
 import jax.numpy as jnp
@@ -187,9 +188,7 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
 
         # set robot parameters
         strain_selector = jnp.array(self.builder_config.strain_selector)
-        rho = 600 * jnp.ones(
-            (self.builder_config.num_segments,)
-        )  # [kg/m^3]
+        rho = 600 * jnp.ones((self.builder_config.num_segments,))  # [kg/m^3]
         # damping matrix
         D = 1e-5 * jnp.diag(
             jnp.repeat(
@@ -267,7 +266,7 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
         B, C, G, K, D, alpha = dynamical_matrices_fn(
             robot_params, q0_max, jnp.zeros_like(q_d0_max)
         )
-        tau_max = 1.0 * jnp.abs(G + K )
+        tau_max = 1.0 * jnp.abs(G + K)
         # tau_max = 0.3 * jnp.abs(G + K)
         print(f"tau_max = {tau_max}")
 

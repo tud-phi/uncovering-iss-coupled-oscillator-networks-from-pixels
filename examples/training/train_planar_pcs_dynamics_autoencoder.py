@@ -78,7 +78,9 @@ if long_horizon_dataset:
                 num_mlp_layers, mlp_hidden_dim = 5, 21
                 mlp_nonlinearity_name = "tanh"
             case _:
-                raise NotImplementedError(f"beta_vae with dynamics_model_name '{dynamics_model_name}' not implemented yet.")
+                raise NotImplementedError(
+                    f"beta_vae with dynamics_model_name '{dynamics_model_name}' not implemented yet."
+                )
     else:
         raise NotImplementedError(f"ae_type '{ae_type}' not implemented yet.")
 else:

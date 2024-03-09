@@ -2,7 +2,9 @@ import numpy as onp
 import tensorflow as tf
 
 
-def preprocess_rendering(rendering: onp.ndarray, grayscale: bool = False, normalize: bool = True) -> onp.ndarray:
+def preprocess_rendering(
+    rendering: onp.ndarray, grayscale: bool = False, normalize: bool = True
+) -> onp.ndarray:
     """
     Preprocesses the rendering image.
     Args:

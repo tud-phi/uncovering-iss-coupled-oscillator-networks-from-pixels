@@ -258,12 +258,8 @@ if __name__ == "__main__":
         metrics_collection_cls=metrics_collection_cls,
         init_fn=nn_model.initialize_all_weights,
     )
-    nn_model_bound = nn_model.bind(
-        {"params": state.params}
-    )
-    dynamics_model_bound = dynamics_model.bind(
-        {"params": state.params["dynamics"]}
-    )
+    nn_model_bound = nn_model.bind({"params": state.params})
+    dynamics_model_bound = dynamics_model.bind({"params": state.params["dynamics"]})
 
     def encode_fn(img: Array) -> Array:
         return partial(
@@ -281,21 +277,22 @@ if __name__ == "__main__":
 
     if n_z == 2:
         # plot the potential energy landscape in the original latent space
-        fig, ax = plt.subplots(1, 1, figsize=figsize, num="Potential energy landscape in z-coordinates")
+        fig, ax = plt.subplots(
+            1, 1, figsize=figsize, num="Potential energy landscape in z-coordinates"
+        )
         z1_range = jnp.linspace(-1.0, 1.0, 100)
         z2_range = jnp.linspace(-1.0, 1.0, 100)
         z1_grid, z2_grid = jnp.meshgrid(z1_range, z2_range)
         z_grid = jnp.stack([z1_grid, z2_grid], axis=-1)
-        xi_grid = jnp.concatenate([
-            z_grid,
-            jnp.zeros_like(z_grid)
-        ], axis=-1)
+        xi_grid = jnp.concatenate([z_grid, jnp.zeros_like(z_grid)], axis=-1)
         U_grid = jax.vmap(
             partial(dynamics_model_bound.energy_fn, coordinate="z"),
         )(xi_grid.reshape(-1, xi_grid.shape[-1])).reshape(xi_grid.shape[:2])
         tau_pot_grid = -jax.vmap(
             grad(partial(dynamics_model_bound.energy_fn, coordinate="z")),
-        )(xi_grid.reshape(-1, xi_grid.shape[-1]))[..., :n_z].reshape(*xi_grid.shape[:2], -1)
+        )(xi_grid.reshape(-1, xi_grid.shape[-1]))[..., :n_z].reshape(
+            *xi_grid.shape[:2], -1
+        )
         # contour plot of the potential energy
         cs = ax.contourf(z1_grid, z2_grid, U_grid, levels=100)
         # quiver plot of the potential energy gradient
@@ -320,21 +317,22 @@ if __name__ == "__main__":
         plt.show()
 
         # plot the potential energy in the w-coordinates
-        fig, ax = plt.subplots(1, 1, figsize=figsize, num="Potential energy landscape in zw-coordinates")
+        fig, ax = plt.subplots(
+            1, 1, figsize=figsize, num="Potential energy landscape in zw-coordinates"
+        )
         zw1_range = jnp.linspace(-1.0, 1.0, 100)
         zw2_range = jnp.linspace(-1.0, 1.0, 100)
         zw1_grid, zw2_grid = jnp.meshgrid(zw1_range, zw2_range)
         zw_grid = jnp.stack([zw1_grid, zw2_grid], axis=-1)
-        xi_grid = jnp.concatenate([
-            zw_grid,
-            jnp.zeros_like(zw_grid)
-        ], axis=-1)
+        xi_grid = jnp.concatenate([zw_grid, jnp.zeros_like(zw_grid)], axis=-1)
         U_grid = jax.vmap(
             partial(dynamics_model_bound.energy_fn, coordinate="zw"),
         )(xi_grid.reshape(-1, xi_grid.shape[-1])).reshape(xi_grid.shape[:2])
         tau_pot_grid = -jax.vmap(
             grad(partial(dynamics_model_bound.energy_fn, coordinate="zw")),
-        )(xi_grid.reshape(-1, xi_grid.shape[-1]))[..., :n_z].reshape(*xi_grid.shape[:2], -1)
+        )(xi_grid.reshape(-1, xi_grid.shape[-1]))[..., :n_z].reshape(
+            *xi_grid.shape[:2], -1
+        )
         # contour plot of the potential energy
         cs = ax.contourf(zw1_grid, zw2_grid, U_grid, levels=100)
         # quiver plot of the potential energy gradient
@@ -352,28 +350,34 @@ if __name__ == "__main__":
         plt.colorbar(cs)
         ax.set_xlabel(r"$z_{w,1}$")
         ax.set_ylabel(r"$z_{w,2}$")
-        ax.set_title("Potential energy landscape of learned latent dynamics in w-coordinates")
+        ax.set_title(
+            "Potential energy landscape of learned latent dynamics in w-coordinates"
+        )
         plt.grid(True)
         plt.box(True)
         plt.savefig(ckpt_dir / "potential_energy_landscape_zw.pdf")
         plt.show()
 
         # plot the potential energy in the collocated coordinates
-        fig, ax = plt.subplots(1, 1, figsize=figsize, num="Potential energy landscape in collocated coordinates")
+        fig, ax = plt.subplots(
+            1,
+            1,
+            figsize=figsize,
+            num="Potential energy landscape in collocated coordinates",
+        )
         zeta1_range = jnp.linspace(-1.0, 1.0, 100)
         zeta2_range = jnp.linspace(-1.0, 1.0, 100)
         zeta1_grid, zeta2_grid = jnp.meshgrid(zeta1_range, zeta2_range)
         zeta_grid = jnp.stack([zeta1_grid, zeta2_grid], axis=-1)
-        xi_grid = jnp.concatenate([
-            zeta_grid,
-            jnp.zeros_like(zeta_grid)
-        ], axis=-1)
+        xi_grid = jnp.concatenate([zeta_grid, jnp.zeros_like(zeta_grid)], axis=-1)
         U_grid = jax.vmap(
             partial(dynamics_model_bound.energy_fn, coordinate="zeta"),
         )(xi_grid.reshape(-1, xi_grid.shape[-1])).reshape(xi_grid.shape[:2])
         tau_pot_grid = -jax.vmap(
             grad(partial(dynamics_model_bound.energy_fn, coordinate="zeta")),
-        )(xi_grid.reshape(-1, xi_grid.shape[-1]))[..., :n_z].reshape(*xi_grid.shape[:2], -1)
+        )(xi_grid.reshape(-1, xi_grid.shape[-1]))[..., :n_z].reshape(
+            *xi_grid.shape[:2], -1
+        )
         # contour plot of the potential energy
         cs = ax.contourf(zeta1_grid, zeta2_grid, U_grid, levels=100)
         # quiver plot of the potential energy gradient
@@ -391,7 +395,9 @@ if __name__ == "__main__":
         plt.colorbar(cs)
         ax.set_xlabel(r"$\zeta_1$")
         ax.set_ylabel(r"$\zeta_2$")
-        ax.set_title("Potential energy landscape of learned latent dynamics in collocated coordinates")
+        ax.set_title(
+            "Potential energy landscape of learned latent dynamics in collocated coordinates"
+        )
         plt.grid(True)
         plt.box(True)
         plt.savefig(ckpt_dir / "potential_energy_landscape_zeta.pdf")
@@ -410,15 +416,24 @@ if __name__ == "__main__":
             for j in range(q_grid.shape[1]):
                 q = q_grid[i, j]
                 img = rendering_fn(q)
-                img = jnp.array(preprocess_rendering(img, grayscale=True, normalize=True))
+                img = jnp.array(
+                    preprocess_rendering(img, grayscale=True, normalize=True)
+                )
                 z = nn_model_bound.encode(img[None, ...])[0, ...]
                 zeta = terms["J_h"] @ terms["J_w"] @ z
                 xi = jnp.concatenate([zeta, jnp.zeros((n_z,))])
                 U = dynamics_model_bound.energy_fn(xi, coordinate="zeta")
-                tau_pot = -grad(partial(dynamics_model_bound.energy_fn, coordinate="zeta"))(xi)[..., :n_tau]
+                tau_pot = -grad(
+                    partial(dynamics_model_bound.energy_fn, coordinate="zeta")
+                )(xi)[..., :n_tau]
                 U_grid = U_grid.at[i, j].set(U)
                 tau_pot_grid = tau_pot_grid.at[i, j, :].set(tau_pot)
-        fig, axes = plt.subplots(1, 2, figsize=(12, 5), num="Learned potential energy landscape in configuration space")
+        fig, axes = plt.subplots(
+            1,
+            2,
+            figsize=(12, 5),
+            num="Learned potential energy landscape in configuration space",
+        )
         # contour plot of the potential energy
         cs = axes[0].contourf(q1_grid, q2_grid, U_grid, levels=100)
         plt.colorbar(cs, ax=axes[0])
@@ -432,12 +447,17 @@ if __name__ == "__main__":
             q2_grid[::qv_skip, ::qv_skip],
             tau_pot_grid[::qv_skip, ::qv_skip, 0],
             tau_pot_grid[::qv_skip, ::qv_skip, 1],
-            jnp.hypot(tau_pot_grid[::qv_skip, ::qv_skip, 0], tau_pot_grid[::qv_skip, ::qv_skip, 1]),
+            jnp.hypot(
+                tau_pot_grid[::qv_skip, ::qv_skip, 0],
+                tau_pot_grid[::qv_skip, ::qv_skip, 1],
+            ),
             angles="xy",
             scale=None,
             scale_units="xy",
         )
-        qk = axes[1].quiverkey(qs, 0.9, 0.9, 1, r"$\tau: 1$ Nm", labelpos='E', coordinates='figure')
+        qk = axes[1].quiverkey(
+            qs, 0.9, 0.9, 1, r"$\tau: 1$ Nm", labelpos="E", coordinates="figure"
+        )
         axes[1].set_xlabel(r"$q_1$ [rad/m]")
         axes[1].set_ylabel(r"$q_2$ [rad/m]")
         axes[1].set_title("Learned potential force in $q$-space")
@@ -447,7 +467,9 @@ if __name__ == "__main__":
         plt.savefig(ckpt_dir / "potential_energy_landscape_q.pdf")
         plt.show()
 
-    def control_fn(t: Array, x: Array, control_state: Dict[str, Array]) -> Tuple[Array, Dict[str, Array], Dict[str, Array]]:
+    def control_fn(
+        t: Array, x: Array, control_state: Dict[str, Array]
+    ) -> Tuple[Array, Dict[str, Array], Dict[str, Array]]:
         """
         Control function for the setpoint regulation.
         Args:
@@ -460,7 +482,9 @@ if __name__ == "__main__":
             control_info: dictionary with control information
         """
         if use_collocated_form:
-            setpoint_regulation_fn = dynamics_model_bound.setpoint_regulation_collocated_form_fn
+            setpoint_regulation_fn = (
+                dynamics_model_bound.setpoint_regulation_collocated_form_fn
+            )
         else:
             setpoint_regulation_fn = dynamics_model_bound.setpoint_regulation_control_fn
         tau, control_state, control_info = setpoint_regulation_fn(
@@ -485,7 +509,9 @@ if __name__ == "__main__":
     # render target image
     target_img = rendering_fn(q_des)
     # normalize the target image
-    target_img = jnp.array(preprocess_rendering(target_img, grayscale=True, normalize=True))
+    target_img = jnp.array(
+        preprocess_rendering(target_img, grayscale=True, normalize=True)
+    )
     # encode the target image
     z_des = nn_model_bound.encode(target_img[None, ...])[0, ...]
 
@@ -606,7 +632,7 @@ if __name__ == "__main__":
     # plot the estimated latent velocity
     fig, ax = plt.subplots(1, 1, figsize=figsize, num="Latent velocity vs time")
     for i in range(n_z):
-        ax.plot(ts, xi_ts[..., n_z + i], color=colors[i], label=fr"$\dot{{z}}_{i}$")
+        ax.plot(ts, xi_ts[..., n_z + i], color=colors[i], label=rf"$\dot{{z}}_{i}$")
     ax.set_xlabel("Time [s]")
     ax.set_ylabel("Latent velocity $\dot{z}$")
     ax.set_title("Latent velocity vs. time")
@@ -618,9 +644,13 @@ if __name__ == "__main__":
 
     # plot collocated coordinates
     if "zeta_ts" in sim_ts:
-        fig, ax = plt.subplots(1, 1, figsize=figsize, num="Actuation coordinate vs time")
+        fig, ax = plt.subplots(
+            1, 1, figsize=figsize, num="Actuation coordinate vs time"
+        )
         for i in range(n_z):
-            ax.plot(ts, sim_ts["zeta_ts"][..., i], color=colors[i], label=fr"$\zeta_{i}$")
+            ax.plot(
+                ts, sim_ts["zeta_ts"][..., i], color=colors[i], label=rf"$\zeta_{i}$"
+            )
             ax.plot(
                 ts,
                 sim_ts["zeta_des_ts"][..., i],

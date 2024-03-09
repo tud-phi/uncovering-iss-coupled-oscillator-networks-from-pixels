@@ -5,9 +5,12 @@ import dill
 from functools import partial
 from jax import Array, jit, lax, random
 import jax.numpy as jnp
+import numpy as onp
 from pathlib import Path
 import shutil
 from typing import Any, Callable, Dict, Optional, Type, TypeVar
+
+from src.visualization.img_animation import animate_image_cv2
 
 
 def collect_dataset(
@@ -26,7 +29,12 @@ def collect_dataset(
     metadata: Optional[Dict[str, Any]] = None,
     x0_sampling_dist: str = "uniform",
     tau_max: Optional[Array] = None,
+    enforce_state_bounds: bool = False,
+    x_min: Optional[Array] = None,
+    x_max: Optional[Array] = None,
     save_raw_data: bool = False,
+    animate_trajectory: bool = False,
+    verbose: bool = False,
 ):
     """
     Collect a simulated dataset for a given ODE system. The initial state is uniformly sampled from the given bounds.
@@ -49,10 +57,15 @@ def collect_dataset(
         x0_sampling_dist: Distribution to sample the initial state of the simulation from. Can be one of:
             ["uniform", "arcsine", "half-normal"].
         tau_max: Maximal torque to apply to the system where actual torque is sampled from a uniform distribution.
+        enforce_state_bounds: Whether to enforce the state bounds during the simulation.
+        x_min: Array with minimal values for the state of the simulation. If enforce_state_bounds is True, this must be provided.
+        x_max: Array with maximal values for the state of the simulation. If enforce_state_bounds is True, this must be provided.
         save_raw_data: Whether to save the raw data (as images and labels) to the dataset_dir.
+        animate_trajectory: Whether to animate the trajectory.
+        verbose: Whether to print useful information.
     """
     # initiate time steps array of samples
-    ts = jnp.arange(0, horizon_dim * dt, step=dt)
+    ts = jnp.linspace(0.0, (horizon_dim - 1) * dt, horizon_dim)
 
     # if the simulation time-step is not given, initialize it to the same value as the sample time step
     if sim_dt is None:
@@ -61,6 +74,11 @@ def collect_dataset(
         assert (
             sim_dt <= dt
         ), "The simulation time step needs to be smaller than the sampling time step."
+
+    if enforce_state_bounds:
+        assert (
+            x_min is not None and x_max is not None
+        ), "If enforce_state_bounds is True, x_min and x_max must be provided."
 
     # jit the ode fn
     ode_fn = jit(ode_fn)
@@ -71,6 +89,10 @@ def collect_dataset(
     num_samples = num_simulations * (ts.shape[0] - 1)
     # state dimension
     state_dim = x0_min.shape[0]
+    # dimension of the state space
+    n_x = x0_max.shape[0]
+    # dimension of configuration space
+    n_q = n_x // 2
 
     # dataset directory
     dataset_path = Path(dataset_dir)
@@ -108,62 +130,70 @@ def collect_dataset(
     sample_idx = 0
     with alive_bar(num_simulations) as bar:
         for sim_idx in range(num_simulations):
-            rng, rng_x0_sampling, rng_tau_sampling = random.split(rng, num=3)
+            is_sample_valid = False
+            while is_sample_valid is False:
+                rng, rng_x0_sampling, rng_tau_sampling = random.split(rng, num=3)
 
-            # dimension of the state space
-            n_x = x0_max.shape[0]
-            # dimension of configuration space
-            n_q = n_x // 2
+                # generate initial state of the simulation
+                if x0_sampling_dist == "uniform":
+                    x0 = random.uniform(
+                        rng_x0_sampling,
+                        x0_min.shape,
+                        minval=x0_min,
+                        maxval=x0_max,
+                    )
+                elif x0_sampling_dist == "arcsine":
+                    u = random.uniform(rng_x0_sampling, x0_min.shape)
+                    x0 = x0_min + (x0_max - x0_min) * jnp.sin(jnp.pi * u / 2) ** 2
+                elif x0_sampling_dist == "half-normal":
+                    u = random.normal(rng_x0_sampling, x0_min.shape)
+                    stdev = (x0_max - x0_min) / 2
+                    condlist = [u < 0, u >= 0]
+                    choicelist = [x0_min, x0_max]
+                    x0 = jnp.select(condlist, choicelist) - u * stdev
+                    # just to make sure that a very unlikely sample does not bring us out of bounds
+                    x0 = jnp.clip(x0, x0_min, x0_max)
+                else:
+                    raise ValueError(
+                        f"Unknown sampling distribution: {x0_sampling_dist}"
+                    )
 
-            # generate initial state of the simulation
-            if x0_sampling_dist == "uniform":
-                x0 = random.uniform(
-                    rng_x0_sampling,
-                    x0_min.shape,
-                    minval=x0_min,
-                    maxval=x0_max,
+                # sample the external torques or set them to zero
+                if tau_max is None:
+                    tau = jnp.zeros((n_q,))
+                else:
+                    tau = random.uniform(
+                        rng_tau_sampling, (n_q,), minval=-tau_max, maxval=tau_max
+                    )
+
+                # simulate
+                sol = diffeqsolve(
+                    ode_term,
+                    solver=solver,
+                    t0=ts[0],
+                    t1=ts[-1],
+                    dt0=sim_dt,
+                    y0=x0,
+                    args=tau,
+                    max_steps=None,
+                    saveat=SaveAt(ts=ts),
                 )
-            elif x0_sampling_dist == "arcsine":
-                u = random.uniform(rng_x0_sampling, x0_min.shape)
-                x0 = x0_min + (x0_max - x0_min) * jnp.sin(jnp.pi * u / 2) ** 2
-            elif x0_sampling_dist == "half-normal":
-                u = random.normal(rng_x0_sampling, x0_min.shape)
-                stdev = (x0_max - x0_min) / 2
-                condlist = [u < 0, u >= 0]
-                choicelist = [x0_min, x0_max]
-                x0 = jnp.select(condlist, choicelist) - u * stdev
-                # just to make sure that a very unlikely sample does not bring us out of bounds
-                x0 = jnp.clip(x0, x0_min, x0_max)
-            else:
-                raise ValueError(f"Unknown sampling distribution: {x0_sampling_dist}")
 
-            # sample the external torques or set them to zero
-            if tau_max is None:
-                tau = jnp.zeros((n_q,))
-            else:
-                tau = random.uniform(
-                    rng_tau_sampling, (n_q,), minval=-tau_max, maxval=tau_max
-                )
+                # states along the simulation
+                x_ts = sol.ys
 
-            # simulate
-            sol = diffeqsolve(
-                ode_term,
-                solver=solver,
-                t0=ts[0],
-                t1=ts[-1],
-                dt0=sim_dt,
-                y0=x0,
-                args=tau,
-                max_steps=None,
-                saveat=SaveAt(ts=ts),
-            )
+                if jnp.isnan(x_ts).any():
+                    if verbose:
+                        print("NaNs in the simulation data. Retrying...")
+                    continue
 
-            # states along the simulation
-            x_ts = sol.ys
+                if enforce_state_bounds:
+                    if (x_ts < x_min).any() or (x_ts > x_max).any():
+                        if verbose:
+                            print("States out of bounds. Retrying...")
+                        continue
 
-            if jnp.isnan(x_ts).any():
-                print("NaNs in the simulation data. Skipping this simulation.")
-                continue
+                is_sample_valid = True
 
             # define labels dict
             labels = dict(t_ts=ts, x_ts=x_ts, tau=tau)
@@ -193,6 +223,14 @@ def collect_dataset(
 
                 # update sample index
                 sample_idx += 1
+
+            if animate_trajectory:
+                animate_image_cv2(
+                    onp.array(ts),
+                    onp.array(rendering_ts),
+                    filepath=dataset_path / f"sim-{sim_idx}.mp4",
+                    skip_step=1,
+                )
 
             # merge labels with image and id
             sample = labels | {

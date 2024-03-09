@@ -71,7 +71,7 @@ class DconOde(NeuralOdeBase):
             (self.latent_dim, self.input_dim),
             self.param_dtype,
         )
-        
+
     def __call__(self, x: Array, tau: Array) -> Array:
         """
         Args:
@@ -89,26 +89,21 @@ class DconOde(NeuralOdeBase):
         # the potential force is the gradient of the potential energy
         tau_pot = grad(self.coupling_potential_energy_fn)(z)
 
-        z_dd = (
-            self.V @ tau
-            - self.gamma * z
-            - self.epsilon * z_d
-            - tau_pot
-        )
+        z_dd = self.V @ tau - self.gamma * z - self.epsilon * z_d - tau_pot
 
         # concatenate the velocity and acceleration of the latent variables
         x_d = jnp.concatenate([z_d, z_dd], axis=-1)
 
         return x_d
-    
+
     def coupling_potential_energy_fn(self, z: Array) -> Array:
         return self.coupling_potential_energy_nn(z).squeeze()
-    
+
     def get_terms(self, coordinate: str = "z") -> Dict:
         """
         Get the terms of the Equations of Motion.
         Args:
-            coordinate: coordinates in which to express the terms. Can be ["z", "zeta"] 
+            coordinate: coordinates in which to express the terms. Can be ["z", "zeta"]
         Returns:
             terms: dictionary with the terms of the EoM
         """
@@ -132,15 +127,19 @@ class DconOde(NeuralOdeBase):
                     V=V,
                 )
             case "zeta":
-                assert self.latent_dim >= self.input_dim, "Mapping into collocated coordinates is only implemented for systems with latent_dim >= input_dim."
-                
+                assert (
+                    self.latent_dim >= self.input_dim
+                ), "Mapping into collocated coordinates is only implemented for systems with latent_dim >= input_dim."
+
                 # compute the Jacobian of the map into collocated coordinates
                 J_h = jnp.concatenate(
                     [
                         V.T,
                         jnp.concatenate(
                             [
-                                jnp.zeros((self.latent_dim - self.input_dim, self.input_dim)),
+                                jnp.zeros(
+                                    (self.latent_dim - self.input_dim, self.input_dim)
+                                ),
                                 jnp.eye(self.latent_dim - self.input_dim),
                             ],
                             axis=1,
@@ -157,25 +156,29 @@ class DconOde(NeuralOdeBase):
                 E_zeta = J_h_inv.T @ E @ J_h_inv
 
                 # actuation matrix in collocated coordinates
-                V_zeta = jnp.concatenate([
-                    jnp.eye(self.input_dim),
-                    jnp.zeros((self.latent_dim - self.input_dim, self.input_dim))
-                ], axis=0)
+                V_zeta = jnp.concatenate(
+                    [
+                        jnp.eye(self.input_dim),
+                        jnp.zeros((self.latent_dim - self.input_dim, self.input_dim)),
+                    ],
+                    axis=0,
+                )
 
                 terms = dict(
                     B=B_zeta,
                     Lambda=Lambda_zeta,
                     E=E_zeta,
-                    coupling_potential_energy_fn=lambda zeta: self.coupling_potential_energy_fn(J_h_inv @ zeta),
+                    coupling_potential_energy_fn=lambda zeta: self.coupling_potential_energy_fn(
+                        J_h_inv @ zeta
+                    ),
                     V=V_zeta,
                     J_h=J_h,
                     J_h_inv=J_h_inv,
                 )
             case _:
                 raise ValueError(f"Coordinate {coordinate} not supported.")
-            
-        return terms
 
+        return terms
 
     def energy_fn(self, x: Array, coordinate: str = "z") -> Array:
         """
@@ -195,15 +198,15 @@ class DconOde(NeuralOdeBase):
         T = (0.5 * z_d[None, :] @ terms["B"] @ z_d[:, None]).squeeze()
 
         # compute the potential energy
-        U = (
-            0.5 * z[None, :] @ terms["Lambda"] @ z[:, None]
-        ).squeeze() + terms["coupling_potential_energy_fn"](z)
+        U = (0.5 * z[None, :] @ terms["Lambda"] @ z[:, None]).squeeze() + terms[
+            "coupling_potential_energy_fn"
+        ](z)
 
         # compute the total energy
         V = T + U
 
         return V
-    
+
     def setpoint_regulation_collocated_form_fn(
         self,
         x: Array,
@@ -214,7 +217,7 @@ class DconOde(NeuralOdeBase):
         ki: Union[float, Array] = 0.0,
         kd: Union[float, Array] = 0.0,
         gamma: Union[float, Array] = 1.0,
-    ) ->  Tuple[Array, Dict[str, Array], Dict[str, Array]]:
+    ) -> Tuple[Array, Dict[str, Array], Dict[str, Array]]:
         """
         P-satI-D feedback together with potential force compensation in the collocated variables.
         Args:
@@ -231,8 +234,12 @@ class DconOde(NeuralOdeBase):
             control_state: dictionary with the controller's stateful information. Contains entry with key "e_int" for the integral error.
             control_info: dictionary with control information
         """
-        assert self.input_nonlinearity is None, "Mapping into collocated coordinates is only implemented for dynamics affine in control."
-        assert self.latent_dim >= self.input_dim, "Mapping into collocated coordinates is only implemented for systems with latent_dim >= input_dim."
+        assert (
+            self.input_nonlinearity is None
+        ), "Mapping into collocated coordinates is only implemented for dynamics affine in control."
+        assert (
+            self.latent_dim >= self.input_dim
+        ), "Mapping into collocated coordinates is only implemented for systems with latent_dim >= input_dim."
 
         terms = self.get_terms(coordinate="zeta")
 
@@ -241,7 +248,7 @@ class DconOde(NeuralOdeBase):
 
         # get mapping into collocated coordinates
         J_h, J_h_inv = terms["J_h"], terms["J_h_inv"]
-        
+
         # map into collocated coordinates
         zeta, zeta_d = J_h @ z, J_h @ z_d
         zeta_des = J_h @ z_des
@@ -253,7 +260,9 @@ class DconOde(NeuralOdeBase):
         tau_zeta_fb = kp * error_zeta + ki * control_state["e_int"] - kd * zeta_d
 
         # compute the feedforward term
-        tau_zeta_ff = terms["Lambda"] @ zeta + grad(terms["coupling_potential_energy_fn"])(zeta)
+        tau_zeta_ff = terms["Lambda"] @ zeta + grad(
+            terms["coupling_potential_energy_fn"]
+        )(zeta)
 
         # compute the torque in latent space
         tau_zeta = jnp.zeros_like(zeta_des)
@@ -263,7 +272,7 @@ class DconOde(NeuralOdeBase):
             tau_zeta = tau_zeta + tau_zeta_fb
 
         # take the first input_dim rows as the control input
-        tau = tau_zeta[:self.input_dim]
+        tau = tau_zeta[: self.input_dim]
 
         # update the integral error
         control_state["e_int"] += jnp.tanh(gamma * error_zeta) * dt

@@ -80,7 +80,9 @@ if long_horizon_dataset:
             num_mlp_layers, mlp_hidden_dim = 5, 21
             mlp_nonlinearity_name = "tanh"
         case _:
-            raise ValueError(f"No experiment_id for dynamics_model_name={dynamics_model_name}")
+            raise ValueError(
+                f"No experiment_id for dynamics_model_name={dynamics_model_name}"
+            )
 else:
     if ae_type == "wae":
         raise NotImplementedError
@@ -311,12 +313,8 @@ if __name__ == "__main__":
     )
 
     # bind params to the models
-    nn_model_bound = nn_model.bind(
-        {"params": state.params}
-    )
-    dynamics_model_bound = dynamics_model.bind(
-        {"params": state.params["dynamics"]}
-    )
+    nn_model_bound = nn_model.bind({"params": state.params})
+    dynamics_model_bound = dynamics_model.bind({"params": state.params["dynamics"]})
 
     print("Run testing...")
     state, test_history = run_eval(test_ds, state, task_callables)
