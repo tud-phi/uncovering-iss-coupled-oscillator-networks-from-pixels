@@ -51,7 +51,7 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 """
 dynamics_model_name = "node-w-con"
 # latent space shape
-n_z = 4
+n_z = 8
 # simulation time step
 sim_dt = 1e-2
 
@@ -118,7 +118,7 @@ if __name__ == "__main__":
             loss_weights["mmd"] = mmd
 
         datasets, dataset_info, dataset_metadata = load_dataset(
-            f"planar_pcs/{system_type}_32x32px",
+            f"planar_pcs/{system_type}_32x32px_h-101",
             seed=seed,
             batch_size=batch_size,
             normalize=True,
@@ -159,7 +159,7 @@ if __name__ == "__main__":
                 mlp_hidden_dim = trial.suggest_int("mlp_hidden_dim", 4, 96)
                 mlp_nonlinearity_name = trial.suggest_categorical(
                     "mlp_nonlinearity",
-                    ["leaky_relu", "relu", "tanh", "sigmoid", "elu", "selu"],
+                    ["tanh", "sigmoid", "softplus"],
                 )
             mlp_nonlinearity = getattr(nn, mlp_nonlinearity_name)
 
