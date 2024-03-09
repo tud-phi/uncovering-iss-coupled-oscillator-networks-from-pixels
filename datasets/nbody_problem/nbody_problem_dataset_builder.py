@@ -36,14 +36,14 @@ class NBodyProblem(tfds.core.GeneratorBasedBuilder):
         # `name` (and optionally `description`) are required for each config
         NBodyProblemDatasetConfig(
             name="nb-2_h-101_32x32px",
-            description="Planar two segment piecewise constant curvature continuum robot with images of size 32x32px.",
+            description="Planar 2-body problem with images of size 32x32px and a horizon of 101 time steps.",
             num_bodies=2,
             state_dim=8,
             img_size=(32, 32),
         ),
         NBodyProblemDatasetConfig(
             name="nb-3_h-101_32x32px",
-            description="Planar two segment piecewise constant curvature continuum robot with images of size 32x32px.",
+            description="Planar 3-body problem with images of size 32x32px and a horizon of 101 time steps.",
             num_bodies=3,
             state_dim=12,
             img_size=(32, 32),
