@@ -154,7 +154,9 @@ def collect_dataset(
                     # just to make sure that a very unlikely sample does not bring us out of bounds
                     x0 = jnp.clip(x0, x0_min, x0_max)
                 else:
-                    raise ValueError(f"Unknown sampling distribution: {x0_sampling_dist}")
+                    raise ValueError(
+                        f"Unknown sampling distribution: {x0_sampling_dist}"
+                    )
 
                 # sample the external torques or set them to zero
                 if tau_max is None:

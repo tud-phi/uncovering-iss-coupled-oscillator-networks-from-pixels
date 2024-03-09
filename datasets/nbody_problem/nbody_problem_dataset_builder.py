@@ -1,4 +1,5 @@
 """planar_pcs dataset."""
+
 import dataclasses
 from jax import Array
 import jax.numpy as jnp
@@ -147,7 +148,9 @@ class NBodyProblem(tfds.core.GeneratorBasedBuilder):
         metadata["rendering"] = {
             "width": self.builder_config.img_size[0],
             "height": self.builder_config.img_size[1],
-            "body_radii": 0.04 * min(self.builder_config.img_size) * jnp.ones((num_bodies, )),
+            "body_radii": 0.04
+            * min(self.builder_config.img_size)
+            * jnp.ones((num_bodies,)),
             "body_colors": body_colors,
         }
         rendering_fn = partial(
@@ -161,15 +164,38 @@ class NBodyProblem(tfds.core.GeneratorBasedBuilder):
         )
 
         # set initial conditions and state bounds
-        x0_min = jnp.concatenate([-jnp.array(self.builder_config.q0_max), -jnp.array(self.builder_config.q_d0_max)],
-                                 axis=0)
-        x0_max = jnp.concatenate([jnp.array(self.builder_config.q0_max), jnp.array(self.builder_config.q_d0_max)],
-                                 axis=0)
-        x_min = jnp.concatenate([-jnp.array(self.builder_config.q_max), -jnp.array(self.builder_config.q_d_max)],
-                                axis=0)
-        x_max = jnp.concatenate([jnp.array(self.builder_config.q_max), jnp.array(self.builder_config.q_d_max)], axis=0)
+        x0_min = jnp.concatenate(
+            [
+                -jnp.array(self.builder_config.q0_max),
+                -jnp.array(self.builder_config.q_d0_max),
+            ],
+            axis=0,
+        )
+        x0_max = jnp.concatenate(
+            [
+                jnp.array(self.builder_config.q0_max),
+                jnp.array(self.builder_config.q_d0_max),
+            ],
+            axis=0,
+        )
+        x_min = jnp.concatenate(
+            [
+                -jnp.array(self.builder_config.q_max),
+                -jnp.array(self.builder_config.q_d_max),
+            ],
+            axis=0,
+        )
+        x_max = jnp.concatenate(
+            [
+                jnp.array(self.builder_config.q_max),
+                jnp.array(self.builder_config.q_d_max),
+            ],
+            axis=0,
+        )
 
-        sample_q = jnp.linspace(0.0, 1.0, 2 * num_bodies) * jnp.array(self.builder_config.q0_max)
+        sample_q = jnp.linspace(0.0, 1.0, 2 * num_bodies) * jnp.array(
+            self.builder_config.q0_max
+        )
         sample_img = rendering_fn(sample_q)
         plt.figure(num="Sample rendering")
         plt.imshow(cv2.cvtColor(sample_img, cv2.COLOR_BGR2RGB))

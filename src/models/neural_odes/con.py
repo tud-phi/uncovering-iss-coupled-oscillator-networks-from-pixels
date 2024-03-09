@@ -150,12 +150,12 @@ class ConOde(NeuralOdeBase):
             x_d = jnp.concatenate([z_d, z_dd], axis=-1)
 
         return x_d
-    
+
     def get_terms(self, coordinate: str = "z") -> Dict[str, Array]:
         """
         Get the terms of the Equations of Motion.
         Args:
-            coordinate: coordinates in which to express the terms. Can be ["z", "zw", "zeta"] 
+            coordinate: coordinates in which to express the terms. Can be ["z", "zw", "zeta"]
         Returns:
             terms: dictionary with the terms of the EoM
         """
@@ -228,16 +228,22 @@ class ConOde(NeuralOdeBase):
                     J_w=J_w,
                 )
             case "zeta":
-                assert self.input_nonlinearity is None, "Mapping into collocated coordinates is only implemented for dynamics affine in control."
-                assert self.latent_dim >= self.input_dim, "Mapping into collocated coordinates is only implemented for systems with latent_dim >= input_dim."
-                
+                assert (
+                    self.input_nonlinearity is None
+                ), "Mapping into collocated coordinates is only implemented for dynamics affine in control."
+                assert (
+                    self.latent_dim >= self.input_dim
+                ), "Mapping into collocated coordinates is only implemented for systems with latent_dim >= input_dim."
+
                 # compute the Jacobian of the map into collocated coordinates
                 J_h = jnp.concatenate(
                     [
                         V.T,
                         jnp.concatenate(
                             [
-                                jnp.zeros((self.latent_dim - self.input_dim, self.input_dim)),
+                                jnp.zeros(
+                                    (self.latent_dim - self.input_dim, self.input_dim)
+                                ),
                                 jnp.eye(self.latent_dim - self.input_dim),
                             ],
                             axis=1,
@@ -254,10 +260,13 @@ class ConOde(NeuralOdeBase):
                 E_zeta = J_h_inv.T @ E_w @ J_h_inv
 
                 # actuation matrix in collocated coordinates
-                V_zeta = jnp.concatenate([
-                    jnp.eye(self.input_dim),
-                    jnp.zeros((self.latent_dim - self.input_dim, self.input_dim))
-                ], axis=0)
+                V_zeta = jnp.concatenate(
+                    [
+                        jnp.eye(self.input_dim),
+                        jnp.zeros((self.latent_dim - self.input_dim, self.input_dim)),
+                    ],
+                    axis=0,
+                )
 
                 terms = dict(
                     B=B_zeta,
@@ -272,9 +281,8 @@ class ConOde(NeuralOdeBase):
                 )
             case _:
                 raise ValueError(f"Coordinate {coordinate} not supported.")
-            
-        return terms
 
+        return terms
 
     def energy_fn(self, x: Array, coordinate: str = "z") -> Array:
         """
@@ -346,7 +354,9 @@ class ConOde(NeuralOdeBase):
         tau_z_fb = kp * error_z + ki * control_state["e_int"] - kd * z_d
 
         # compute the feedforward term
-        tau_z_ff = terms["Lambda"] @ z_des + jnp.tanh(terms["W"] @ z_des + terms["bias"])
+        tau_z_ff = terms["Lambda"] @ z_des + jnp.tanh(
+            terms["W"] @ z_des + terms["bias"]
+        )
 
         # compute the torque in latent space
         tau_z = jnp.zeros_like(z_des)
@@ -383,7 +393,7 @@ class ConOde(NeuralOdeBase):
         )
 
         return tau, control_state, control_info
-    
+
     def setpoint_regulation_collocated_form_fn(
         self,
         x: Array,
@@ -394,7 +404,7 @@ class ConOde(NeuralOdeBase):
         ki: Union[float, Array] = 0.0,
         kd: Union[float, Array] = 0.0,
         gamma: Union[float, Array] = 1.0,
-    ) ->  Tuple[Array, Dict[str, Array], Dict[str, Array]]:
+    ) -> Tuple[Array, Dict[str, Array], Dict[str, Array]]:
         """
         P-satI-D feedback together with potential force compensation in the collocated variables.
         Args:
@@ -411,8 +421,12 @@ class ConOde(NeuralOdeBase):
             control_state: dictionary with the controller's stateful information. Contains entry with key "e_int" for the integral error.
             control_info: dictionary with control information
         """
-        assert self.input_nonlinearity is None, "Mapping into collocated coordinates is only implemented for dynamics affine in control."
-        assert self.latent_dim >= self.input_dim, "Mapping into collocated coordinates is only implemented for systems with latent_dim >= input_dim."
+        assert (
+            self.input_nonlinearity is None
+        ), "Mapping into collocated coordinates is only implemented for dynamics affine in control."
+        assert (
+            self.latent_dim >= self.input_dim
+        ), "Mapping into collocated coordinates is only implemented for systems with latent_dim >= input_dim."
 
         terms = self.get_terms(coordinate="zeta")
 
@@ -429,7 +443,7 @@ class ConOde(NeuralOdeBase):
             zw_des = terms["J_w"] @ z_des
 
         J_h, J_h_inv = terms["J_h"], terms["J_h_inv"]
-        
+
         # map into collocated coordinates
         zeta, zeta_d = J_h @ zw, J_h @ zw_d
         zeta_des = J_h @ zw_des
@@ -441,7 +455,9 @@ class ConOde(NeuralOdeBase):
         tau_zeta_fb = kp * error_zeta + ki * control_state["e_int"] - kd * zeta_d
 
         # compute the feedforward term
-        tau_zeta_ff = terms["Lambda"] @ zeta_des + J_h_inv.T @ jnp.tanh(terms["W"] @ zeta_des + terms["bias"])
+        tau_zeta_ff = terms["Lambda"] @ zeta_des + J_h_inv.T @ jnp.tanh(
+            terms["W"] @ zeta_des + terms["bias"]
+        )
 
         # compute the torque in latent space
         tau_zeta = jnp.zeros_like(zeta_des)
@@ -451,7 +467,7 @@ class ConOde(NeuralOdeBase):
             tau_zeta = tau_zeta + tau_zeta_fb
 
         # take the first input_dim rows as the control input
-        tau = tau_zeta[:self.input_dim]
+        tau = tau_zeta[: self.input_dim]
 
         # update the integral error
         control_state["e_int"] += jnp.tanh(gamma * error_zeta) * dt

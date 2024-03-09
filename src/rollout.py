@@ -130,7 +130,7 @@ def rollout_ode(
 
         # perform the scan
         carry = dict(t=ts[0], x=x0, control_state=control_state_init)
-        input_ts = dict(ts=jnp.concatenate([ts[1:], (2*ts[-1] - ts[-2])[None]]))
+        input_ts = dict(ts=jnp.concatenate([ts[1:], (2 * ts[-1] - ts[-2])[None]]))
         carry, data_ts = lax.scan(sim_step_fn, carry, input_ts)
 
     if rendering_fn is not None:
@@ -149,7 +149,9 @@ def rollout_ode(
             # render the image
             img = rendering_fn(q)
             if grayscale_rendering is True or normalize_rendering is True:
-                img = preprocess_rendering(img, grayscale=grayscale_rendering, normalize=normalize_rendering)
+                img = preprocess_rendering(
+                    img, grayscale=grayscale_rendering, normalize=normalize_rendering
+                )
 
             rendering_ts.append(jnp.array(img))
 
@@ -217,7 +219,7 @@ def rollout_ode_with_latent_space_control(
     n_tau = input_dim
     # time step
     dt = ts[1] - ts[0]
-    
+
     # initial control state
     if control_state_init is None:
         control_state_init = dict()
@@ -275,7 +277,9 @@ def rollout_ode_with_latent_space_control(
 
         # render the image
         img_curr = rendering_fn(onp.array(q_curr))
-        img_curr = preprocess_rendering(img_curr, grayscale=grayscale_rendering, normalize=normalize_rendering)
+        img_curr = preprocess_rendering(
+            img_curr, grayscale=grayscale_rendering, normalize=normalize_rendering
+        )
         # convert image to jax array
         img_curr = jnp.array(img_curr)
 
@@ -288,14 +292,14 @@ def rollout_ode_with_latent_space_control(
                 z_d_curr = jnp.gradient(
                     jnp.stack([carry["xi_prior"][:n_z], z_curr], axis=0),
                     t_curr - t_prior,
-                    axis=0
+                    axis=0,
                 )[0]
             case "image-space-finite-differences":
                 # apply finite differences to the image space to get the image velocity
                 img_d_curr = jnp.gradient(
                     jnp.stack([carry["img_prior"], img_curr], axis=0),
                     t_curr - t_prior,
-                    axis=0
+                    axis=0,
                 )[0].astype(img_curr.dtype)
 
                 # computing the jacobian-vector product is more efficient
@@ -324,7 +328,9 @@ def rollout_ode_with_latent_space_control(
 
         if control_fn is not None:
             # compute the control input
-            tau, control_state, control_info = control_fn(t_curr, xi_curr, carry["control_state"])
+            tau, control_state, control_info = control_fn(
+                t_curr, xi_curr, carry["control_state"]
+            )
             control_info_ts = {f"{k}_ts": v for k, v in control_info.items()}
             step_data = step_data | control_info_ts
         else:
@@ -343,7 +349,7 @@ def rollout_ode_with_latent_space_control(
             t_prior=t_curr,
             img_prior=img_curr,
             xi_prior=xi_curr,
-            control_state=control_state
+            control_state=control_state,
         )
 
         return carry, step_data
@@ -370,7 +376,7 @@ def rollout_ode_with_latent_space_control(
         control_state=control_state_init,
     )
 
-    input_ts = dict(ts=jnp.concatenate([ts[1:], (2*ts[-1] - ts[-2])[None]]))
+    input_ts = dict(ts=jnp.concatenate([ts[1:], (2 * ts[-1] - ts[-2])[None]]))
 
     _sim_ts = []
     for time_idx in (pbar := tqdm(range(input_ts["ts"].shape[0]))):

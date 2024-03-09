@@ -1,4 +1,5 @@
 """pendulum dataset."""
+
 import dataclasses
 import jax.numpy as jnp
 from natsort import natsorted
