@@ -86,14 +86,14 @@ if __name__ == "__main__":
         tf.random.set_seed(seed=seed)
 
         # Sample hyperparameters
-        base_lr = trial.suggest_float("base_lr", 1e-3, 1e-2, log=True)
+        base_lr = trial.suggest_float("base_lr", 1e-3, 2e-2, log=True)
         # loss weights
-        mse_z_weight = trial.suggest_float("mse_z_weight", 1e-2, 5e-1, log=True)
+        mse_z_weight = trial.suggest_float("mse_z_weight", 1e-1, 5e-1, log=True)
         mse_rec_static_weight = 1.0
         mse_rec_dynamic_weight = trial.suggest_float(
-            "mse_rec_dynamic_weight", 1e0, 5e2, log=True
+            "mse_rec_dynamic_weight", 1e0, 1e2, log=True
         )
-        weight_decay = trial.suggest_float("weight_decay", 5e-6, 2e-4, log=True)
+        weight_decay = trial.suggest_float("weight_decay", 5e-6, 5e-5, log=True)
         # latent_velocity_source = trial.suggest_categorical(
         #     "latent_velocity_source",
         #     ["latent-space-finite-differences", "image-space-finite-differences"],
@@ -111,7 +111,7 @@ if __name__ == "__main__":
         num_past_timesteps = 2
 
         if ae_type == "beta_vae":
-            beta = trial.suggest_float("beta", 1e-4, 1e1, log=True)
+            beta = trial.suggest_float("beta", 1e-4, 1e-3, log=True)
             loss_weights["beta"] = beta
         elif ae_type == "wae":
             mmd = trial.suggest_float("mmd", 1e-4, 1e1, log=True)
