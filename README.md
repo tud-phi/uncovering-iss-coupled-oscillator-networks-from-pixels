@@ -46,7 +46,7 @@ tfds build datasets/pendulum --data_dir data/tensorflow_datasets --config single
 ### Planar PCS robot
 
 ```bash
-tfds build datasets/planar_pcs --data_dir data/tensorflow_datasets --config cc_64x64px --overwrite
+tfds build datasets/planar_pcs --data_dir data/tensorflow_datasets --config pcc_ns-2_32x32px_h-101 --overwrite
 ```
 
 ### N-Body problem

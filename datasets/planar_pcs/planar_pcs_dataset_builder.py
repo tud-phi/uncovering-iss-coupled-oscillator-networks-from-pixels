@@ -223,11 +223,11 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             n_q == strain_basis.shape[1]
         ), "Provided state dimension does not match the strain selector / num of segments!"
         assert (
-            n_q == len(self.builder_config.q_max)
-        ), "Provided state dimension does not match the number of provided q_max values!"
+            n_q == len(self.builder_config.q0_max)
+        ), "Provided state dimension does not match the number of provided q0_max values!"
         assert (
-            n_q == len(self.builder_config.q_d_max)
-        ), "Provided state dimension does not match the number of provided q_d_max values!"
+            n_q == len(self.builder_config.q_d0_max)
+        ), "Provided state dimension does not match the number of provided q_d0_max values!"
 
         # initialize the rendering function
         # the line thickness is calibrated for 64x64px images
@@ -248,7 +248,7 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             line_thickness=lw,
         )
 
-        sample_q = jnp.array(self.builder_config.q_max)
+        sample_q = jnp.array(self.builder_config.q0_max)
         # sample_q = jnp.array([0.0])
         sample_img = rendering_fn(sample_q)
         plt.figure(num="Sample rendering")
@@ -257,12 +257,12 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
         plt.show()
 
         # set initial conditions
-        q0_max = jnp.array(self.builder_config.q_max)
-        q_d0_max = jnp.array(self.builder_config.q_d_max)
+        q0_max = jnp.array(self.builder_config.q0_max)
+        q_d0_max = jnp.array(self.builder_config.q_d0_max)
         x0_min = jnp.concatenate([-q0_max, -q_d0_max], axis=0)
         x0_max = jnp.concatenate([q0_max, q_d0_max], axis=0)
 
-        # define maximum torque as some scaling of the steady-state torques acting at (q_max, q_d_max)
+        # define maximum torque as some scaling of the steady-state torques acting at (q0_max, q_d0_max)
         B, C, G, K, D, alpha = dynamical_matrices_fn(
             robot_params, q0_max, jnp.zeros_like(q_d0_max)
         )
