@@ -79,15 +79,15 @@ if long_horizon_dataset:
                 num_mlp_layers, mlp_hidden_dim = 5, 21
                 mlp_nonlinearity_name = "tanh"
             case "node-w-con":
-                n_z = 31
-                base_lr = 0.009938190404896964
+                n_z = 32
+                base_lr = 0.009793849772267547
                 loss_weights = dict(
-                    mse_z=0.3620017113844414,
+                    mse_z=0.40568126085978073,
                     mse_rec_static=1.0,
-                    mse_rec_dynamic=56.14444591986379,
-                    beta=0.00039690417286581515,
+                    mse_rec_dynamic=64.68788840647458,
+                    beta=0.0002437097576124702,
                 )
-                weight_decay = 1.2061088290316314e-05
+                weight_decay = 1.3691415073322272e-05
             case _:
                 raise NotImplementedError(
                     f"beta_vae with dynamics_model_name '{dynamics_model_name}' not implemented yet."
