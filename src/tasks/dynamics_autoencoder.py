@@ -13,6 +13,7 @@ from src.losses.psnr import peak_signal_to_noise_ratio
 from src.losses.ssim import structural_similarity_index
 from src.metrics import RootAverage
 from src.models.dynamics_autoencoder import DynamicsAutoencoder
+from src.models.neural_odes import ConIaeOde
 from src.structs import TaskCallables
 
 
@@ -410,6 +411,19 @@ def task_factory(
         if dynamics_type == "node":
             preds["x_dynamic_ts"] = x_dynamic_pred_bt
 
+        if type(nn_model.dynamics) in [ConIaeOde]:
+            # autoencoder the torque
+
+            def autoencode_input(tau: Array) -> Array:
+                return nn_model.dynamics.apply(
+                    {"params": nn_params["dynamics"]},
+                    tau,
+                    method=nn_model.dynamics.autoencode_input,
+                )
+
+            tau_bt = batch["tau"]
+            preds["tau_pred"] = vmap(autoencode_input)(tau_bt)
+
         return preds
 
     def loss_fn(
@@ -470,6 +484,11 @@ def task_factory(
 
             loss = loss + loss_weights["beta"] * kld_loss
 
+        if type(nn_model.dynamics) in [ConIaeOde]:
+            # autoencoder the torque
+            mse_tau_rec = jnp.mean(jnp.square(preds["tau_pred"] - batch["tau"]))
+            loss = loss + loss_weights.get("mse_tau_rec", 0.0) * mse_tau_rec
+
         return loss, preds
 
     def compute_metrics_fn(
@@ -507,6 +526,11 @@ def task_factory(
                 ),
             )
 
+        if type(nn_model.dynamics) in [ConIaeOde]:
+            batch_loss_dict["mse_tau_rec"] = jnp.mean(
+                jnp.square(preds["tau_pred"] - batch["tau"])
+            )
+
         return batch_loss_dict
 
     task_callables = TaskCallables(
@@ -527,6 +551,9 @@ def task_factory(
         if compute_ssim:
             ssim_rec_static: RootAverage.from_output("ssim_rec_static")
             ssim_rec_dynamic: RootAverage.from_output("ssim_rec_dynamic")
+
+        if type(nn_model.dynamics) in [ConIaeOde]:
+            rmse_tau_rec: RootAverage.from_output("mse_tau_rec")
 
     metrics_collection_cls = MetricsCollection
     return task_callables, metrics_collection_cls

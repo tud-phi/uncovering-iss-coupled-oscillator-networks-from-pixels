@@ -192,6 +192,8 @@ if __name__ == "__main__":
                 use_w_coordinates=dynamics_model_name == "node-w-con",
             )
         elif dynamics_model_name in ["node-con-iae"]:
+            # loss_weights["mse_tau_rec"] = trial.suggest_float("mse_tau_rec_weight", 1e-1, 1e3, log=True)
+            loss_weights["mse_tau_rec"] = 1e1
             num_mlp_layers = trial.suggest_int("num_mlp_layers", 2, 6)
             mlp_hidden_dim = trial.suggest_int("mlp_hidden_dim", 4, 96)
             dynamics_model = ConIaeOde(
