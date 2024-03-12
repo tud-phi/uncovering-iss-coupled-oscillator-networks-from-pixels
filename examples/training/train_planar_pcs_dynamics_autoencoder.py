@@ -48,7 +48,7 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 """
 dynamics_model_name = "node-mechanical-mlp"
 # size of latent space
-n_z = 8
+n_z = 4
 # simulation time step
 sim_dt = 1e-2
 
@@ -67,6 +67,7 @@ if long_horizon_dataset:
     if ae_type == "beta_vae":
         match dynamics_model_name:
             case "node-mechanical-mlp":
+                n_z = 8
                 base_lr = 0.007137268676917664
                 loss_weights = dict(
                     mse_z=0.17701201082200202,
@@ -77,6 +78,16 @@ if long_horizon_dataset:
                 weight_decay = 4.5818408762378344e-05
                 num_mlp_layers, mlp_hidden_dim = 5, 21
                 mlp_nonlinearity_name = "tanh"
+            case "node-w-con":
+                n_z = 31
+                base_lr = 0.009938190404896964
+                loss_weights = dict(
+                    mse_z=0.3620017113844414,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=56.14444591986379,
+                    beta=0.00039690417286581515,
+                )
+                weight_decay = 1.2061088290316314e-05
             case _:
                 raise NotImplementedError(
                     f"beta_vae with dynamics_model_name '{dynamics_model_name}' not implemented yet."
