@@ -74,15 +74,6 @@ class ConIaeOde(NeuralOdeBase):
         # number of params in B_w / B_w_inv matrix
         num_B_w_params = int((self.latent_dim**2 + self.latent_dim) / 2)
 
-        # input-state coupling matrix
-        tmp = tau
-        for _ in range(self.num_layers - 1):
-            tmp = nn.Dense(features=self.hidden_dim)(tmp)
-            tmp = self.input_nonlinearity(tmp)
-        V = nn.Dense(features=(self.latent_dim * self.input_dim))(tmp).reshape(self.latent_dim, self.input_dim)
-        # compute the latent-space input
-        u = V @ tau
-
         # constructing Bw_inv as a positive definite matrix
         b_w_inv = self.param(
             "b_w_inv", tri_params_init, (num_B_w_params,), self.param_dtype
@@ -99,6 +90,9 @@ class ConIaeOde(NeuralOdeBase):
         # the velocity of the latent variables is given in the input
         zw_d = x[..., self.latent_dim :]
 
+        # compute the latent-space input
+        u = self.encode_input(zw, tau)
+
         zw_dd = B_w_inv @ (
             u
             - Lambda_w @ zw
@@ -110,3 +104,26 @@ class ConIaeOde(NeuralOdeBase):
         x_d = jnp.concatenate([zw_d, zw_dd], axis=-1)
 
         return x_d
+
+    def input_state_coupling(self, zw: Array, tau: Array) -> Array:
+        # input-state coupling matrix
+        tmp = jnp.concatenate([zw, tau], axis=-1)
+        for _ in range(self.num_layers - 1):
+            tmp = nn.Dense(features=self.hidden_dim)(tmp)
+            tmp = self.input_nonlinearity(tmp)
+        V = nn.Dense(features=(self.latent_dim * self.input_dim))(tmp).reshape(self.latent_dim, self.input_dim)
+        return V
+
+    def encode_input(self, zw: Array, tau: Array):
+        V = self.input_state_coupling(zw, tau)
+        u = V @ tau
+        return u
+
+    def decode_input(self, zw: Array, u: Array):
+        tmp = jnp.concatenate([zw, u], axis=-1)
+        for _ in range(self.num_layers - 1):
+            tmp = nn.Dense(features=self.hidden_dim)(tmp)
+            tmp = self.input_nonlinearity(tmp)
+        Y = nn.Dense(features=self.input_dim * self.latent_dim)(tmp).reshape(self.input_dim, self.latent_dim)
+        tau = Y @ u
+        return tau
