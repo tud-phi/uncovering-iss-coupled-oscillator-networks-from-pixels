@@ -79,6 +79,17 @@ if long_horizon_dataset:
                 num_mlp_layers, mlp_hidden_dim = 5, 21
                 mlp_nonlinearity_name = "tanh"
             case "node-w-con":
+                """the following params might work even a bit better
+                n_z = 32
+                base_lr = 0.009903075976738526
+                loss_weights = dict(
+                    mse_z=0.35815329016032293,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=61.967763503662795,
+                    beta=0.00041128402956180964,
+                )
+                weight_decay = 1.4235324198580345e-05
+                """
                 n_z = 32
                 base_lr = 0.009793849772267547
                 loss_weights = dict(
