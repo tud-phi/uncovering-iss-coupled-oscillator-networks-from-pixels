@@ -445,7 +445,7 @@ if __name__ == "__main__":
                 metrics_collection_cls=metrics_collection_cls,
                 num_epochs=num_epochs,
                 nn_model=nn_model,
-                init_fn=nn_model.initialize_all_weights,
+                init_fn=nn_model.forward_all_layers,
                 base_lr=base_lr,
                 warmup_epochs=warmup_epochs,
                 weight_decay=weight_decay,
@@ -468,7 +468,7 @@ if __name__ == "__main__":
                 nn_model=nn_model,
                 nn_dummy_input=nn_dummy_input,
                 metrics_collection_cls=metrics_collection_cls,
-                init_fn=nn_model.initialize_all_weights,
+                init_fn=nn_model.forward_all_layers,
             )
 
             print(f"Run testing for n_z={n_z}, seed={seed}...")

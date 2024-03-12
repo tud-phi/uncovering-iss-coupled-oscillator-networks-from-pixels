@@ -222,7 +222,7 @@ if __name__ == "__main__":
         nn_model=nn_model,
         nn_dummy_input=nn_dummy_input,
         metrics_collection_cls=metrics_collection_cls,
-        init_fn=nn_model.initialize_all_weights,
+        init_fn=nn_model.forward_all_layers,
     )
 
     print("Run testing...")

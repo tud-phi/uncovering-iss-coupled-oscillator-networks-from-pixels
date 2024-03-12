@@ -22,7 +22,7 @@ class DynamicsAutoencoder(nn.Module):
     def decode(self, *args, **kwargs):
         return self.autoencoder.decode(*args, **kwargs)
 
-    def initialize_all_weights(self, *args, **kwargs):
+    def forward_all_layers(self, *args, **kwargs):
         z_bt = self.encode(*args, **kwargs)
         self.decode(z_bt)
 
@@ -31,13 +31,13 @@ class DynamicsAutoencoder(nn.Module):
             tau_bt = jnp.zeros_like(
                 x_bt, shape=(z_bt.shape[0], self.dynamics.input_dim)
             )
-            x_d_bt = vmap(
-                self.forward_dynamics,
+            _ = vmap(
+                self.dynamics.forward_all_layers,
             )(x_bt, tau_bt)
         elif self.dynamics_type == "discrete":
             z_ts = z_bt[: self.num_past_timesteps]
             tau = jnp.zeros_like(z_ts, shape=(self.dynamics.input_dim,))
-            z_next = self.forward_dynamics(z_ts.flatten(), tau)
+            _ = self.dynamics.forward_all_layers(z_ts.flatten(), tau)
 
     def encode_vae(self, *args, **kwargs):
         return self.autoencoder.encode_vae(*args, **kwargs)
@@ -46,4 +46,4 @@ class DynamicsAutoencoder(nn.Module):
         return self.autoencoder.reparameterize(*args, **kwargs)
 
     def forward_dynamics(self, *args, **kwargs):
-        return self.dynamics(*args, **kwargs)
+        return self.dynamics.forward_dynamics(*args, **kwargs)

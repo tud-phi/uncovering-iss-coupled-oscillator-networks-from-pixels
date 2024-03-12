@@ -350,7 +350,7 @@ if __name__ == "__main__":
             metrics_collection_cls=metrics_collection_cls,
             num_epochs=max_num_epochs,
             nn_model=nn_model,
-            init_fn=nn_model.initialize_all_weights,
+            init_fn=nn_model.forward_all_layers,
             base_lr=base_lr,
             warmup_epochs=warmup_epochs,
             weight_decay=weight_decay,
