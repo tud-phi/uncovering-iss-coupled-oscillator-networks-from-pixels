@@ -48,7 +48,7 @@ tf.config.experimental.set_visible_devices([], "GPU")
 
 # set sweep settings
 # set the range of latent dimensions
-n_z_range = onp.arange(2, 32, 2)
+n_z_range = onp.arange(2, 34, 2)
 # set the range of random seeds
 seed_range = onp.array([0])
 
