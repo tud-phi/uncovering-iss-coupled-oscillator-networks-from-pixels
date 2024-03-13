@@ -3,7 +3,7 @@ from functools import partial
 import jax
 
 jax.config.update("jax_enable_x64", True)
-jax.config.update("jax_platform_name", "cpu")  # set default device to 'cpu'
+# jax.config.update("jax_platform_name", "cpu")  # set default device to 'cpu'
 from jax import Array, jit, random
 import jax.numpy as jnp
 import jsrm
@@ -56,9 +56,9 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
 ]
 """
-dynamics_model_name = "node-mechanical-mlp"
+dynamics_model_name = "node-w-con"
 # latent space shape
-n_z = 4
+n_z = 30
 # simulation time step
 sim_dt = None
 
@@ -79,6 +79,8 @@ if long_horizon_dataset:
             experiment_id = "2024-03-08_10-42-05"
             num_mlp_layers, mlp_hidden_dim = 5, 21
             mlp_nonlinearity_name = "tanh"
+        case "node-w-con":
+            experiment_id = f"2024-03-12_12-53-29/n_z_{n_z}_seed_{seed}"
         case _:
             raise ValueError(
                 f"No experiment_id for dynamics_model_name={dynamics_model_name}"

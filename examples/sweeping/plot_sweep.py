@@ -10,11 +10,15 @@ import numpy as onp
 from pathlib import Path
 
 """
+Short horizon dataset: 
 node-mechanical-mlp: sweep_id = "2024-02-19_10-42-33"
 node-mechanical-mlp-s: sweep_id = "2024-02-21_09-03-52"
 node-w-con: sweep_id = "2024-02-19_00-38-28"
+
+Long horizon dataset:
+node-w-con: sweep_id = "2024-03-12_12-53-29"
 """
-sweep_id = "2024-02-21_09-03-52"
+sweep_id = "2024-03-12_12-53-29"
 
 # plotting settings
 figsize = (8, 6)
