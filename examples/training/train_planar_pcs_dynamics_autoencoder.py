@@ -19,6 +19,7 @@ from src.models.discrete_forward_dynamics import (
 )
 from src.models.neural_odes import (
     ConOde,
+    ConIaeOde,
     CornnOde,
     LnnOde,
     LinearStateSpaceOde,
@@ -42,7 +43,9 @@ system_type = "pcc_ns-2"
 long_horizon_dataset = True
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 """ dynamics_model_name in [
-    "node-general-mlp", "node-mechanical-mlp", "node-cornn", "node-con", "node-w-con", "node-lnn", "node-hippo-lss", "node-mamba",
+    "node-general-mlp", "node-mechanical-mlp", "node-mechanical-mlp-s", 
+    "node-cornn", "node-con", "node-w-con", "node-con-iae", "node-dcon", "node-lnn", 
+    "node-hippo-lss", "node-mamba",
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
 ]
 """
@@ -99,6 +102,18 @@ if long_horizon_dataset:
                     beta=0.0002437097576124702,
                 )
                 weight_decay = 1.3691415073322272e-05
+            case "node-con-iae":
+                # optimized for n_z=8
+                base_lr = 0.018486990918444367
+                loss_weights = dict(
+                    mse_z=0.3733687489479885,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=83.7248326772002,
+                    beta=0.00020068384639167935,
+                    mse_tau_rec=1e1,
+                )
+                weight_decay = 5.5340117045438595e-06
+                num_mlp_layers, mlp_hidden_dim = 5, 30
             case _:
                 raise NotImplementedError(
                     f"beta_vae with dynamics_model_name '{dynamics_model_name}' not implemented yet."
@@ -320,6 +335,13 @@ if __name__ == "__main__":
             latent_dim=n_z,
             input_dim=n_tau,
             use_w_coordinates=dynamics_model_name == "node-w-con",
+        )
+    elif dynamics_model_name in ["node-con-iae"]:
+        dynamics_model = ConIaeOde(
+            latent_dim=n_z,
+            input_dim=n_tau,
+            num_layers=num_mlp_layers,
+            hidden_dim=mlp_hidden_dim,
         )
     elif dynamics_model_name == "node-lnn":
         dynamics_model = LnnOde(
