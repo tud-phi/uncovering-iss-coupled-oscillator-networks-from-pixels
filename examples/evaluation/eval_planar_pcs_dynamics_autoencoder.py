@@ -3,7 +3,7 @@ from functools import partial
 import jax
 
 jax.config.update("jax_enable_x64", True)
-# jax.config.update("jax_platform_name", "cpu")  # set default device to 'cpu'
+jax.config.update("jax_platform_name", "cpu")  # set default device to 'cpu'
 from jax import Array, jit, random
 import jax.numpy as jnp
 import jsrm
@@ -23,6 +23,7 @@ from src.models.discrete_forward_dynamics import (
 )
 from src.models.neural_odes import (
     ConOde,
+    ConIaeOde,
     CornnOde,
     LnnOde,
     LinearStateSpaceOde,
@@ -52,13 +53,15 @@ system_type = "pcc_ns-2"
 long_horizon_dataset = True
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 """ dynamics_model_name in [
-    "node-general-mlp", "node-mechanical-mlp", "node-cornn", "node-con", "node-w-con", "node-lnn", "node-hippo-lss", "node-mamba",
+    "node-general-mlp", "node-mechanical-mlp", "node-mechanical-mlp-s", 
+    "node-cornn", "node-con", "node-w-con", "node-con-iae", "node-dcon", "node-lnn", 
+    "node-hippo-lss", "node-mamba",
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
 ]
 """
-dynamics_model_name = "node-w-con"
+dynamics_model_name = "node-con-iae"
 # latent space shape
-n_z = 30
+n_z = 8
 # simulation time step
 sim_dt = None
 
@@ -81,6 +84,9 @@ if long_horizon_dataset:
             mlp_nonlinearity_name = "tanh"
         case "node-w-con":
             experiment_id = f"2024-03-12_12-53-29/n_z_{n_z}_seed_{seed}"
+        case "node-con-iae":
+            experiment_id = f"2024-03-15_21-44-34/n_z_{n_z}_seed_{seed}"
+            num_mlp_layers, mlp_hidden_dim = 5, 30
         case _:
             raise ValueError(
                 f"No experiment_id for dynamics_model_name={dynamics_model_name}"
@@ -221,6 +227,13 @@ if __name__ == "__main__":
             latent_dim=n_z,
             input_dim=n_tau,
             use_w_coordinates=dynamics_model_name == "node-w-con",
+        )
+    elif dynamics_model_name in ["node-con-iae"]:
+        dynamics_model = ConIaeOde(
+            latent_dim=n_z,
+            input_dim=n_tau,
+            num_layers=num_mlp_layers,
+            hidden_dim=mlp_hidden_dim,
         )
     elif dynamics_model_name == "node-lnn":
         dynamics_model = LnnOde(
