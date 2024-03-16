@@ -58,12 +58,12 @@ long_horizon_dataset = True
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 """ dynamics_model_name in [
     "node-general-mlp", "node-mechanical-mlp", "node-mechanical-mlp-s", 
-    "node-cornn", "node-con", "node-w-con", "node-con-iae", "node-dcon", "node-lnn", 
+    "node-cornn", "node-con", "node-w-con", "node-con-iae",  "node-con-iae-s", "node-dcon", "node-lnn", 
     "node-hippo-lss", "node-mamba",
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
 ]
 """
-dynamics_model_name = "node-w-con"
+dynamics_model_name = "node-con-iae"
 # simulation time step
 sim_dt = 1e-2
 
@@ -103,7 +103,7 @@ if long_horizon_dataset:
                     beta=0.0002437097576124702,
                 )
                 weight_decay = 1.3691415073322272e-05
-            case "node-con-iae":
+            case "node-con-iae" | "node-con-iae-s":
                 # optimized for n_z=8
                 base_lr = 0.018486990918444367
                 loss_weights = dict(
@@ -111,10 +111,13 @@ if long_horizon_dataset:
                     mse_rec_static=1.0,
                     mse_rec_dynamic=83.7248326772002,
                     beta=0.00020068384639167935,
-                    mse_tau_rec=1e1,
+                    mse_tau_rec=5e1,
                 )
                 weight_decay = 5.5340117045438595e-06
-                num_mlp_layers, mlp_hidden_dim = 5, 30
+                if dynamics_model_name == "node-con-iae-s":
+                    num_mlp_layers, mlp_hidden_dim = 2, 12
+                else:
+                    num_mlp_layers, mlp_hidden_dim = 5, 30
             case _:
                 raise NotImplementedError(
                     f"beta_vae with dynamics_model_name '{dynamics_model_name}' not implemented yet."
@@ -370,8 +373,7 @@ if __name__ == "__main__":
                     input_dim=n_tau,
                     use_w_coordinates=dynamics_model_name == "node-w-con",
                 )
-            elif dynamics_model_name in ["node-con-iae"]:
-                loss_weights["mse_tau_rec"] = 1e1
+            elif dynamics_model_name in ["node-con-iae", "node-con-iae-s"]:
                 dynamics_model = ConIaeOde(
                     latent_dim=n_z,
                     input_dim=n_tau,
