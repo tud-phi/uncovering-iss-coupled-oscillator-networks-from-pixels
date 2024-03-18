@@ -54,7 +54,7 @@ long_horizon_dataset = True
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 """ dynamics_model_name in [
     "node-general-mlp", "node-mechanical-mlp", "node-mechanical-mlp-s", 
-    "node-cornn", "node-con", "node-w-con", "node-con-iae", "node-dcon", "node-lnn", 
+    "node-cornn", "node-con", "node-w-con", "node-con-iae", "node-con-iae-s", "node-dcon", "node-lnn", 
     "node-hippo-lss", "node-mamba",
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
 ]
@@ -87,6 +87,9 @@ if long_horizon_dataset:
         case "node-con-iae":
             experiment_id = f"2024-03-15_21-44-34/n_z_{n_z}_seed_{seed}"
             num_mlp_layers, mlp_hidden_dim = 5, 30
+        case "node-con-iae-s":
+            experiment_id = f"2024-03-17_22-26-44/n_z_{n_z}_seed_{seed}"
+            num_mlp_layers, mlp_hidden_dim = 2, 12
         case _:
             raise ValueError(
                 f"No experiment_id for dynamics_model_name={dynamics_model_name}"
@@ -228,7 +231,7 @@ if __name__ == "__main__":
             input_dim=n_tau,
             use_w_coordinates=dynamics_model_name == "node-w-con",
         )
-    elif dynamics_model_name in ["node-con-iae"]:
+    elif dynamics_model_name in ["node-con-iae", "node-con-iae-s"]:
         dynamics_model = ConIaeOde(
             latent_dim=n_z,
             input_dim=n_tau,
