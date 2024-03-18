@@ -420,15 +420,17 @@ if __name__ == "__main__":
         show=True,
     )
 
-    if dynamics_model_name in ["node-con", "node-w-con"]:
-        # plot the energy over time
-        fig, ax = plt.subplots(1, 1, figsize=(8, 6), num="Energy vs. time")
-        V_ts = jax.vmap(
-            partial(
-                dynamics_model_bound.energy_fn,
+    energy_fn = getattr(dynamics_model_bound, "energy_fn", None)
+    if callable(energy_fn):
+        if type(dynamics_model) is ConOde:
+            energy_fn = partial(
+                energy_fn,
                 coordinate="zw" if dynamics_model_bound.use_w_coordinates else "z",
             )
-        )(xi_ts)
+
+        # plot the energy over time
+        fig, ax = plt.subplots(1, 1, figsize=(8, 6), num="Energy vs. time")
+        V_ts = jax.vmap(energy_fn)(xi_ts)
         ax.plot(ts_rollout[start_time_idx:], V_ts, label="Energy")
         ax.set_xlabel("Time [s]")
         ax.set_ylabel("Energy")
