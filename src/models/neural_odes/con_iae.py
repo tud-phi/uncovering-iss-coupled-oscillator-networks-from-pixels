@@ -170,3 +170,67 @@ class ConIaeOde(NeuralOdeBase):
         V = T + U
 
         return V
+   
+    def setpoint_regulation_control_fn(
+        self,
+        x: Array,
+        control_state: Dict[str, Array],
+        dt: Union[float, Array],
+        z_des: Array,
+        kp: Union[float, Array] = 0.0,
+        ki: Union[float, Array] = 0.0,
+        kd: Union[float, Array] = 0.0,
+        gamma: Union[float, Array] = 1.0,
+    ) -> Tuple[Array, Dict[str, Array], Dict[str, Array]]:
+        """
+        P-satI-D feedback together with potential force compensation in the latent (w) variables.
+        Args:
+            x: latent state of shape (2* latent_dim, )
+            control_state: dictionary with the controller's stateful information. Contains entry with key "e_int" for the integral error.
+            dt: time step
+            z_des: desired latent state of shape (latent_dim, )
+            kp: proportional gain. Scalar or array of shape (latent_dim, )
+            ki: integral gain. Scalar or array of shape (latent_dim, )
+            kd: derivative gain. Scalar or array of shape (latent_dim, )
+            gamma: horizontal compression factor of the hyperbolic tangent. Array of shape () or (latent_dim, )
+        Returns:
+            tau: control input
+            control_state: dictionary with the controller's stateful information. Contains entry with key "e_int" for the integral error.
+            control_info: dictionary with control information
+        """
+        zw = x[..., : self.latent_dim]
+        zw_d = x[..., self.latent_dim :]
+
+        # compute error in the latent space
+        error_z = z_des - zw
+
+        # compute the feedback term
+        u_fb = kp * error_z + ki * control_state["e_int"] - kd * zw_d
+
+        # compute the feedforward term
+        u_ff = self.Lambda_w @ z_des + jnp.tanh(
+            z_des + self.bias
+        )
+
+        # compute the torque in latent space
+        u = jnp.zeros_like(z_des)
+        if self.apply_feedforward_term:
+            u = u + u_ff
+        if self.apply_feedback_term:
+            u = u + u_fb
+
+        # decode the control input into the input space
+        tau = self.decode_input(u)
+
+        # update the integral error
+        control_state["e_int"] += jnp.tanh(gamma * error_z) * dt
+
+        control_info = dict(
+            tau=tau,
+            tau_z=u,
+            tau_z_ff=u_ff,
+            tau_z_fb=u_fb,
+            e_int=control_state["e_int"],
+        )
+
+        return tau, control_state, control_info
