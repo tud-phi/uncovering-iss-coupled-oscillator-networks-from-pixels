@@ -20,6 +20,7 @@ import warnings
 from src.models.autoencoders import Autoencoder, VAE
 from src.models.neural_odes import (
     ConOde,
+    ConIaeOde,
     CornnOde,
     LnnOde,
     LinearStateSpaceOde,
@@ -44,6 +45,7 @@ rng = random.PRNGKey(seed=seed)
 tf.random.set_seed(seed=seed)
 
 system_type = "pcc_ns-2"
+long_horizon_dataset = True
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 dynamics_model_name = "node-w-con"
 # latent space shape
@@ -89,25 +91,45 @@ norm_layer = nn.LayerNorm
 cornn_gamma, cornn_epsilon = 1.0, 1.0
 lnn_learn_dissipation = True
 diag_shift, diag_eps = 1e-6, 2e-6
-if ae_type == "wae":
-    raise NotImplementedError
-elif ae_type == "beta_vae":
-    if dynamics_model_name == "node-con":
-        experiment_id = "2024-02-14_18-34-27"
-    elif dynamics_model_name == "node-w-con":
-        if n_z == 8:
-            experiment_id = "2024-02-21_13-34-53"
-        elif n_z == 2:
-            experiment_id = "2024-02-22_14-11-21"
-        else:
-            raise ValueError(f"No experiment_id for n_z={n_z}")
-        experiment_id = "2024-02-22_15-01-40"
-    else:
-        raise NotImplementedError(
-            f"beta_vae with node_type '{dynamics_model_name}' not implemented yet."
-        )
+if long_horizon_dataset:
+    match dynamics_model_name:
+        case "node-mechanical-mlp":
+            n_z = 8
+            experiment_id = "2024-03-08_10-42-05"
+            num_mlp_layers, mlp_hidden_dim = 5, 21
+            mlp_nonlinearity_name = "tanh"
+        case "node-w-con":
+            experiment_id = f"2024-03-12_12-53-29/n_z_{n_z}_seed_{seed}"
+        case "node-con-iae":
+            experiment_id = f"2024-03-15_21-44-34/n_z_{n_z}_seed_{seed}"
+            num_mlp_layers, mlp_hidden_dim = 5, 30
+        case "node-con-iae-s":
+            experiment_id = f"2024-03-17_22-26-44/n_z_{n_z}_seed_{seed}"
+            num_mlp_layers, mlp_hidden_dim = 2, 12
+        case _:
+            raise ValueError(
+                f"No experiment_id for dynamics_model_name={dynamics_model_name}"
+            )
 else:
-    raise NotImplementedError
+    if ae_type == "wae":
+        raise NotImplementedError
+    elif ae_type == "beta_vae":
+        if dynamics_model_name == "node-con":
+            experiment_id = "2024-02-14_18-34-27"
+        elif dynamics_model_name == "node-w-con":
+            if n_z == 8:
+                experiment_id = "2024-02-21_13-34-53"
+            elif n_z == 2:
+                experiment_id = "2024-02-22_14-11-21"
+            else:
+                raise ValueError(f"No experiment_id for n_z={n_z}")
+            experiment_id = "2024-02-22_15-01-40"
+        else:
+            raise NotImplementedError(
+                f"beta_vae with node_type '{dynamics_model_name}' not implemented yet."
+            )
+    else:
+        raise NotImplementedError
 
 # identify the number of segments
 if system_type == "cc":
@@ -137,8 +159,12 @@ colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
 
 if __name__ == "__main__":
+    if long_horizon_dataset:
+        dataset_name = f"planar_pcs/{system_type}_32x32px_h-101"
+    else:
+        dataset_name = f"planar_pcs/{system_type}_32x32px"
     datasets, dataset_info, dataset_metadata = load_dataset(
-        f"planar_pcs/{system_type}_32x32px",
+        dataset_name,
         seed=seed,
         batch_size=batch_size,
         normalize=True,
@@ -203,6 +229,13 @@ if __name__ == "__main__":
             use_w_coordinates=dynamics_model_name == "node-w-con",
             apply_feedforward_term=apply_feedforward_term,
             apply_feedback_term=apply_feedback_term,
+        )
+    elif dynamics_model_name in ["node-con-iae", "node-con-iae-s"]:
+        dynamics_model = ConIaeOde(
+            latent_dim=n_z,
+            input_dim=n_tau,
+            num_layers=num_mlp_layers,
+            hidden_dim=mlp_hidden_dim,
         )
     else:
         raise ValueError(f"Unknown dynamics_model_name: {dynamics_model_name}")
@@ -412,23 +445,43 @@ if __name__ == "__main__":
         q_grid = jnp.stack([q1_grid, q2_grid], axis=-1)
         U_grid = jnp.zeros(q_grid.shape[:2])
         tau_pot_grid = jnp.zeros(q_grid.shape[:2] + (n_tau,))
-        terms = dynamics_model_bound.get_terms(coordinate="zeta")
-        for i in range(q_grid.shape[0]):
-            for j in range(q_grid.shape[1]):
-                q = q_grid[i, j]
-                img = rendering_fn(q)
-                img = jnp.array(
-                    preprocess_rendering(img, grayscale=True, normalize=True)
-                )
-                z = nn_model_bound.encode(img[None, ...])[0, ...]
-                zeta = terms["J_h"] @ terms["J_w"] @ z
-                xi = jnp.concatenate([zeta, jnp.zeros((n_z,))])
-                U = dynamics_model_bound.energy_fn(xi, coordinate="zeta")
-                tau_pot = -grad(
-                    partial(dynamics_model_bound.energy_fn, coordinate="zeta")
-                )(xi)[..., :n_tau]
-                U_grid = U_grid.at[i, j].set(U)
-                tau_pot_grid = tau_pot_grid.at[i, j, :].set(tau_pot)
+
+        match dynamics_model_name:
+            case "node-con" | "node-w-con":
+                terms = dynamics_model_bound.get_terms(coordinate="zeta")
+                for i in range(q_grid.shape[0]):
+                    for j in range(q_grid.shape[1]):
+                        q = q_grid[i, j]
+                        img = rendering_fn(q)
+                        img = jnp.array(
+                            preprocess_rendering(img, grayscale=True, normalize=True)
+                        )
+                        z = nn_model_bound.encode(img[None, ...])[0, ...]
+                        zeta = terms["J_h"] @ terms["J_w"] @ z
+                        xi = jnp.concatenate([zeta, jnp.zeros((n_z,))])
+                        U = dynamics_model_bound.energy_fn(xi, coordinate="zeta")
+                        tau_pot = -grad(
+                            partial(dynamics_model_bound.energy_fn, coordinate="zeta")
+                        )(xi)[..., :n_tau]
+                        U_grid = U_grid.at[i, j].set(U)
+                        tau_pot_grid = tau_pot_grid.at[i, j, :].set(tau_pot)
+            case "node-con-iae" | "node-con-iae-s":
+                for i in range(q_grid.shape[0]):
+                    for j in range(q_grid.shape[1]):
+                        q = q_grid[i, j]
+                        img = rendering_fn(q)
+                        img = jnp.array(
+                            preprocess_rendering(img, grayscale=True, normalize=True)
+                        )
+                        z = nn_model_bound.encode(img[None, ...])[0, ...]
+                        xi = jnp.concatenate([z, jnp.zeros((n_z,))])
+                        U = dynamics_model_bound.energy_fn(xi)
+                        tau_pot = -grad(dynamics_model_bound.energy_fn)(xi)[..., :n_tau]
+                        U_grid = U_grid.at[i, j].set(U)
+                        tau_pot_grid = tau_pot_grid.at[i, j, :].set(tau_pot)
+            case _:
+                raise ValueError(f"Unknown dynamics_model_name: {dynamics_model_name}")
+
         fig, axes = plt.subplots(
             1,
             2,
@@ -720,20 +773,23 @@ if __name__ == "__main__":
     plt.savefig(ckpt_dir / "ff_fb_torques_vs_time.pdf")
     plt.show()
 
-    # plot the energy over time
-    fig, ax = plt.subplots(1, 1, figsize=figsize, num="Energy vs time")
-    V_ts = jax.vmap(
-        partial(
-            dynamics_model_bound.energy_fn,
-            coordinate="zw" if dynamics_model_bound.use_w_coordinates else "z",
-        )
-    )(xi_ts)
-    ax.plot(ts, V_ts, color=colors[0], label="Energy")
-    ax.set_xlabel("Time [s]")
-    ax.set_ylabel("Energy")
-    ax.set_title("Energy vs. time")
-    ax.legend()
-    plt.grid(True)
-    plt.box(True)
-    plt.savefig(ckpt_dir / "energy_vs_time.pdf")
-    plt.show()
+    energy_fn = getattr(dynamics_model_bound, "energy_fn", None)
+    if callable(energy_fn):
+        if type(dynamics_model) is ConOde:
+            energy_fn = partial(
+                energy_fn,
+                coordinate="zw" if dynamics_model_bound.use_w_coordinates else "z",
+            )
+
+        # plot the energy over time
+        fig, ax = plt.subplots(1, 1, figsize=figsize, num="Energy vs time")
+        V_ts = jax.vmap(energy_fn)(xi_ts)
+        ax.plot(ts, V_ts, color=colors[0], label="Energy")
+        ax.set_xlabel("Time [s]")
+        ax.set_ylabel("Energy")
+        ax.set_title("Energy vs. time")
+        ax.legend()
+        plt.grid(True)
+        plt.box(True)
+        plt.savefig(ckpt_dir / "energy_vs_time.pdf")
+        plt.show()
