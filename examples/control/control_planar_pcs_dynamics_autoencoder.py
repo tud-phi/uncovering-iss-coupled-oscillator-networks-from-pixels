@@ -487,7 +487,7 @@ if __name__ == "__main__":
                 dynamics_model_bound.setpoint_regulation_collocated_form_fn
             )
         else:
-            setpoint_regulation_fn = dynamics_model_bound.setpoint_regulation_control_fn
+            setpoint_regulation_fn = dynamics_model_bound.setpoint_regulation_fn
         tau, control_state, control_info = setpoint_regulation_fn(
             x,
             control_state,

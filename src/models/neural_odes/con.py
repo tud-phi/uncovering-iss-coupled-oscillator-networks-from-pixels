@@ -312,7 +312,7 @@ class ConOde(NeuralOdeBase):
 
         return V
 
-    def setpoint_regulation_control_fn(
+    def setpoint_regulation_fn(
         self,
         x: Array,
         control_state: Dict[str, Array],
