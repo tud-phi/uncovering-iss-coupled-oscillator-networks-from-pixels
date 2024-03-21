@@ -111,7 +111,7 @@ class NBodyProblem(tfds.core.GeneratorBasedBuilder):
         # lazy imports
         cv2 = tfds.core.lazy_imports.cv2
         jax = tfds.core.lazy_imports.jax
-        jax.config.update("jax_platforms", ["cpu"])  # set default device to 'cpu'
+        jax.config.update("jax_platforms", "cpu")  # set default device to 'cpu'
         jax.config.update("jax_enable_x64", True)  # double precision
         jnp = tfds.core.lazy_imports.jax.numpy
         plt = tfds.core.lazy_imports.matplotlib.pyplot

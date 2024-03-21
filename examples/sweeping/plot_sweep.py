@@ -1,7 +1,7 @@
 import dill
 import jax
 
-jax.config.update("jax_platforms", ["cpu"])  # set default device to 'cpu'
+jax.config.update("jax_platforms", "cpu")  # set default device to 'cpu'
 jax.config.update("jax_enable_x64", True)
 from jax import random
 import jax.numpy as jnp
