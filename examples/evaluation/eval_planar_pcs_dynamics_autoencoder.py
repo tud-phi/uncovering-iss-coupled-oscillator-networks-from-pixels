@@ -3,7 +3,7 @@ from functools import partial
 import jax
 
 jax.config.update("jax_enable_x64", True)
-jax.config.update("jax_platform_name", "cpu")  # set default device to 'cpu'
+jax.config.update("jax_platforms", ["cpu"])  # set default device to 'cpu'
 from jax import Array, jit, random
 import jax.numpy as jnp
 import jsrm
@@ -59,9 +59,9 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
 ]
 """
-dynamics_model_name = "node-con-iae"
+dynamics_model_name = "node-con-iae-s"
 # latent space shape
-n_z = 8
+n_z = 30
 # simulation time step
 sim_dt = None
 

@@ -58,7 +58,7 @@ n_z = 8
 # simulation time step
 sim_dt = 1e-2
 
-# identify the number of segments
+# identify the number of bodies
 num_bodies = int(system_type.split("-")[-1])
 print(f"Number of segments: {num_bodies}")
 

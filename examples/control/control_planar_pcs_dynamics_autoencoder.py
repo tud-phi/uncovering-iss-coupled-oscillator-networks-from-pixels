@@ -4,7 +4,7 @@ from functools import partial
 import jax
 
 jax.config.update("jax_enable_x64", True)
-jax.config.update("jax_platform_name", "cpu")  # set default device to 'cpu'
+jax.config.update("jax_platforms", ["cpu"])  # set default device to 'cpu'
 from jax import Array, grad, jit, random
 import jax.numpy as jnp
 import jsrm
@@ -47,13 +47,13 @@ tf.random.set_seed(seed=seed)
 system_type = "pcc_ns-2"
 long_horizon_dataset = True
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
-dynamics_model_name = "node-w-con"
+dynamics_model_name = "node-con-iae"
 # latent space shape
 n_z = 8
 # number of configuration space dimensions
 n_q = 2
 # whether to use real or learned dynamics
-simulate_with_learned_dynamics = False
+simulate_with_learned_dynamics = True
 
 # simulation settings
 sim_duration = 10.0  # s
@@ -65,7 +65,7 @@ q_des = jnp.pi * jnp.array([-1.0, 0.5])
 # control settings
 apply_feedforward_term = True
 apply_feedback_term = True
-use_collocated_form = True
+use_collocated_form = False
 # gains
 if simulate_with_learned_dynamics:
     if n_z == 2:

@@ -1,7 +1,7 @@
 import dill
 import jax
 
-jax.config.update("jax_platform_name", "cpu")  # set default device to 'cpu'
+jax.config.update("jax_platforms", ["cpu"])  # set default device to 'cpu'
 jax.config.update("jax_enable_x64", True)
 from jax import random
 import jax.numpy as jnp
@@ -20,7 +20,7 @@ node-w-con: sweep_id = "2024-03-12_12-53-29"
 node-con-iae: sweep_id = "2024-03-15_21-44-34"
 node-con-iae-s: sweep_id = "2024-03-17_22-26-44"
 """
-sweep_id = "2024-03-15_21-44-34"
+sweep_id = "2024-03-17_22-26-44"
 
 # plotting settings
 figsize = (8, 6)
