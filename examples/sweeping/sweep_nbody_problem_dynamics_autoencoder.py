@@ -7,7 +7,6 @@ import jax
 jax.config.update("jax_enable_x64", True)
 from jax import random
 import jax.numpy as jnp
-import jsrm
 import numpy as onp
 from pathlib import Path
 import tensorflow as tf
