@@ -10,24 +10,27 @@ import numpy as onp
 from pathlib import Path
 
 """
+# Planar PCS with two segments
 Short horizon dataset: 
 node-mechanical-mlp: sweep_id = "2024-02-19_10-42-33"
 node-mechanical-mlp-s: sweep_id = "2024-02-21_09-03-52"
 node-w-con: sweep_id = "2024-02-19_00-38-28"
-
 Long horizon dataset:
 node-w-con: sweep_id = "2024-03-12_12-53-29"
 node-con-iae: sweep_id = "2024-03-15_21-44-34"
 node-con-iae-s: sweep_id = "2024-03-17_22-26-44"
+# 2-body problem
+node-mechanical-mlp: sweep_id = "2024-03-20_21-13-37"
 """
-sweep_id = "2024-03-17_22-26-44"
+sweep_id = "2024-03-20_21-13-37"
+system_type = "pcc_ns-2"  # "pcc_ns-2" or "nb-2"
 
 # plotting settings
 figsize = (8, 6)
 
 
 def main():
-    sweep_folder = Path("logs") / "pcc_ns-2_dynamics_autoencoder" / sweep_id
+    sweep_folder = Path("logs") / f"{system_type}_dynamics_autoencoder" / sweep_id
     with open(sweep_folder / "sweep_results.dill", "rb") as file:
         sweep_results = dill.load(file)
 
