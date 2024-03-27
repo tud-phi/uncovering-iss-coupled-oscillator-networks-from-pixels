@@ -148,7 +148,7 @@ class NBodyProblem(tfds.core.GeneratorBasedBuilder):
         metadata["rendering"] = {
             "width": self.builder_config.img_size[0],
             "height": self.builder_config.img_size[1],
-            "body_radii": 0.04
+            "body_radii": 0.08
             * min(self.builder_config.img_size)
             * jnp.ones((num_bodies,)),
             "body_colors": body_colors,
@@ -228,5 +228,5 @@ class NBodyProblem(tfds.core.GeneratorBasedBuilder):
             x_min=x_min,
             x_max=x_max,
             save_raw_data=False,
-            animate_trajectory=False,
+            animate_trajectory=True,
         )
