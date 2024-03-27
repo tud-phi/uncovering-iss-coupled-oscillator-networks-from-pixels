@@ -152,13 +152,15 @@ class NBodyProblem(tfds.core.GeneratorBasedBuilder):
             * min(self.builder_config.img_size)
             * jnp.ones((num_bodies,)),
             "body_colors": body_colors,
+            "x_min": jnp.min(-q_max.reshape(num_bodies, -1), axis=0),
+            "x_max": jnp.max(q_max.reshape(num_bodies, -1), axis=0),
         }
         rendering_fn = partial(
             render_n_body,
             width=self.builder_config.img_size[0],
             height=self.builder_config.img_size[1],
-            x_min=jnp.min(-q_max.reshape(num_bodies, -1), axis=0),
-            x_max=jnp.max(q_max.reshape(num_bodies, -1), axis=0),
+            x_min=metadata["rendering"]["x_min"],
+            x_max=metadata["rendering"]["x_max"],
             body_radii=metadata["rendering"]["body_radii"],
             body_colors=metadata["rendering"]["body_colors"],
         )
