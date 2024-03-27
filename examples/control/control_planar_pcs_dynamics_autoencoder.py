@@ -49,7 +49,7 @@ long_horizon_dataset = True
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 dynamics_model_name = "node-con-iae"
 # latent space shape
-n_z = 8
+n_z = 2
 # number of configuration space dimensions
 n_q = 2
 # whether to use real or learned dynamics
@@ -67,24 +67,32 @@ apply_feedforward_term = True
 apply_feedback_term = True
 use_collocated_form = False
 # gains
-if simulate_with_learned_dynamics:
-    if n_z == 2:
-        if apply_feedforward_term is False:
-            kp, ki, kd = 1e-3, 1.3e-1, 5e-3
+match dynamics_model_name:
+    case "node-con" | "node-w-con":
+        if simulate_with_learned_dynamics:
+            if n_z == 2:
+                if apply_feedforward_term is False:
+                    kp, ki, kd = 1e-3, 1.3e-1, 5e-3
+                    psatid_gamma = 1.0
+                else:
+                    kp, ki, kd = 1e-3, 1e-3, 1e-3
+                    psatid_gamma = 1.0
+            else:
+                kp, ki, kd = 0e0, 0e0, 0e-2
+                psatid_gamma = 1.0
+        else:
+            if use_collocated_form:
+                kp, ki, kd = 1e-3, 0e0, 0e0
+                psatid_gamma = 1.0
+            else:
+                kp, ki, kd = 1e0, 2e0, 0e0
+                psatid_gamma = 0.5
+    case "node-con-iae" | "node-con-iae-s":
+        if simulate_with_learned_dynamics:
+            kp, ki, kd = 1e0, 1e0, 0e0
             psatid_gamma = 1.0
         else:
-            kp, ki, kd = 1e-3, 1e-3, 1e-3
-            psatid_gamma = 1.0
-    else:
-        kp, ki, kd = 0e0, 0e0, 0e-2
-        psatid_gamma = 1.0
-else:
-    if use_collocated_form:
-        kp, ki, kd = 1e-3, 0e0, 0e0
-        psatid_gamma = 1.0
-    else:
-        kp, ki, kd = 1e0, 2e0, 0e0
-        psatid_gamma = 0.5
+            raise NotImplementedError
 
 batch_size = 10
 norm_layer = nn.LayerNorm
@@ -174,8 +182,8 @@ if __name__ == "__main__":
 
     # extract the robot parameters from the dataset
     robot_params = dataset_metadata["system_params"]
-    # TODO: move the damping to the controller
-    robot_params["D"] = 5 * robot_params["D"]
+    if long_horizon_dataset is False:
+        robot_params["D"] = 5 * robot_params["D"]
     warnings.warn(
         "The damping parameter D is scaled by 1e1 to improve the numerical stability."
     )
@@ -236,6 +244,8 @@ if __name__ == "__main__":
             input_dim=n_tau,
             num_layers=num_mlp_layers,
             hidden_dim=mlp_hidden_dim,
+            apply_feedforward_term=apply_feedforward_term,
+            apply_feedback_term=apply_feedback_term,
         )
     else:
         raise ValueError(f"Unknown dynamics_model_name: {dynamics_model_name}")
@@ -310,132 +320,175 @@ if __name__ == "__main__":
         )(z[None, ...])[0, ...]
 
     if n_z == 2:
-        # plot the potential energy landscape in the original latent space
-        fig, ax = plt.subplots(
-            1, 1, figsize=figsize, num="Potential energy landscape in z-coordinates"
-        )
-        z1_range = jnp.linspace(-1.0, 1.0, 100)
-        z2_range = jnp.linspace(-1.0, 1.0, 100)
-        z1_grid, z2_grid = jnp.meshgrid(z1_range, z2_range)
-        z_grid = jnp.stack([z1_grid, z2_grid], axis=-1)
-        xi_grid = jnp.concatenate([z_grid, jnp.zeros_like(z_grid)], axis=-1)
-        U_grid = jax.vmap(
-            partial(dynamics_model_bound.energy_fn, coordinate="z"),
-        )(xi_grid.reshape(-1, xi_grid.shape[-1])).reshape(xi_grid.shape[:2])
-        tau_pot_grid = -jax.vmap(
-            grad(partial(dynamics_model_bound.energy_fn, coordinate="z")),
-        )(xi_grid.reshape(-1, xi_grid.shape[-1]))[..., :n_z].reshape(
-            *xi_grid.shape[:2], -1
-        )
-        # contour plot of the potential energy
-        cs = ax.contourf(z1_grid, z2_grid, U_grid, levels=100)
-        # quiver plot of the potential energy gradient
-        qv_skip = 10
-        ax.quiver(
-            z1_grid[::qv_skip, ::qv_skip],
-            z2_grid[::qv_skip, ::qv_skip],
-            tau_pot_grid[::qv_skip, ::qv_skip, 0],
-            tau_pot_grid[::qv_skip, ::qv_skip, 1],
-            angles="xy",
-            scale=None,
-            scale_units="xy",
-            color="white",
-        )
-        plt.colorbar(cs)
-        ax.set_xlabel(r"$z_1$")
-        ax.set_ylabel(r"$z_2$")
-        ax.set_title("Potential energy landscape of learned latent dynamics")
-        plt.grid(True)
-        plt.box(True)
-        plt.savefig(ckpt_dir / "potential_energy_landscape_z.pdf")
-        plt.show()
+        match dynamics_model_name:
+            case "node-con" | "node-w-con":
+                # plot the potential energy landscape in the original latent space
+                fig, ax = plt.subplots(
+                    1, 1, figsize=figsize, num="Potential energy landscape in z-coordinates"
+                )
+                z1_range = jnp.linspace(-1.0, 1.0, 100)
+                z2_range = jnp.linspace(-1.0, 1.0, 100)
+                z1_grid, z2_grid = jnp.meshgrid(z1_range, z2_range)
+                z_grid = jnp.stack([z1_grid, z2_grid], axis=-1)
+                xi_grid = jnp.concatenate([z_grid, jnp.zeros_like(z_grid)], axis=-1)
+                U_grid = jax.vmap(
+                    partial(dynamics_model_bound.energy_fn, coordinate="z"),
+                )(xi_grid.reshape(-1, xi_grid.shape[-1])).reshape(xi_grid.shape[:2])
+                tau_pot_grid = -jax.vmap(
+                    grad(partial(dynamics_model_bound.energy_fn, coordinate="z")),
+                )(xi_grid.reshape(-1, xi_grid.shape[-1]))[..., :n_z].reshape(
+                    *xi_grid.shape[:2], -1
+                )
+                # contour plot of the potential energy
+                cs = ax.contourf(z1_grid, z2_grid, U_grid, levels=100)
+                # quiver plot of the potential energy gradient
+                qv_skip = 10
+                ax.quiver(
+                    z1_grid[::qv_skip, ::qv_skip],
+                    z2_grid[::qv_skip, ::qv_skip],
+                    tau_pot_grid[::qv_skip, ::qv_skip, 0],
+                    tau_pot_grid[::qv_skip, ::qv_skip, 1],
+                    angles="xy",
+                    scale=None,
+                    scale_units="xy",
+                    color="white",
+                )
+                plt.colorbar(cs)
+                ax.set_xlabel(r"$z_1$")
+                ax.set_ylabel(r"$z_2$")
+                ax.set_title("Potential energy landscape of learned latent dynamics")
+                plt.grid(True)
+                plt.box(True)
+                plt.savefig(ckpt_dir / "potential_energy_landscape_z.pdf")
+                plt.show()
 
-        # plot the potential energy in the w-coordinates
-        fig, ax = plt.subplots(
-            1, 1, figsize=figsize, num="Potential energy landscape in zw-coordinates"
-        )
-        zw1_range = jnp.linspace(-1.0, 1.0, 100)
-        zw2_range = jnp.linspace(-1.0, 1.0, 100)
-        zw1_grid, zw2_grid = jnp.meshgrid(zw1_range, zw2_range)
-        zw_grid = jnp.stack([zw1_grid, zw2_grid], axis=-1)
-        xi_grid = jnp.concatenate([zw_grid, jnp.zeros_like(zw_grid)], axis=-1)
-        U_grid = jax.vmap(
-            partial(dynamics_model_bound.energy_fn, coordinate="zw"),
-        )(xi_grid.reshape(-1, xi_grid.shape[-1])).reshape(xi_grid.shape[:2])
-        tau_pot_grid = -jax.vmap(
-            grad(partial(dynamics_model_bound.energy_fn, coordinate="zw")),
-        )(xi_grid.reshape(-1, xi_grid.shape[-1]))[..., :n_z].reshape(
-            *xi_grid.shape[:2], -1
-        )
-        # contour plot of the potential energy
-        cs = ax.contourf(zw1_grid, zw2_grid, U_grid, levels=100)
-        # quiver plot of the potential energy gradient
-        qv_skip = 10
-        ax.quiver(
-            zw1_grid[::qv_skip, ::qv_skip],
-            zw2_grid[::qv_skip, ::qv_skip],
-            tau_pot_grid[::qv_skip, ::qv_skip, 0],
-            tau_pot_grid[::qv_skip, ::qv_skip, 1],
-            angles="xy",
-            scale=None,
-            scale_units="xy",
-            color="white",
-        )
-        plt.colorbar(cs)
-        ax.set_xlabel(r"$z_{w,1}$")
-        ax.set_ylabel(r"$z_{w,2}$")
-        ax.set_title(
-            "Potential energy landscape of learned latent dynamics in w-coordinates"
-        )
-        plt.grid(True)
-        plt.box(True)
-        plt.savefig(ckpt_dir / "potential_energy_landscape_zw.pdf")
-        plt.show()
+                # plot the potential energy in the w-coordinates
+                fig, ax = plt.subplots(
+                    1, 1, figsize=figsize, num="Potential energy landscape in zw-coordinates"
+                )
+                zw1_range = jnp.linspace(-1.0, 1.0, 100)
+                zw2_range = jnp.linspace(-1.0, 1.0, 100)
+                zw1_grid, zw2_grid = jnp.meshgrid(zw1_range, zw2_range)
+                zw_grid = jnp.stack([zw1_grid, zw2_grid], axis=-1)
+                xi_grid = jnp.concatenate([zw_grid, jnp.zeros_like(zw_grid)], axis=-1)
+                U_grid = jax.vmap(
+                    partial(dynamics_model_bound.energy_fn, coordinate="zw"),
+                )(xi_grid.reshape(-1, xi_grid.shape[-1])).reshape(xi_grid.shape[:2])
+                tau_pot_grid = -jax.vmap(
+                    grad(partial(dynamics_model_bound.energy_fn, coordinate="zw")),
+                )(xi_grid.reshape(-1, xi_grid.shape[-1]))[..., :n_z].reshape(
+                    *xi_grid.shape[:2], -1
+                )
+                # contour plot of the potential energy
+                cs = ax.contourf(zw1_grid, zw2_grid, U_grid, levels=100)
+                # quiver plot of the potential energy gradient
+                qv_skip = 10
+                ax.quiver(
+                    zw1_grid[::qv_skip, ::qv_skip],
+                    zw2_grid[::qv_skip, ::qv_skip],
+                    tau_pot_grid[::qv_skip, ::qv_skip, 0],
+                    tau_pot_grid[::qv_skip, ::qv_skip, 1],
+                    angles="xy",
+                    scale=None,
+                    scale_units="xy",
+                    color="white",
+                )
+                plt.colorbar(cs)
+                ax.set_xlabel(r"$z_{w,1}$")
+                ax.set_ylabel(r"$z_{w,2}$")
+                ax.set_title(
+                    "Potential energy landscape of learned latent dynamics in w-coordinates"
+                )
+                plt.grid(True)
+                plt.box(True)
+                plt.savefig(ckpt_dir / "potential_energy_landscape_zw.pdf")
+                plt.show()
 
-        # plot the potential energy in the collocated coordinates
-        fig, ax = plt.subplots(
-            1,
-            1,
-            figsize=figsize,
-            num="Potential energy landscape in collocated coordinates",
-        )
-        zeta1_range = jnp.linspace(-1.0, 1.0, 100)
-        zeta2_range = jnp.linspace(-1.0, 1.0, 100)
-        zeta1_grid, zeta2_grid = jnp.meshgrid(zeta1_range, zeta2_range)
-        zeta_grid = jnp.stack([zeta1_grid, zeta2_grid], axis=-1)
-        xi_grid = jnp.concatenate([zeta_grid, jnp.zeros_like(zeta_grid)], axis=-1)
-        U_grid = jax.vmap(
-            partial(dynamics_model_bound.energy_fn, coordinate="zeta"),
-        )(xi_grid.reshape(-1, xi_grid.shape[-1])).reshape(xi_grid.shape[:2])
-        tau_pot_grid = -jax.vmap(
-            grad(partial(dynamics_model_bound.energy_fn, coordinate="zeta")),
-        )(xi_grid.reshape(-1, xi_grid.shape[-1]))[..., :n_z].reshape(
-            *xi_grid.shape[:2], -1
-        )
-        # contour plot of the potential energy
-        cs = ax.contourf(zeta1_grid, zeta2_grid, U_grid, levels=100)
-        # quiver plot of the potential energy gradient
-        qv_skip = 10
-        ax.quiver(
-            zeta1_grid[::qv_skip, ::qv_skip],
-            zeta2_grid[::qv_skip, ::qv_skip],
-            tau_pot_grid[::qv_skip, ::qv_skip, 0],
-            tau_pot_grid[::qv_skip, ::qv_skip, 1],
-            angles="xy",
-            scale=None,
-            scale_units="xy",
-            color="white",
-        )
-        plt.colorbar(cs)
-        ax.set_xlabel(r"$\zeta_1$")
-        ax.set_ylabel(r"$\zeta_2$")
-        ax.set_title(
-            "Potential energy landscape of learned latent dynamics in collocated coordinates"
-        )
-        plt.grid(True)
-        plt.box(True)
-        plt.savefig(ckpt_dir / "potential_energy_landscape_zeta.pdf")
-        plt.show()
+                # plot the potential energy in the collocated coordinates
+                fig, ax = plt.subplots(
+                    1,
+                    1,
+                    figsize=figsize,
+                    num="Potential energy landscape in collocated coordinates",
+                )
+                zeta1_range = jnp.linspace(-1.0, 1.0, 100)
+                zeta2_range = jnp.linspace(-1.0, 1.0, 100)
+                zeta1_grid, zeta2_grid = jnp.meshgrid(zeta1_range, zeta2_range)
+                zeta_grid = jnp.stack([zeta1_grid, zeta2_grid], axis=-1)
+                xi_grid = jnp.concatenate([zeta_grid, jnp.zeros_like(zeta_grid)], axis=-1)
+                U_grid = jax.vmap(
+                    partial(dynamics_model_bound.energy_fn, coordinate="zeta"),
+                )(xi_grid.reshape(-1, xi_grid.shape[-1])).reshape(xi_grid.shape[:2])
+                tau_pot_grid = -jax.vmap(
+                    grad(partial(dynamics_model_bound.energy_fn, coordinate="zeta")),
+                )(xi_grid.reshape(-1, xi_grid.shape[-1]))[..., :n_z].reshape(
+                    *xi_grid.shape[:2], -1
+                )
+                # contour plot of the potential energy
+                cs = ax.contourf(zeta1_grid, zeta2_grid, U_grid, levels=100)
+                # quiver plot of the potential energy gradient
+                qv_skip = 10
+                ax.quiver(
+                    zeta1_grid[::qv_skip, ::qv_skip],
+                    zeta2_grid[::qv_skip, ::qv_skip],
+                    tau_pot_grid[::qv_skip, ::qv_skip, 0],
+                    tau_pot_grid[::qv_skip, ::qv_skip, 1],
+                    angles="xy",
+                    scale=None,
+                    scale_units="xy",
+                    color="white",
+                )
+                plt.colorbar(cs)
+                ax.set_xlabel(r"$\zeta_1$")
+                ax.set_ylabel(r"$\zeta_2$")
+                ax.set_title(
+                    "Potential energy landscape of learned latent dynamics in collocated coordinates"
+                )
+                plt.grid(True)
+                plt.box(True)
+                plt.savefig(ckpt_dir / "potential_energy_landscape_zeta.pdf")
+                plt.show()
+            case "node-con-iae" | "node-con-iae-s":
+                # plot the potential energy landscape in the original latent space
+                fig, ax = plt.subplots(
+                    1, 1, figsize=figsize, num="Potential energy landscape in z-coordinates"
+                )
+                z1_range = jnp.linspace(-1.0, 1.0, 100)
+                z2_range = jnp.linspace(-1.0, 1.0, 100)
+                z1_grid, z2_grid = jnp.meshgrid(z1_range, z2_range)
+                z_grid = jnp.stack([z1_grid, z2_grid], axis=-1)
+                xi_grid = jnp.concatenate([z_grid, jnp.zeros_like(z_grid)], axis=-1)
+                U_grid = jax.vmap(
+                    partial(dynamics_model_bound.energy_fn),
+                )(xi_grid.reshape(-1, xi_grid.shape[-1])).reshape(xi_grid.shape[:2])
+                tau_pot_grid = -jax.vmap(
+                    grad(partial(dynamics_model_bound.energy_fn)),
+                )(xi_grid.reshape(-1, xi_grid.shape[-1]))[..., :n_z].reshape(
+                    *xi_grid.shape[:2], -1
+                )
+                # contour plot of the potential energy
+                cs = ax.contourf(z1_grid, z2_grid, U_grid, levels=100)
+                # quiver plot of the potential energy gradient
+                qv_skip = 10
+                ax.quiver(
+                    z1_grid[::qv_skip, ::qv_skip],
+                    z2_grid[::qv_skip, ::qv_skip],
+                    tau_pot_grid[::qv_skip, ::qv_skip, 0],
+                    tau_pot_grid[::qv_skip, ::qv_skip, 1],
+                    angles="xy",
+                    scale=None,
+                    scale_units="xy",
+                    color="white",
+                )
+                plt.colorbar(cs)
+                ax.set_xlabel(r"$z_1$")
+                ax.set_ylabel(r"$z_2$")
+                ax.set_title("Potential energy landscape of learned latent dynamics")
+                plt.grid(True)
+                plt.box(True)
+                plt.savefig(ckpt_dir / "potential_energy_landscape_z.pdf")
+                plt.show()
+
 
     if n_q == 2:
         # plot the learned potential energy landscape in the configuration space
