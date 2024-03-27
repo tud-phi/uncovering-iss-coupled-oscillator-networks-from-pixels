@@ -164,7 +164,10 @@ ckpt_dir = (
 
 # plotting setttings
 figsize = (8, 6)
-colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+plt_colors_cycle = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+colors = []
+for k in range(n_z // len(plt_colors_cycle) + 1):
+    colors += plt_colors_cycle
 
 
 if __name__ == "__main__":
