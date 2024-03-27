@@ -53,7 +53,7 @@ n_z = 2
 # number of configuration space dimensions
 n_q = 2
 # whether to use real or learned dynamics
-simulate_with_learned_dynamics = True
+simulate_with_learned_dynamics = False
 
 # simulation settings
 sim_duration = 10.0  # s
@@ -92,7 +92,8 @@ match dynamics_model_name:
             kp, ki, kd = 1e0, 1e0, 0e0
             psatid_gamma = 1.0
         else:
-            raise NotImplementedError
+            kp, ki, kd = 1e0, 1e0, 0e0
+            psatid_gamma = 1.0
 
 batch_size = 10
 norm_layer = nn.LayerNorm
