@@ -140,9 +140,12 @@ class NBodyProblem(tfds.core.GeneratorBasedBuilder):
         q_max = jnp.array(self.builder_config.q_max)
         q_d_max = jnp.array(self.builder_config.q_d_max)
 
-        # define the colors
+        """ define the bodies to have different colors
         colors = plt.cm.get_cmap("tab10").colors
         body_colors = (jnp.array(colors) * 255).astype(int)
+        """
+        # define the body colors as white
+        body_colors = 255 * jnp.ones((num_bodies, 3))
 
         # initialize the rendering function
         metadata["rendering"] = {
