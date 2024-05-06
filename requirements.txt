@@ -1,5 +1,4 @@
 alive-progress
-ciclo>=0.1.8
 clu
 diffrax
 dill
@@ -26,3 +25,5 @@ tensorboard
 tensorflow  # required for tensorflow-datasets
 tensorflow-datasets
 tqdm
+
+git+git://github.com/mstoelzle/ciclo
