@@ -24,13 +24,13 @@ match num_units:
         b = 1e-1 * jnp.array([-0.5])  # bias
         # W = jnp.array([[0.0]])
         # b = jnp.array([0.0])
+        y0 = jnp.array([1.0, 0.0])
     case 2:
-        W = jnp.array([[1.0, 0.0], [0.0, 1.0]])
-        b = jnp.array([-0.5, 0.5])
+        W = 1e-1 * jnp.array([[1.0, 0.0], [0.0, 1.0]])
+        b = 1e-1 * jnp.array([-0.5, 0.5])
+        y0 = jnp.array([1.0, 0.5, 0.0, 0.0])
     case _:
         raise NotImplementedError
-
-y0 = jnp.array([1.0, 0.0])
 
 
 def lecun_tanh(x: jax.Array) -> jax.Array:
