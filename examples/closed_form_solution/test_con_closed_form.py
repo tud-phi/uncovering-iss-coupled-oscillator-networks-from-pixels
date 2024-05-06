@@ -26,8 +26,9 @@ match num_units:
         # b = jnp.array([0.0])
         y0 = jnp.array([1.0, 0.0])
     case 2:
-        W = 1e-1 * jnp.array([[1.0, 0.0], [0.0, 1.0]])
-        b = 1e-1 * jnp.array([-0.5, 0.5])
+        W = 2e-1 * jnp.array([[1.0, 0.5], [0.5, 1.0]])
+        print("Eigvals of W:", jnp.linalg.eigvals(W))
+        b = 2e-1 * jnp.array([-0.5, 0.5])
         y0 = jnp.array([1.0, 0.5, 0.0, 0.0])
     case _:
         raise NotImplementedError
