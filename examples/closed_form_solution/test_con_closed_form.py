@@ -2,7 +2,7 @@ import jax
 
 jax.config.update("jax_enable_x64", True)  # double precision
 jax.config.update("jax_platform_name", "cpu")  # use CPU
-from diffrax import diffeqsolve, ODETerm, SaveAt, Tsit5
+from diffrax import diffeqsolve, Euler, ODETerm, SaveAt, Tsit5
 from functools import partial
 from jax import lax
 import jax.numpy as jnp
@@ -29,6 +29,8 @@ match num_units:
         b = jnp.array([-0.5, 0.5])
     case _:
         raise NotImplementedError
+
+y0 = jnp.array([1.0, 0.0])
 
 
 def lecun_tanh(x: jax.Array) -> jax.Array:
@@ -130,12 +132,12 @@ def closed_form_approximation_step_underdamping(
     beta = omega_n * jnp.sqrt(1 - zeta**2)
     lambda1, lambda2 = -alpha + beta * 1j, -alpha - beta * 1j
     # constants for the closed-form solution
-    c1 = (lambda2 * x0 - v0) / (lambda2 - lambda1)
-    c2 = (v0 - lambda1 * x0) / (lambda2 - lambda1)
+    c1 = (lambda2 * x0 - v0 - lambda2 * f_ext / gamma) / (lambda2 - lambda1)
+    c2 = (v0 - lambda1 * x0 + lambda1 * f_ext / gamma) / (lambda2 - lambda1)
     ctilde1 = c1 + c2
     ctilde2 = (c1-c2) * 1j
 
-    x = (ctilde1*jnp.cos(beta*(t-t0)) + ctilde2*jnp.sin(beta*(t-t0))) * jnp.exp(-(alpha * (t-t0)))
+    x = (ctilde1*jnp.cos(beta*(t-t0)) + ctilde2*jnp.sin(beta*(t-t0))) * jnp.exp(-(alpha * (t-t0))) + f_ext / gamma
     x_d = -((ctilde1*alpha - ctilde2*beta)*jnp.cos(beta*(t-t0)) + (ctilde1*beta + ctilde2*alpha)*jnp.sin(beta*(t-t0))) * jnp.exp(-alpha * (t-t0))
 
     y = jnp.concatenate([x, x_d]).astype(jnp.float64)
@@ -198,10 +200,10 @@ ode_term = ODETerm(
 
 # Solve the harmonic oscillator ODE
 # y0 = jnp.array([1.0, 0.5, 0.0, 0.0])
-y0 = jnp.array([1.0, 0.0])
-sol = diffeqsolve(
+
+sol_numerical_high_precision = diffeqsolve(
     ode_term,
-    Tsit5(),
+    Euler(),
     t0=ts[0],
     t1=ts[-1],
     dt0=dt,
@@ -209,36 +211,79 @@ sol = diffeqsolve(
     saveat=SaveAt(ts=ts),
     max_steps=ts.shape[-1]
 )
-y_ts_numerical = sol.ys
+y_ts_numerical_high_precision = sol_numerical_high_precision.ys
+
+low_precision_dt = 1e3*dt
+sol_numerical_low_precision = diffeqsolve(
+    ode_term,
+    Euler(),
+    t0=ts[0],
+    t1=ts[-1],
+    dt0=low_precision_dt,
+    y0=y0,
+    saveat=SaveAt(ts=ts),
+    max_steps=ts.shape[-1]
+)
+y_ts_numerical_low_precision = sol_numerical_low_precision.ys
 
 # evaluate the closed-form solution
-ts_sim_closed_form = jnp.arange(ts[0], ts[-1], 1*dt)
+closed_form_dt = 1e3*dt
+ts_sim_closed_form = jnp.arange(ts[0], ts[-1], 1e3*dt)
 closed_form_sim_ts = simulate_closed_form_approximation(ts_sim_closed_form, y0, readout_dt=dt, m=m, gamma=gamma, epsilon=epsilon, W=W, b=b)
 for key in closed_form_sim_ts.keys():
     closed_form_sim_ts[key] = closed_form_sim_ts[key].reshape((-1, ) + closed_form_sim_ts[key].shape[2:])
 ts_closed_form = closed_form_sim_ts["ts"]
 y_ts_closed_form = closed_form_sim_ts["y_ts"]
-print(y_ts_closed_form)
 
 
 # plot the position
-plt.plot(ts, y_ts_numerical[:, :num_units], label="Numerical solution")
-plt.plot(ts_closed_form, y_ts_closed_form[:, :num_units:], label="Closed-form solution")
+plt.plot(
+    ts,
+    y_ts_numerical_high_precision[:, :num_units],
+    label=rf"Numerical solution with dt = {dt}s",
+    linestyle="--",
+    linewidth=2.5
+)
+plt.gca().set_prop_cycle(None)
+plt.plot(
+    ts,
+    y_ts_numerical_low_precision[:, :num_units],
+    label=rf"Numerical solution with dt = {low_precision_dt}s",
+    linestyle=":",
+    linewidth=2.0
+)
+plt.gca().set_prop_cycle(None)
+plt.plot(ts_closed_form, y_ts_closed_form[:, :num_units:], label=rf"Closed-form solution dt = {closed_form_dt}s")
 plt.xlabel("Time")
 plt.ylabel("Position")
 plt.legend()
 plt.grid()
-plt.box()
-plt.title("Harmonic oscillator position")
+plt.box(True)
+plt.title("Coupled oscillator position")
 plt.show()
 
 # plot the velocity
-plt.plot(ts, y_ts_numerical[:, num_units:], label="Numerical solution")
-plt.plot(ts_closed_form, y_ts_closed_form[:, num_units:], label="Closed-form solution")
+plt.plot(
+    ts,
+    y_ts_numerical_high_precision[:, num_units:],
+    label=rf"Numerical solution with dt = {dt}s",
+    linestyle="--",
+    linewidth=2.5
+)
+plt.gca().set_prop_cycle(None)
+plt.plot(
+    ts,
+    y_ts_numerical_low_precision[:, num_units:],
+    label=rf"Numerical solution with dt = {low_precision_dt}s",
+    linestyle=":",
+    linewidth=2.0
+)
+plt.gca().set_prop_cycle(None)
+plt.plot(ts_closed_form, y_ts_closed_form[:, num_units:], label=rf"Closed-form solution dt = {closed_form_dt}s")
 plt.xlabel("Time")
 plt.ylabel("Velocity")
 plt.legend()
 plt.grid()
-plt.box()
-plt.title("Harmonic oscillator velocity")
+plt.box(True)
+plt.title("Coupled oscillator velocity")
 plt.show()
