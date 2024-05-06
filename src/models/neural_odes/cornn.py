@@ -1,3 +1,4 @@
+__all__ = ["CornnOde"]
 from flax import linen as nn  # Linen API
 from jax import Array
 import jax.numpy as jnp

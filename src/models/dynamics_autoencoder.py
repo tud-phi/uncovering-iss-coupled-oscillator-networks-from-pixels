@@ -38,6 +38,16 @@ class DynamicsAutoencoder(nn.Module):
             z_ts = z_bt[: self.num_past_timesteps]
             tau = jnp.zeros_like(z_ts, shape=(self.dynamics.input_dim,))
             _ = self.dynamics.forward_all_layers(z_ts.flatten(), tau)
+        elif self.dynamics_type == "dsim":
+            x_bt = jnp.concatenate([z_bt, jnp.zeros_like(z_bt)], axis=-1)
+            tau_bt = jnp.zeros_like(
+                x_bt, shape=(z_bt.shape[0], self.dynamics.input_dim)
+            )
+            x_d_bt = vmap(
+                self.dynamics.forward_all_layers,
+            )(x_bt, tau_bt)
+        else:
+            raise ValueError(f"Unknown dynamics type: {self.dynamics_type}")
 
     def encode_vae(self, *args, **kwargs):
         return self.autoencoder.encode_vae(*args, **kwargs)

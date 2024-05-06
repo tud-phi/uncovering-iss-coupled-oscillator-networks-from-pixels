@@ -12,6 +12,7 @@ import tensorflow as tf
 
 from src.models.autoencoders import Autoencoder, VAE
 from src.models.discrete_forward_dynamics import (
+    DiscreteConIaeCfaDynamics,
     DiscreteLssDynamics,
     DiscreteMambaDynamics,
     DiscreteMlpDynamics,
@@ -47,6 +48,7 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
     "node-cornn", "node-con", "node-w-con", "node-con-iae", "node-dcon", "node-lnn", 
     "node-hippo-lss", "node-mamba",
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
+    "dsim-con-iae-cfa"
 ]
 """
 dynamics_model_name = "node-mechanical-mlp"
@@ -114,6 +116,19 @@ if long_horizon_dataset:
                 )
                 weight_decay = 5.5340117045438595e-06
                 num_mlp_layers, mlp_hidden_dim = 5, 30
+            case "dsim-con-iae-cfa":
+                # TODO: optimize these hyperparameters
+                base_lr = 0.018486990918444367
+                loss_weights = dict(
+                    mse_z=0.3733687489479885,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=83.7248326772002,
+                    beta=0.00020068384639167935,
+                    mse_tau_rec=1e1,
+                )
+                weight_decay = 5.5340117045438595e-06
+                num_mlp_layers, mlp_hidden_dim = 5, 30
+                sim_dt = 1e0 * sim_dt
             case _:
                 raise NotImplementedError(
                     f"beta_vae with dynamics_model_name '{dynamics_model_name}' not implemented yet."
@@ -270,7 +285,7 @@ print(f"Number of segments: {num_segments}")
 
 # identify the dynamics_type
 dynamics_type = dynamics_model_name.split("-")[0]
-assert dynamics_type in ["node", "discrete"], f"Unknown dynamics_type: {dynamics_type}"
+assert dynamics_type in ["node", "discrete", "dsim"], f"Unknown dynamics_type: {dynamics_type}"
 
 now = datetime.now()
 logdir = (
@@ -389,6 +404,14 @@ if __name__ == "__main__":
             input_dim=num_past_timesteps * n_tau,
             output_dim=n_z,
             dt=dataset_metadata["dt"],
+        )
+    elif dynamics_model_name == "dsim-con-iae-cfa":
+        dynamics_model = DiscreteConIaeCfaDynamics(
+            latent_dim=n_z,
+            input_dim=n_tau,
+            dt=sim_dt,
+            num_layers=num_mlp_layers,
+            hidden_dim=mlp_hidden_dim,
         )
     else:
         raise ValueError(f"Unknown dynamics_model_name: {dynamics_model_name}")

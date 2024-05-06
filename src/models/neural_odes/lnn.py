@@ -6,7 +6,7 @@ import jax.numpy as jnp
 from typing import Any, Callable, Tuple
 
 from .neural_ode_base import NeuralOdeBase
-from .utils import generate_positive_definite_matrix_from_params
+from ..utils import generate_positive_definite_matrix_from_params
 
 
 default_kernel_init = nn.initializers.lecun_normal()

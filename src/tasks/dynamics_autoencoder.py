@@ -13,6 +13,7 @@ from src.losses.psnr import peak_signal_to_noise_ratio
 from src.losses.ssim import structural_similarity_index
 from src.metrics import RootAverage
 from src.models.dynamics_autoencoder import DynamicsAutoencoder
+from src.models.discrete_forward_dynamics import DiscreteConIaeCfaDynamics
 from src.models.neural_odes import ConIaeOde
 from src.structs import TaskCallables
 
@@ -66,6 +67,8 @@ def task_factory(
         dynamics_type: Dynamics type. One of ["node", "discrete"]
             node: Neural ODE dynamics map a state consisting of latent and their velocity to the state derivative.
             discrete: Discrete forward dynamics map the latents at the num_past_timesteps to the next latent.
+            dsim: Discrete forward dynamics maps autoregressively the latent state (latent position and velocity) to the
+                next latent state at time step sim_dt.
         start_time_idx: the index of the time step to start the simulation at. Needs to be >=1 to enable the application
             of finite differences for the latent-space velocity.
         solver: Diffrax solver to use for the simulation. Only use for the neural ODE.
@@ -90,6 +93,12 @@ def task_factory(
     tf = ts[-1]  # end time
     # maximum of integrator steps
     max_int_steps = int((tf - t0) / sim_dt) + 1
+    # make sure that the simulation time steps are consistent with the sample time steps
+    assert sample_dt >= sim_dt, "The simulation time step needs to be smaller or equal to the sample time step."
+    assert sample_dt % sim_dt == 0, "The sample time step needs to be a multiple of the simulation time step."
+    sample_sim_skip_step = int(sample_dt//sim_dt)
+    # simulation time stamps
+    ts_sim = jnp.arange(t0, tf + sim_dt, sim_dt)
 
     if encode_fn is None:
         encode_fn = nn_model.encode
@@ -162,13 +171,9 @@ def task_factory(
             (batch_size, -1, *z_static_pred_flat_bt.shape[1:])
         )
 
-        # construct batch of external torques of shape batch_dim x time_dim x n_tau
-        tau_bt = jnp.expand_dims(batch["tau"], axis=1).repeat(ts.shape[0], axis=1)
 
-        if dynamics_type == "node":
-            # initial latent at initial time provided by the encoder
-            z_init_bt = z_static_pred_bt[:, start_time_idx, ...]
 
+        def estimate_initial_latent_velocity() -> Array:
             match latent_velocity_source:
                 case "latent-space-finite-differences":
                     z_static_pred_4_dfd_bt = z_static_pred_bt
@@ -216,6 +221,15 @@ def task_factory(
                         f"or 'image-space-finite-differences', but is {latent_velocity_source}"
                     )
 
+            return z_d_init_bt
+
+        if dynamics_type == "node":
+            # latent and latent velocity at initial time provided by the encoder
+            z_init_bt = z_static_pred_bt[:, start_time_idx, ...]
+            z_d_init_bt = estimate_initial_latent_velocity()
+            # specify initial state for the dynamic rollout
+            x_init_bt = jnp.concatenate((z_init_bt, z_d_init_bt), axis=-1)
+
             # construct ode_fn and initiate ODE term
             def ode_fn(t: Array, x: Array, tau: Array) -> Array:
                 x_d = nn_model.apply(
@@ -251,8 +265,6 @@ def task_factory(
 
             batched_ode_solve_fn = vmap(ode_solve_fn, in_axes=(0, 0))
 
-            # specify initial state for the dynamic rollout
-            x_init_bt = jnp.concatenate((z_init_bt, z_d_init_bt), axis=-1)
             # simulate
             sol_bt = batched_ode_solve_fn(
                 x_init_bt.astype(jnp.float64),  # initial state
@@ -268,6 +280,8 @@ def task_factory(
         elif dynamics_type == "discrete":
             # construct the input for the discrete forward dynamics
             z_past_bt = z_static_pred_bt[:, start_time_idx - num_past_timesteps + 1 :]
+            # construct batch of external torques of shape batch_dim x time_dim x n_tau
+            tau_bt_discrete = jnp.expand_dims(batch["tau"], axis=1).repeat(ts.shape[0], axis=1)
 
             def autoregress_fn(_z_past_ts: Array, _tau_ts: Array) -> Array:
                 """
@@ -356,8 +370,84 @@ def task_factory(
                 rollout_discrete_dynamics_fn,
                 in_axes=(0, 0),
                 out_axes=0,
-            )(z_past_bt, tau_bt.astype(jnp.float32))
+            )(z_past_bt, tau_bt_discrete.astype(jnp.float32))
             z_d_dynamic_pred_bt = jnp.zeros_like(z_dynamic_pred_bt)
+        elif dynamics_type == "dsim":
+            # autoregresses the latent space positions and velocities
+            # latent and latent velocity at initial time provided by the encoder
+            z_init_bt = z_static_pred_bt[:, start_time_idx, ...]
+            z_d_init_bt = estimate_initial_latent_velocity()
+            # specify initial state for the dynamic rollout
+            x_init_bt = jnp.concatenate((z_init_bt, z_d_init_bt), axis=-1)
+            # construct batch of external torques of shape batch_dim x time_dim x n_tau
+            tau_bt_sim = jnp.expand_dims(batch["tau"], axis=1).repeat(ts_sim.shape[0], axis=1)
+
+            def autoregress_fn(_x: Array, _tau: Array) -> Array:
+                """
+                Autoregressive function for the discrete forward dynamics
+                Arguments:
+                    _x: latent state of shape (2*n_z, )
+                    _tau: external torques of shape (n_tau, )
+                Returns:
+                    _x: next hidden state of shape (2*n_z, )
+                """
+
+                _x_next = nn_model.apply(
+                    {"params": nn_params},
+                    _x,
+                    _tau,
+                    method=nn_model.forward_dynamics,
+                )
+                return _x_next
+
+            def scan_fn(
+                    _carry: Dict[str, Array], _tau: Array
+            ) -> Tuple[Dict[str, Array], Array]:
+                """
+                Function used as part of lax.scan rollout for the discrete forward dynamics
+                Arguments:
+                    _carry: carry state of the scan function
+                    _tau: external torques of shape (n_tau, )
+                """
+                _x = _carry["x"]
+
+                # evaluate the autoregressive function
+                _x_next = autoregress_fn(_x, _tau.flatten())
+
+                # update the carry state
+                _carry = dict(x=_x_next)
+
+                return _carry, _x_next
+
+            def rollout_discrete_dynamics_fn(_x0: Array, _tau_ts: Array) -> Array:
+                """
+                Rollout function for the discrete forward dynamics
+                Arguments:
+                    _x0: initial latent state of shape (2*n_z, )
+                    _tau_ts: external torques of shape (time_dim, n_tau)
+                Returns:
+                    _x_dynamic_ts: next latent representation of shape (time_dim, n_z)
+                """
+                carry_init = dict(x=_x0)
+                carry_final, _x_dynamic_ts = lax.scan(
+                    scan_fn,
+                    init=carry_init,
+                    xs=_tau_ts,
+                )
+
+                return _x_dynamic_ts
+
+            x_dynamic_pred_sim_bt = vmap(
+                rollout_discrete_dynamics_fn,
+                in_axes=(0, 0),
+                out_axes=0,
+            )(x_init_bt.astype(jnp.float64), tau_bt_sim.astype(jnp.float64))
+
+            # extract only the sampling steps (i.e., remove the remaining simulation steps)
+            x_dynamic_pred_bt = x_dynamic_pred_sim_bt[:, ::sample_sim_skip_step, ...]
+
+            z_dynamic_pred_bt = x_dynamic_pred_bt[..., :n_z]
+            z_d_dynamic_pred_bt = x_dynamic_pred_bt[..., n_z:]
         else:
             raise ValueError(f"Unknown dynamics_type: {dynamics_type}")
 
@@ -408,10 +498,10 @@ def task_factory(
                 (batch_size, -1, *logvar_static_bt.shape[1:])
             )
 
-        if dynamics_type == "node":
+        if dynamics_type != "discrete":
             preds["x_dynamic_ts"] = x_dynamic_pred_bt
 
-        if type(nn_model.dynamics) in [ConIaeOde]:
+        if type(nn_model.dynamics) in [ConIaeOde, DiscreteConIaeCfaDynamics]:
             # autoencoder the torque
 
             def autoencode_input(tau: Array) -> Array:

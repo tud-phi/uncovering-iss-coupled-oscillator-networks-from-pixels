@@ -22,7 +22,6 @@ class DiscreteConIaeCfaDynamics(DiscreteForwardDynamicsBase):
     latent_dim: int
     input_dim: int
     dt: float
-    sim_dt: float
 
     num_layers: int = 5
     hidden_dim: int = 32
@@ -46,10 +45,10 @@ class DiscreteConIaeCfaDynamics(DiscreteForwardDynamicsBase):
         tri_params_init = nn.initializers.normal(stddev=jnp.sqrt(1.0 / self.latent_dim))
 
         # constructing Lambda_w as a positive definite matrix
-        num_Lambda_w_params = int((self.latent_dim**2 + self.latent_dim) / 2)
+        num_Gamma_w_params = int((self.latent_dim**2 + self.latent_dim) / 2)
         # vector of parameters for triangular matrix
         gamma_w = self.param(
-            "lambda_w", tri_params_init, (num_Lambda_w_params,), self.param_dtype
+            "gamma_w", tri_params_init, (num_Gamma_w_params,), self.param_dtype
         )
         self.Gamma_w = generate_positive_definite_matrix_from_params(
             self.latent_dim,
@@ -107,6 +106,8 @@ class DiscreteConIaeCfaDynamics(DiscreteForwardDynamicsBase):
         Returns:
             x_next: state of shape (2*latent_dim, ).
         """
+        z, z_d = jnp.split(x, 2)
+
         # compute the oscillator parameters
         m = jnp.ones((self.latent_dim, ))
         Gamma = self.Gamma_w @ self.W
@@ -116,10 +117,14 @@ class DiscreteConIaeCfaDynamics(DiscreteForwardDynamicsBase):
         Gamma_coup = Gamma - jnp.diag(jnp.diag(Gamma))
         E_coup = E - jnp.diag(jnp.diag(E))
 
+        # compute the latent-space input
+        u = self.encode_input(tau)
+
         closed_form_approximation_step_fn = partial(
             harmonic_oscillator_closed_form_dynamics, m=m, gamma=jnp.diag(Gamma), epsilon=jnp.diag(E)
         )
 
+        """
         def approx_step_fn(
             carry: Dict[str, Array], input: Dict[str, Array]
         ) -> Tuple[Dict[str, Array], Dict[str, Array]]:
@@ -128,7 +133,7 @@ class DiscreteConIaeCfaDynamics(DiscreteForwardDynamicsBase):
             _z, _z_d = jnp.split(_x, 2)
 
             # external force on the harmonic oscillators
-            f = -Gamma_coup @ _x - E_coup @ _z_d - jnp.tanh(self.W @ _x + self.bias)
+            f = u - Gamma_coup @ _z - E_coup @ _z_d - jnp.tanh(self.W @ _z + self.bias)
 
             _x_next = closed_form_approximation_step_fn(t=_t, t0=carry["t"], y0=_x, f=f)
 
@@ -150,6 +155,10 @@ class DiscreteConIaeCfaDynamics(DiscreteForwardDynamicsBase):
 
         carry, sim_ts = lax.scan(approx_step_fn, carry, input_ts)
         x_next = sim_ts["x_ts"][-1]
+        """
+
+        f = u - Gamma_coup @ z - E_coup @ z_d - jnp.tanh(self.W @ z + self.bias)
+        x_next = closed_form_approximation_step_fn(t=self.dt, t0=0.0, y0=x, f=f)
 
         return x_next
 
