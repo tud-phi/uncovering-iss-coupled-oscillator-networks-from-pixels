@@ -91,7 +91,6 @@ def closed_form_approximation_step_no_damping(
         y0: initial state
         m: mass
         gamma: stiffness
-        epsilon: damping
         f_ext: external force
     Returns:
         y: oscillator state at time t
@@ -228,9 +227,6 @@ def simulate_closed_form_approximation(
 ode_term = ODETerm(
     partial(ode_fn, m=m, gamma=gamma, epsilon=epsilon, W=W, b=b),
 )
-
-# Solve the harmonic oscillator ODE
-# y0 = jnp.array([1.0, 0.5, 0.0, 0.0])
 
 sol_numerical_high_precision = diffeqsolve(
     ode_term,
