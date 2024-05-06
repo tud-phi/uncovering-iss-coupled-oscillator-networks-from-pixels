@@ -1,3 +1,4 @@
+__all__ = ["DiscreteMambaDynamics"]
 from flax import linen as nn  # Linen API
 from hippox.main import Hippo
 from jax import Array, debug

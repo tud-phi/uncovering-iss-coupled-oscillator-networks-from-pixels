@@ -1,11 +1,10 @@
+__all__ = ["DiscreteRnnDynamics"]
 from flax import linen as nn  # Linen API
-from hippox.main import Hippo
 from jax import Array
 import jax.numpy as jnp
 from typing import Callable
 
 from .discrete_forward_dynamics_base import DiscreteForwardDynamicsBase
-from .utils import discretize_state_space_model
 
 
 class DiscreteRnnDynamics(DiscreteForwardDynamicsBase):
