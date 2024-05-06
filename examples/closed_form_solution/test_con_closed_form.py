@@ -20,8 +20,8 @@ gamma = 0.1 * jnp.ones((num_units, ))  # stiffness
 epsilon = 0.05 * jnp.ones((num_units, ))  # damping coefficient
 match num_units:
     case 1:
-        W = 1e-1 * jnp.array([[1.0]])  # coupling matrix
-        b = 1e-1 * jnp.array([-0.5])  # bias
+        W = 1.5e-1 * jnp.array([[1.0]])  # coupling matrix
+        b = 1.5e-1 * jnp.array([-0.5])  # bias
         # W = jnp.array([[0.0]])
         # b = jnp.array([0.0])
         y0 = jnp.array([1.0, 0.0])
@@ -91,10 +91,17 @@ def closed_form_approximation_step_no_damping(
     """
     x0, v0 = jnp.split(y0, 2)
 
-    x = x0*jnp.cos(jnp.sqrt(gamma)*(t-t0)/jnp.sqrt(m)) + jnp.sqrt(m)*v0*jnp.sin(jnp.sqrt(gamma)*(t-t0)/jnp.sqrt(m))/jnp.sqrt(gamma)
-    x_d = -jnp.sqrt(gamma)*x0*jnp.sin(jnp.sqrt(gamma)*(t-t0)/jnp.sqrt(m))/jnp.sqrt(m) + v0*jnp.cos(jnp.sqrt(gamma)*(t-t0)/jnp.sqrt(m))
+    # natural frequency
+    omega_n = jnp.sqrt(gamma / m)
 
-    y = jnp.concatenate([x, x_d])
+    # constants for the closed-form solution
+    ctilde1 = x0 - f_ext / gamma
+    ctilde2 = v0 / omega_n
+
+    x = (ctilde1 * jnp.cos(omega_n * (t - t0)) + ctilde2 * jnp.sin(omega_n * (t - t0))) + f_ext / gamma
+    x_d = -((- ctilde2 * omega_n) * jnp.cos(omega_n * (t - t0)) + (ctilde1 * omega_n) * jnp.sin(omega_n * (t - t0)))
+
+    y = jnp.concatenate([x, x_d]).astype(jnp.float64)
     return y
 
 
