@@ -153,10 +153,14 @@ def closed_form_approximation_step(
     beta = omega_n * jnp.sqrt(1 - zeta**2)
     lambda1, lambda2 = -alpha + beta * 1j, -alpha - beta * 1j
     # constants for the closed-form solution
-    c1 = (lambda2 * x0 - v0 - lambda2 * f_ext / jnp.diag(K)) / (lambda2 - lambda1)
-    c2 = (v0 - lambda1 * x0 + lambda1 * f_ext / jnp.diag(K)) / (lambda2 - lambda1)
+    """
+    c1 = (-v0 + lambda2 * (x0 - f_ext / jnp.diag(K))) / (lambda2 - lambda1)
+    c2 = (v0 - lambda1 * (x0 - f_ext / jnp.diag(K))) / (lambda2 - lambda1)
     ctilde1 = c1 + c2
     ctilde2 = (c1 - c2) * 1j
+    """
+    ctilde1 = x0 - f_ext / jnp.diag(K)
+    ctilde2 = (-2*v0 + (lambda1 + lambda2)*(x0 - f_ext / jnp.diag(K)))/(lambda2-lambda1)*1j
 
     x = (
         ctilde1 * jnp.cos(beta * (t - t0)) + ctilde2 * jnp.sin(beta * (t - t0))
