@@ -14,10 +14,10 @@ dt = jnp.array(1e-4)
 ts = jnp.arange(0.0, 60.0, dt)
 
 # parameters
-num_units = 1
+num_units = 2
 m = 1.0 * jnp.ones((num_units,))  # mass
-gamma = 0.1 * jnp.ones((num_units,))  # stiffness
-epsilon = 0.05 * jnp.ones((num_units,))  # damping coefficient
+K = 0.1 * jnp.eye(num_units)  # stiffness matrix
+D = 0.05 * jnp.eye(num_units)  # damping matrix
 match num_units:
     case 1:
         W = 1.5e-1 * jnp.array([[1.0]])  # coupling matrix
@@ -26,6 +26,8 @@ match num_units:
         # b = jnp.array([0.0])
         y0 = jnp.array([1.0, 0.0])
     case 2:
+        K = 0.1 * jnp.array([[1.0, 0.25], [0.25, 1.0]])
+        D = 0.05 * jnp.array([[1.0, 0.3], [0.3, 1.0]])
         W = 2e-1 * jnp.array([[1.0, 0.5], [0.5, 1.0]])
         print("Eigvals of W:", jnp.linalg.eigvals(W))
         b = 2e-1 * jnp.array([-0.5, 0.5])
@@ -33,13 +35,13 @@ match num_units:
     case _:
         raise NotImplementedError
 
-if jnp.all(epsilon == 0.0):
+if jnp.all(jnp.diag(D) == 0.0):
     print("Undamped oscillators")
-elif jnp.all(epsilon < 2 * jnp.sqrt(m * gamma)):
+elif jnp.all(jnp.diag(D) < 2 * jnp.sqrt(m * jnp.diag(K))):
     print("Underdamped oscillators")
-elif jnp.all(epsilon == 2 * jnp.sqrt(m * gamma)):
+elif jnp.all(jnp.diag(D) == 2 * jnp.sqrt(m * jnp.diag(K))):
     print("Critically damped oscillators")
-elif jnp.all(epsilon > 2 * jnp.sqrt(m * gamma)):
+elif jnp.all(jnp.diag(D) > 2 * jnp.sqrt(m * jnp.diag(K))):
     print("Overdamped oscillators")
 else:
     raise ValueError
@@ -50,8 +52,8 @@ def ode_fn(
     y: jax.Array,
     *args,
     m: jax.Array,
-    gamma: jax.Array,
-    epsilon: jax.Array,
+    K: jax.Array,
+    D: jax.Array,
     W: jax.Array,
     b: jax.Array,
 ) -> jax.Array:
@@ -61,15 +63,15 @@ def ode_fn(
         t: time
         y: oscillator state
         m: mass
-        gamma: stiffness
-        epsilon: damping
+        K: stiffness matrix
+        D: damping matrix
         W: coupling matrix
         b: bias
     Returns:
         y_d: derivative of the oscillator state
     """
     x, x_d = jnp.split(y, 2)
-    x_dd = m ** (-1) * (-gamma * x - epsilon * x_d - jnp.tanh(W @ x + b))
+    x_dd = m ** (-1) * (-K @ x - D @ x_d - jnp.tanh(W @ x + b))
     y_d = jnp.concatenate([x_d, x_dd])
     return y_d
 
@@ -79,7 +81,7 @@ def closed_form_approximation_step_no_damping(
     t0: jax.Array,
     y0: jax.Array,
     m: jax.Array,
-    gamma: jax.Array,
+    K: jax.Array,
     f_ext: jax.Array,
 ) -> jax.Array:
     """
@@ -90,7 +92,7 @@ def closed_form_approximation_step_no_damping(
         t0: initial time
         y0: initial state
         m: mass
-        gamma: stiffness
+        K: stiffness matrix
         f_ext: external force
     Returns:
         y: oscillator state at time t
@@ -98,15 +100,15 @@ def closed_form_approximation_step_no_damping(
     x0, v0 = jnp.split(y0, 2)
 
     # natural frequency
-    omega_n = jnp.sqrt(gamma / m)
+    omega_n = jnp.sqrt(jnp.diag(K) / m)
 
     # constants for the closed-form solution
-    ctilde1 = x0 - f_ext / gamma
+    ctilde1 = x0 - f_ext / jnp.diag(K)
     ctilde2 = v0 / omega_n
 
     x = (
         ctilde1 * jnp.cos(omega_n * (t - t0)) + ctilde2 * jnp.sin(omega_n * (t - t0))
-    ) + f_ext / gamma
+    ) + f_ext / jnp.diag(K)
     x_d = -(
         (-ctilde2 * omega_n) * jnp.cos(omega_n * (t - t0))
         + (ctilde1 * omega_n) * jnp.sin(omega_n * (t - t0))
@@ -121,8 +123,8 @@ def closed_form_approximation_step(
     t0: jax.Array,
     y0: jax.Array,
     m: jax.Array,
-    gamma: jax.Array,
-    epsilon: jax.Array,
+    K: jax.Array,
+    D: jax.Array,
     f_ext: jax.Array,
 ) -> jax.Array:
     """
@@ -133,8 +135,8 @@ def closed_form_approximation_step(
         t0: initial time
         y0: initial state
         m: mass
-        gamma: stiffness
-        epsilon: damping
+        K: stiffness matrix
+        epsilon: damping matrix
         f_ext: external force
     Returns:
         y: oscillator state at time t
@@ -142,23 +144,23 @@ def closed_form_approximation_step(
     x0, v0 = jnp.split(y0, 2)
 
     # natural frequency
-    omega_n = jnp.sqrt(gamma / m)
+    omega_n = jnp.sqrt(jnp.diag(K) / m)
     # damping ratio
-    zeta = epsilon / (2 * jnp.sqrt(m * gamma))
+    zeta = jnp.diag(D) / (2 * jnp.sqrt(m * jnp.diag(K)))
 
     # https://tttapa.github.io/Pages/Arduino/Audio-and-Signal-Processing/VU-Meters/Damped-Harmonic-Oscillator.html
     alpha = zeta * omega_n
     beta = omega_n * jnp.sqrt(1 - zeta**2)
     lambda1, lambda2 = -alpha + beta * 1j, -alpha - beta * 1j
     # constants for the closed-form solution
-    c1 = (lambda2 * x0 - v0 - lambda2 * f_ext / gamma) / (lambda2 - lambda1)
-    c2 = (v0 - lambda1 * x0 + lambda1 * f_ext / gamma) / (lambda2 - lambda1)
+    c1 = (lambda2 * x0 - v0 - lambda2 * f_ext / jnp.diag(K)) / (lambda2 - lambda1)
+    c2 = (v0 - lambda1 * x0 + lambda1 * f_ext / jnp.diag(K)) / (lambda2 - lambda1)
     ctilde1 = c1 + c2
     ctilde2 = (c1 - c2) * 1j
 
     x = (
         ctilde1 * jnp.cos(beta * (t - t0)) + ctilde2 * jnp.sin(beta * (t - t0))
-    ) * jnp.exp(-(alpha * (t - t0))) + f_ext / gamma
+    ) * jnp.exp(-(alpha * (t - t0))) + f_ext / jnp.diag(K)
     x_d = -(
         (ctilde1 * alpha - ctilde2 * beta) * jnp.cos(beta * (t - t0))
         + (ctilde1 * beta + ctilde2 * alpha) * jnp.sin(beta * (t - t0))
@@ -173,8 +175,8 @@ def simulate_closed_form_approximation(
     y0: jax.Array,
     readout_dt: jax.Array,
     m: jax.Array,
-    gamma: jax.Array,
-    epsilon: jax.Array,
+    K: jax.Array,
+    D: jax.Array,
     W: jax.Array,
     b: jax.Array,
 ):
@@ -182,13 +184,13 @@ def simulate_closed_form_approximation(
     sim_dt = ts[1] - ts[0]
     ts_dt_template = jnp.arange(0.0, sim_dt + readout_dt, readout_dt)
 
-    if jnp.all(epsilon == 0.0):
+    if jnp.all(D == 0.0):
         closed_form_approximation_step_fn = partial(
-            closed_form_approximation_step_no_damping, m=m, gamma=gamma
+            closed_form_approximation_step_no_damping, m=m, K=K
         )
     else:
         closed_form_approximation_step_fn = partial(
-            closed_form_approximation_step, m=m, gamma=gamma, epsilon=epsilon
+            closed_form_approximation_step, m=m, K=K, D=D
         )
 
     def approx_step_fn(
@@ -197,7 +199,9 @@ def simulate_closed_form_approximation(
         y = carry["y"]
         x, x_d = jnp.split(y, 2)
 
-        f_ext = -jnp.tanh(W @ x + b)
+        # jax.debug.print("K-diag(K) = {diff}", diff=(K-jnp.diag(K)))
+
+        f_ext = -(K-jnp.diag(jnp.diag(K))) @ x - (D-jnp.diag(jnp.diag(D))) @ x_d - jnp.tanh(W @ x + b)
 
         ts_dt = ts_dt_template + carry["t"]
         f_ext_ts = jnp.repeat(f_ext[None, :], ts_dt.shape[0], axis=0)
@@ -225,7 +229,7 @@ def simulate_closed_form_approximation(
 
 # Define the harmonic oscillator ODE term
 ode_term = ODETerm(
-    partial(ode_fn, m=m, gamma=gamma, epsilon=epsilon, W=W, b=b),
+    partial(ode_fn, m=m, K=K, D=D, W=W, b=b),
 )
 
 sol_numerical_high_precision = diffeqsolve(
@@ -257,7 +261,7 @@ y_ts_numerical_low_precision = sol_numerical_low_precision.ys
 closed_form_dt = 1e3 * dt
 ts_sim_closed_form = jnp.arange(ts[0], ts[-1], 1e3 * dt)
 closed_form_sim_ts = simulate_closed_form_approximation(
-    ts_sim_closed_form, y0, readout_dt=dt, m=m, gamma=gamma, epsilon=epsilon, W=W, b=b
+    ts_sim_closed_form, y0, readout_dt=dt, m=m, K=K, D=D, W=W, b=b
 )
 for key in closed_form_sim_ts.keys():
     closed_form_sim_ts[key] = closed_form_sim_ts[key].reshape(
