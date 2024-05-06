@@ -328,7 +328,10 @@ if __name__ == "__main__":
             case "node-con" | "node-w-con":
                 # plot the potential energy landscape in the original latent space
                 fig, ax = plt.subplots(
-                    1, 1, figsize=figsize, num="Potential energy landscape in z-coordinates"
+                    1,
+                    1,
+                    figsize=figsize,
+                    num="Potential energy landscape in z-coordinates",
                 )
                 z1_range = jnp.linspace(-1.0, 1.0, 100)
                 z2_range = jnp.linspace(-1.0, 1.0, 100)
@@ -368,7 +371,10 @@ if __name__ == "__main__":
 
                 # plot the potential energy in the w-coordinates
                 fig, ax = plt.subplots(
-                    1, 1, figsize=figsize, num="Potential energy landscape in zw-coordinates"
+                    1,
+                    1,
+                    figsize=figsize,
+                    num="Potential energy landscape in zw-coordinates",
                 )
                 zw1_range = jnp.linspace(-1.0, 1.0, 100)
                 zw2_range = jnp.linspace(-1.0, 1.0, 100)
@@ -419,7 +425,9 @@ if __name__ == "__main__":
                 zeta2_range = jnp.linspace(-1.0, 1.0, 100)
                 zeta1_grid, zeta2_grid = jnp.meshgrid(zeta1_range, zeta2_range)
                 zeta_grid = jnp.stack([zeta1_grid, zeta2_grid], axis=-1)
-                xi_grid = jnp.concatenate([zeta_grid, jnp.zeros_like(zeta_grid)], axis=-1)
+                xi_grid = jnp.concatenate(
+                    [zeta_grid, jnp.zeros_like(zeta_grid)], axis=-1
+                )
                 U_grid = jax.vmap(
                     partial(dynamics_model_bound.energy_fn, coordinate="zeta"),
                 )(xi_grid.reshape(-1, xi_grid.shape[-1])).reshape(xi_grid.shape[:2])
@@ -455,7 +463,10 @@ if __name__ == "__main__":
             case "node-con-iae" | "node-con-iae-s":
                 # plot the potential energy landscape in the original latent space
                 fig, ax = plt.subplots(
-                    1, 1, figsize=figsize, num="Potential energy landscape in z-coordinates"
+                    1,
+                    1,
+                    figsize=figsize,
+                    num="Potential energy landscape in z-coordinates",
                 )
                 z1_range = jnp.linspace(-1.0, 1.0, 100)
                 z2_range = jnp.linspace(-1.0, 1.0, 100)
@@ -492,7 +503,6 @@ if __name__ == "__main__":
                 plt.box(True)
                 plt.savefig(ckpt_dir / "potential_energy_landscape_z.pdf")
                 plt.show()
-
 
     if n_q == 2:
         # plot the learned potential energy landscape in the configuration space

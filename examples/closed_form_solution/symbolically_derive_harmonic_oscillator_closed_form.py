@@ -12,7 +12,7 @@ m, gamma, epsilon = symbols("m gamma epsilon", real=True, positive=True)
 # ODE
 eqs = [
     Eq(x_fn(t).diff(t), v_fn(t)),
-    Eq(v_fn(t).diff(t), m ** (-1) * (-gamma * x_fn(t) - epsilon * v_fn(t)))
+    Eq(v_fn(t).diff(t), m ** (-1) * (-gamma * x_fn(t) - epsilon * v_fn(t))),
 ]
 
 # initial conditions

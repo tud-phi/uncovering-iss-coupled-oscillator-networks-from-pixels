@@ -40,7 +40,7 @@ class ConIaeOde(NeuralOdeBase):
         tri_params_init = nn.initializers.normal(stddev=jnp.sqrt(1.0 / self.latent_dim))
 
         # constructing Lambda_w as a positive definite matrix
-        num_Lambda_w_params = int((self.latent_dim ** 2 + self.latent_dim) / 2)
+        num_Lambda_w_params = int((self.latent_dim**2 + self.latent_dim) / 2)
         # vector of parameters for triangular matrix
         lambda_w = self.param(
             "lambda_w", tri_params_init, (num_Lambda_w_params,), self.param_dtype
@@ -53,7 +53,7 @@ class ConIaeOde(NeuralOdeBase):
         )
 
         # constructing E_w as a positive definite matrix
-        num_E_w_params = int((self.latent_dim ** 2 + self.latent_dim) / 2)
+        num_E_w_params = int((self.latent_dim**2 + self.latent_dim) / 2)
         # vector of parameters for triangular matrix
         e_w = self.param("e_w", tri_params_init, (num_E_w_params,), self.param_dtype)
         self.E_w = generate_positive_definite_matrix_from_params(
@@ -61,10 +61,12 @@ class ConIaeOde(NeuralOdeBase):
         )
 
         # bias term
-        self.bias = self.param("bias", self.bias_init, (self.latent_dim,), self.param_dtype)
+        self.bias = self.param(
+            "bias", self.bias_init, (self.latent_dim,), self.param_dtype
+        )
 
         # number of params in B_w / B_w_inv matrix
-        num_B_w_params = int((self.latent_dim ** 2 + self.latent_dim) / 2)
+        num_B_w_params = int((self.latent_dim**2 + self.latent_dim) / 2)
 
         # constructing Bw_inv as a positive definite matrix
         b_w_inv = self.param(
@@ -142,7 +144,7 @@ class ConIaeOde(NeuralOdeBase):
         u = self.encode_input(tau)
         tau_hat = self.decode_input(u)
         return tau_hat
-    
+
     def energy_fn(self, x: Array) -> Array:
         """
         Compute the energy of the system.
@@ -170,7 +172,7 @@ class ConIaeOde(NeuralOdeBase):
         V = T + U
 
         return V
-   
+
     def setpoint_regulation_fn(
         self,
         x: Array,
@@ -208,9 +210,7 @@ class ConIaeOde(NeuralOdeBase):
         u_fb = kp * error_z + ki * control_state["e_int"] - kd * zw_d
 
         # compute the feedforward term
-        u_ff = self.Lambda_w @ z_des + jnp.tanh(
-            z_des + self.bias
-        )
+        u_ff = self.Lambda_w @ z_des + jnp.tanh(z_des + self.bias)
 
         # compute the torque in latent space
         u = jnp.zeros_like(z_des)
