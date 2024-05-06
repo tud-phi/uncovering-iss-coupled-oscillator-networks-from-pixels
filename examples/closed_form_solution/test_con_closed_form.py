@@ -170,7 +170,7 @@ def closed_form_approximation_step(
         + (ctilde1 * beta + ctilde2 * alpha) * jnp.sin(beta * (t - t0))
     ) * jnp.exp(-alpha * (t - t0))
 
-    y = jnp.concatenate([x, x_d]).astype(jnp.float64)
+    y = jnp.real(jnp.concatenate([x, x_d])).astype(jnp.float64)
     return y
 
 
