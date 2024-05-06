@@ -33,9 +33,16 @@ match num_units:
     case _:
         raise NotImplementedError
 
-
-def lecun_tanh(x: jax.Array) -> jax.Array:
-    return 1.7159 * jnp.tanh(0.666 * x)
+if jnp.all(epsilon == 0.0):
+    print("Undamped oscillators")
+elif jnp.all(epsilon < 2 * jnp.sqrt(m * gamma)):
+    print("Underdamped oscillators")
+elif jnp.all(epsilon == 2 * jnp.sqrt(m * gamma)):
+    print("Critically damped oscillators")
+elif jnp.all(epsilon > 2 * jnp.sqrt(m * gamma)):
+    print("Overdamped oscillators")
+else:
+    raise ValueError
 
 
 def ode_fn(
@@ -105,7 +112,7 @@ def closed_form_approximation_step_no_damping(
     return y
 
 
-def closed_form_approximation_step_underdamping(
+def closed_form_approximation_step(
         t: jax.Array,
         t0: jax.Array,
         y0: jax.Array,
@@ -115,7 +122,7 @@ def closed_form_approximation_step_underdamping(
         f_ext: jax.Array,
 ) -> jax.Array:
     """
-    Closed-form solution of the harmonic oscillator with underdamping.
+    Closed-form solution of the harmonic oscillator.
     https://scholar.harvard.edu/files/schwartz/files/lecture1-oscillators-and-linearity.pdf
     Args:
         t: time
@@ -168,10 +175,8 @@ def simulate_closed_form_approximation(
 
     if jnp.all(epsilon == 0.0):
         closed_form_approximation_step_fn = partial(closed_form_approximation_step_no_damping, m=m, gamma=gamma)
-    elif jnp.all(epsilon < 2 * jnp.sqrt(m * gamma)):
-        closed_form_approximation_step_fn = partial(closed_form_approximation_step_underdamping, m=m, gamma=gamma, epsilon=epsilon)
     else:
-        raise NotImplementedError
+        closed_form_approximation_step_fn = partial(closed_form_approximation_step, m=m, gamma=gamma, epsilon=epsilon)
 
     def approx_step_fn(carry: Dict[str, jax.Array], input: Dict[str, jax.Array]) -> Tuple[Dict[str, jax.Array], Dict[str, jax.Array]]:
         y = carry["y"]
