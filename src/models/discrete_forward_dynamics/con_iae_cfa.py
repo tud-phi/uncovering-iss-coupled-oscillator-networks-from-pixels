@@ -159,7 +159,7 @@ class DiscreteConIaeCfaDynamics(DiscreteForwardDynamicsBase):
         """
 
         f = u - Gamma_coup @ z - E_coup @ z_d - jnp.tanh(self.W @ z + self.bias)
-        x_next = closed_form_approximation_step_fn(t=self.dt, t0=0.0, y0=x, f=f)
+        x_next = closed_form_approximation_step_fn(t=jnp.array(self.dt), t0=jnp.array(0.0), y0=x, f=f)
 
         return x_next
 
