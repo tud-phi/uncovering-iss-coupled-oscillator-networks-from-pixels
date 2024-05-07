@@ -4,9 +4,6 @@ import jax.numpy as jnp
 from .utils import apply_eps_to_array
 
 
-complex_dtype = jnp.complex128
-
-
 def harmonic_oscillator_closed_form_dynamics(
     t0: jax.Array,
     t1: jax.Array,
@@ -35,11 +32,11 @@ def harmonic_oscillator_closed_form_dynamics(
     x0, v0 = jnp.split(y0, 2)
 
     # add small number to stiffness to avoid singularities
-    gamma = apply_eps_to_array(gamma)
+    gamma = apply_eps_to_array(gamma, eps=eps)
 
     # cast to complex numbers
-    x0, v0 = x0.astype(complex_dtype), v0.astype(complex_dtype)
-    m, gamma, epsilon, f = m.astype(complex_dtype), gamma.astype(complex_dtype), epsilon.astype(complex_dtype), f.astype(complex_dtype)
+    x0, v0 = x0.astype(complex), v0.astype(complex)
+    m, gamma, epsilon, f = m.astype(complex), gamma.astype(complex), epsilon.astype(complex), f.astype(complex)
 
     # natural frequency
     omega_n = jnp.sqrt(gamma / m)
@@ -55,7 +52,7 @@ def harmonic_oscillator_closed_form_dynamics(
     # theoretically, the solution would be different. However, this case will rarely happen in practice
     # therefore, we will just try to prevent the division by zero
     lambda_diff = lambda2 - lambda1
-    lambda_diff_epsed = apply_eps_to_array(lambda_diff)
+    lambda_diff_epsed = apply_eps_to_array(lambda_diff, eps=eps)
 
     # constants for the closed-form solution
     """
@@ -77,6 +74,6 @@ def harmonic_oscillator_closed_form_dynamics(
         + (ctilde1 * beta + ctilde2 * alpha) * jnp.sin(beta * (t1 - t0))
     ) * jnp.exp(-alpha * (t1 - t0))
 
-    y1 = jnp.real(jnp.concatenate([x, x_d])).astype(jnp.float64)
+    y1 = jnp.real(jnp.concatenate([x, x_d])).astype(y0.dtype)
 
     return y1
