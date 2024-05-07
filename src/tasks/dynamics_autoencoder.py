@@ -450,10 +450,10 @@ def task_factory(
             )(x_init_bt.astype(jnp.float64), tau_bt_sim.astype(jnp.float64))
 
             # extract only the sampling steps (i.e., remove the remaining simulation steps)
-            x_dynamic_pred_bt = x_dynamic_pred_sim_bt[:, ::sample_sim_skip_step, ...]
+            x_dynamic_pred_bt = x_dynamic_pred_sim_bt[:, ::sample_sim_skip_step, ...].astype(jnp.float32)
 
-            z_dynamic_pred_bt = x_dynamic_pred_bt[..., :n_z]
-            z_d_dynamic_pred_bt = x_dynamic_pred_bt[..., n_z:]
+            z_dynamic_pred_bt = x_dynamic_pred_bt[..., :n_z].astype(jnp.float32)
+            z_d_dynamic_pred_bt = x_dynamic_pred_bt[..., n_z:].astype(jnp.float32)
         else:
             raise ValueError(f"Unknown dynamics_type: {dynamics_type}")
 
