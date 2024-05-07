@@ -16,6 +16,7 @@ import tensorflow as tf
 
 from src.models.autoencoders import Autoencoder, VAE
 from src.models.discrete_forward_dynamics import (
+    DiscreteConIaeCfaDynamics,
     DiscreteLssDynamics,
     DiscreteMambaDynamics,
     DiscreteMlpDynamics,
@@ -57,6 +58,7 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
     "node-cornn", "node-con", "node-w-con", "node-con-iae", "node-con-iae-s", "node-dcon", "node-lnn", 
     "node-hippo-lss", "node-mamba",
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
+    "dsim-con-iae-cfa"
 ]
 """
 dynamics_model_name = "node-con-iae-s"
@@ -145,7 +147,11 @@ print(f"Number of segments: {num_segments}")
 
 # identify the dynamics_type
 dynamics_type = dynamics_model_name.split("-")[0]
-assert dynamics_type in ["node", "discrete"], f"Unknown dynamics_type: {dynamics_type}"
+assert dynamics_type in [
+    "node",
+    "discrete",
+    "dsim",
+], f"Unknown dynamics_type: {dynamics_type}"
 
 sym_exp_filepath = (
     Path(jsrm.__file__).parent
@@ -284,6 +290,14 @@ if __name__ == "__main__":
             input_dim=num_past_timesteps * n_tau,
             output_dim=n_z,
             dt=dataset_metadata["dt"],
+        )
+    elif dynamics_model_name == "dsim-con-iae-cfa":
+        dynamics_model = DiscreteConIaeCfaDynamics(
+            latent_dim=n_z,
+            input_dim=n_tau,
+            dt=sim_dt,
+            num_layers=num_mlp_layers,
+            hidden_dim=mlp_hidden_dim,
         )
     else:
         raise ValueError(f"Unknown dynamics_model_name: {dynamics_model_name}")
