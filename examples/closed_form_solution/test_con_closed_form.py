@@ -35,6 +35,34 @@ match num_units:
     case _:
         raise NotImplementedError
 
+
+def apply_eps_to_diagonal(A: jax.Array, eps: float = 1e-6) -> jax.Array:
+    """
+    Add a small number to the diagonal to avoid singularities
+    """
+    # extract the diagonal
+    diag_A = jnp.diag(A)
+
+    # get the sign of the diagonal
+    diag_A_sign = jnp.sign(diag_A)
+    # set zero sign to 1 (i.e. positive)
+    diag_A_sign = jnp.where(diag_A_sign == 0, 1, diag_A_sign)
+    # add eps to the diagonal
+    diag_A_epsed = lax.select(
+        jnp.abs(diag_A) < eps,
+        diag_A_sign * eps,
+        diag_A,
+    )
+
+    # update the matrix
+    A_epsed = A + (diag_A_epsed - jnp.diag(A))
+
+    return A_epsed
+
+
+K, D = apply_eps_to_diagonal(K), apply_eps_to_diagonal(D)
+
+
 if jnp.all(jnp.diag(D) == 0.0):
     print("Undamped oscillators")
 elif jnp.all(jnp.diag(D) < 2 * jnp.sqrt(m * jnp.diag(K))):
@@ -81,7 +109,7 @@ def closed_form_approximation_step_no_damping(
     t0: jax.Array,
     y0: jax.Array,
     m: jax.Array,
-    K: jax.Array,
+    k: jax.Array,
     f_ext: jax.Array,
 ) -> jax.Array:
     """
@@ -92,7 +120,7 @@ def closed_form_approximation_step_no_damping(
         t0: initial time
         y0: initial state
         m: mass
-        K: stiffness matrix
+        k: stiffness vector
         f_ext: external force
     Returns:
         y: oscillator state at time t
@@ -100,15 +128,15 @@ def closed_form_approximation_step_no_damping(
     x0, v0 = jnp.split(y0, 2)
 
     # natural frequency
-    omega_n = jnp.sqrt(jnp.diag(K) / m)
+    omega_n = jnp.sqrt(k / m)
 
     # constants for the closed-form solution
-    ctilde1 = x0 - f_ext / jnp.diag(K)
+    ctilde1 = x0 - f_ext / k
     ctilde2 = v0 / omega_n
 
     x = (
         ctilde1 * jnp.cos(omega_n * (t - t0)) + ctilde2 * jnp.sin(omega_n * (t - t0))
-    ) + f_ext / jnp.diag(K)
+    ) + f_ext / k
     x_d = -(
         (-ctilde2 * omega_n) * jnp.cos(omega_n * (t - t0))
         + (ctilde1 * omega_n) * jnp.sin(omega_n * (t - t0))
@@ -123,8 +151,8 @@ def closed_form_approximation_step(
     t0: jax.Array,
     y0: jax.Array,
     m: jax.Array,
-    K: jax.Array,
-    D: jax.Array,
+    k: jax.Array,
+    d: jax.Array,
     f_ext: jax.Array,
 ) -> jax.Array:
     """
@@ -135,18 +163,23 @@ def closed_form_approximation_step(
         t0: initial time
         y0: initial state
         m: mass
-        K: stiffness matrix
-        epsilon: damping matrix
+        k: stiffness vector
+        d: damping vector
         f_ext: external force
     Returns:
         y: oscillator state at time t
     """
     x0, v0 = jnp.split(y0, 2)
 
+    # cast to complex numbers
+    x0, v0 = x0.astype(jnp.complex128), v0.astype(jnp.complex128)
+    m, k, d = m.astype(jnp.complex128), k.astype(jnp.complex128), d.astype(jnp.complex128)
+    f_ext = f_ext.astype(jnp.complex128)
+
     # natural frequency
-    omega_n = jnp.sqrt(jnp.diag(K) / m)
+    omega_n = jnp.sqrt(k / m)
     # damping ratio
-    zeta = jnp.diag(D) / (2 * jnp.sqrt(m * jnp.diag(K)))
+    zeta = d / (2 * jnp.sqrt(m * k))
 
     # https://tttapa.github.io/Pages/Arduino/Audio-and-Signal-Processing/VU-Meters/Damped-Harmonic-Oscillator.html
     alpha = zeta * omega_n
@@ -154,21 +187,21 @@ def closed_form_approximation_step(
     lambda1, lambda2 = -alpha + beta * 1j, -alpha - beta * 1j
     # constants for the closed-form solution
     """
-    c1 = (-v0 + lambda2 * (x0 - f_ext / jnp.diag(K))) / (lambda2 - lambda1)
-    c2 = (v0 - lambda1 * (x0 - f_ext / jnp.diag(K))) / (lambda2 - lambda1)
+    c1 = (-v0 + lambda2 * (x0 - f_ext / k)) / (lambda2 - lambda1)
+    c2 = (v0 - lambda1 * (x0 - f_ext / k)) / (lambda2 - lambda1)
     ctilde1 = c1 + c2
     ctilde2 = (c1 - c2) * 1j
     """
-    ctilde1 = x0 - f_ext / jnp.diag(K)
+    ctilde1 = x0 - f_ext / k
     ctilde2 = (
-        (-2 * v0 + (lambda1 + lambda2) * (x0 - f_ext / jnp.diag(K)))
+        (-2 * v0 + (lambda1 + lambda2) * (x0 - f_ext / k))
         / (lambda2 - lambda1)
         * 1j
     )
 
     x = (
         ctilde1 * jnp.cos(beta * (t - t0)) + ctilde2 * jnp.sin(beta * (t - t0))
-    ) * jnp.exp(-(alpha * (t - t0))) + f_ext / jnp.diag(K)
+    ) * jnp.exp(-(alpha * (t - t0))) + f_ext / k
     x_d = -(
         (ctilde1 * alpha - ctilde2 * beta) * jnp.cos(beta * (t - t0))
         + (ctilde1 * beta + ctilde2 * alpha) * jnp.sin(beta * (t - t0))
@@ -194,11 +227,11 @@ def simulate_closed_form_approximation(
 
     if jnp.all(D == 0.0):
         closed_form_approximation_step_fn = partial(
-            closed_form_approximation_step_no_damping, m=m, K=K
+            closed_form_approximation_step_no_damping, m=m, k=jnp.diag(K)
         )
     else:
         closed_form_approximation_step_fn = partial(
-            closed_form_approximation_step, m=m, K=K, D=D
+            closed_form_approximation_step, m=m, k=jnp.diag(K), d=jnp.diag(D)
         )
 
     def approx_step_fn(
@@ -206,8 +239,6 @@ def simulate_closed_form_approximation(
     ) -> Tuple[Dict[str, jax.Array], Dict[str, jax.Array]]:
         y = carry["y"]
         x, x_d = jnp.split(y, 2)
-
-        # jax.debug.print("K-diag(K) = {diff}", diff=(K-jnp.diag(K)))
 
         f_ext = (
             -(K - jnp.diag(jnp.diag(K))) @ x
