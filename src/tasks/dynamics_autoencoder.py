@@ -580,7 +580,7 @@ def task_factory(
 
             loss = loss + loss_weights["beta"] * kld_loss
 
-        if type(nn_model.dynamics) in [ConIaeOde]:
+        if type(nn_model.dynamics) in [ConIaeOde, DiscreteConIaeCfaDynamics]:
             # autoencoder the torque
             mse_tau_rec = jnp.mean(jnp.square(preds["tau_pred"] - batch["tau"]))
             loss = loss + loss_weights.get("mse_tau_rec", 0.0) * mse_tau_rec
