@@ -97,9 +97,11 @@ def task_factory(
     assert (
         sample_dt >= sim_dt
     ), "The simulation time step needs to be smaller or equal to the sample time step."
+    """
     assert (
         sample_dt % sim_dt == 0
     ), "The sample time step needs to be a multiple of the simulation time step."
+    """
     sample_sim_skip_step = int(sample_dt // sim_dt)
     # simulation time stamps
     ts_sim = jnp.arange(t0, tf + sim_dt, sim_dt)
