@@ -9,6 +9,8 @@ import jax.numpy as jnp
 import matplotlib.pyplot as plt
 from typing import Dict, Tuple
 
+from src.dynamics.utils import apply_eps_to_array
+
 # time steps
 dt = jnp.array(1e-4)
 ts = jnp.arange(0.0, 60.0, dt)
@@ -18,6 +20,7 @@ num_units = 2
 m = 1.0 * jnp.ones((num_units,))  # mass
 K = 0.1 * jnp.eye(num_units)  # stiffness matrix
 D = 0.05 * jnp.eye(num_units)  # damping matrix
+# D = jnp.diag(2*jnp.sqrt(m * jnp.diag(K)))  # damping matrix for critically damped oscillator
 match num_units:
     case 1:
         W = 1.5e-1 * jnp.array([[1.0]])  # coupling matrix
@@ -185,18 +188,23 @@ def closed_form_approximation_step(
     alpha = zeta * omega_n
     beta = omega_n * jnp.sqrt(1 - zeta**2)
     lambda1, lambda2 = -alpha + beta * 1j, -alpha - beta * 1j
+
+    # when d = 2 * sqrt(m * k) => zeta = 1 => lambda1 = lambda2 => lambda2-lambda1 = 0, the system is critically damped
+    # theoretically, the solution would be different. However, this case will rarely happen in practice
+    # therefore, we will just try to prevent the division by zero
+    lambda_diff = lambda2 - lambda1
+    lambda_diff_epsed = apply_eps_to_array(lambda_diff)
+
     # constants for the closed-form solution
     """
-    c1 = (-v0 + lambda2 * (x0 - f_ext / k)) / (lambda2 - lambda1)
-    c2 = (v0 - lambda1 * (x0 - f_ext / k)) / (lambda2 - lambda1)
+    c1 = (-v0 + lambda2 * (x0 - f_ext / k)) / lambda_diff_epsed
+    c2 = (v0 - lambda1 * (x0 - f_ext / k)) / lambda_diff_epsed
     ctilde1 = c1 + c2
     ctilde2 = (c1 - c2) * 1j
     """
     ctilde1 = x0 - f_ext / k
     ctilde2 = (
-        (-2 * v0 + (lambda1 + lambda2) * (x0 - f_ext / k))
-        / (lambda2 - lambda1)
-        * 1j
+        (-2 * v0 + (lambda1 + lambda2) * (x0 - f_ext / k)) / lambda_diff_epsed * 1j
     )
 
     x = (

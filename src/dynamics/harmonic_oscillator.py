@@ -50,16 +50,23 @@ def harmonic_oscillator_closed_form_dynamics(
     alpha = zeta * omega_n
     beta = omega_n * jnp.sqrt(1 - zeta**2)
     lambda1, lambda2 = -alpha + beta * 1j, -alpha - beta * 1j
+
+    # when d = 2 * sqrt(m * k) => zeta = 1 => lambda1 = lambda2 => lambda2-lambda1 = 0, the system is critically damped
+    # theoretically, the solution would be different. However, this case will rarely happen in practice
+    # therefore, we will just try to prevent the division by zero
+    lambda_diff = lambda2 - lambda1
+    lambda_diff_epsed = apply_eps_to_array(lambda_diff)
+
     # constants for the closed-form solution
     """
-    c1 = (-v0 + lambda2 * (x0 - f_ext / jnp.diag(K))) / (lambda2 - lambda1)
-    c2 = (v0 - lambda1 * (x0 - f_ext / jnp.diag(K))) / (lambda2 - lambda1)
+    c1 = (-v0 + lambda2 * (x0 - f_ext / jnp.diag(K))) / lambda_diff_epsed
+    c2 = (v0 - lambda1 * (x0 - f_ext / jnp.diag(K))) / lambda_diff_epsed
     ctilde1 = c1 + c2
     ctilde2 = (c1 - c2) * 1j
     """
     ctilde1 = x0 - f / gamma
     ctilde2 = (
-        (-2 * v0 + (lambda1 + lambda2) * (x0 - f / gamma)) / (lambda2 - lambda1) * 1j
+        (-2 * v0 + (lambda1 + lambda2) * (x0 - f / gamma)) / lambda_diff_epsed * 1j
     )
 
     x = (
