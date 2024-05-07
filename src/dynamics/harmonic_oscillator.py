@@ -1,6 +1,8 @@
 import jax
 import jax.numpy as jnp
 
+from .utils import apply_eps_to_array
+
 
 complex_dtype = jnp.complex128
 
@@ -13,6 +15,7 @@ def harmonic_oscillator_closed_form_dynamics(
     gamma: jax.Array,
     epsilon: jax.Array,
     f: jax.Array,
+    eps: float = 1e-6,
 ) -> jax.Array:
     """
     Closed-form solution of N independent harmonic oscillator.
@@ -25,10 +28,14 @@ def harmonic_oscillator_closed_form_dynamics(
         gamma: stiffness [N/m] as array of shape (N, )
         epsilon: damping coefficient [Ns/m] as array of shape (N, )
         f: force [N] as array of shape (N, )
+        eps: small number to add to avoid singularities
     Returns:
         y1: final oscillator state [m, m/s] as array of shape (2*N, )
     """
     x0, v0 = jnp.split(y0, 2)
+
+    # add small number to stiffness to avoid singularities
+    gamma = apply_eps_to_array(gamma)
 
     # cast to complex numbers
     x0, v0 = x0.astype(complex_dtype), v0.astype(complex_dtype)
