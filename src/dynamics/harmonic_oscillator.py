@@ -2,6 +2,9 @@ import jax
 import jax.numpy as jnp
 
 
+complex_dtype = jnp.complex128
+
+
 def harmonic_oscillator_closed_form_dynamics(
     t0: jax.Array,
     t1: jax.Array,
@@ -26,6 +29,10 @@ def harmonic_oscillator_closed_form_dynamics(
         y1: final oscillator state [m, m/s] as array of shape (2*N, )
     """
     x0, v0 = jnp.split(y0, 2)
+
+    # cast to complex numbers
+    x0, v0 = x0.astype(complex_dtype), v0.astype(complex_dtype)
+    m, gamma, epsilon, f = m.astype(complex_dtype), gamma.astype(complex_dtype), epsilon.astype(complex_dtype), f.astype(complex_dtype)
 
     # natural frequency
     omega_n = jnp.sqrt(gamma / m)
