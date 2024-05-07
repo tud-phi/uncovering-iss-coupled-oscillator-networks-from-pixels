@@ -622,7 +622,7 @@ def task_factory(
                 ),
             )
 
-        if type(nn_model.dynamics) in [ConIaeOde]:
+        if type(nn_model.dynamics) in [ConIaeOde, DiscreteConIaeCfaDynamics]:
             batch_loss_dict["mse_tau_rec"] = jnp.mean(
                 jnp.square(preds["tau_pred"] - batch["tau"])
             )
@@ -648,7 +648,7 @@ def task_factory(
             ssim_rec_static: RootAverage.from_output("ssim_rec_static")
             ssim_rec_dynamic: RootAverage.from_output("ssim_rec_dynamic")
 
-        if type(nn_model.dynamics) in [ConIaeOde]:
+        if type(nn_model.dynamics) in [ConIaeOde, DiscreteConIaeCfaDynamics]:
             rmse_tau_rec: RootAverage.from_output("mse_tau_rec")
 
     metrics_collection_cls = MetricsCollection
