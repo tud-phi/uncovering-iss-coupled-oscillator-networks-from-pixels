@@ -26,4 +26,4 @@ tensorflow  # required for tensorflow-datasets
 tensorflow-datasets
 tqdm
 
-git+git://github.com/mstoelzle/ciclo
+git+https://github.com/mstoelzle/ciclo
