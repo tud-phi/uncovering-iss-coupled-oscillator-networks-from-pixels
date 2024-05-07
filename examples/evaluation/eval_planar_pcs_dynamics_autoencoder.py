@@ -92,6 +92,11 @@ if long_horizon_dataset:
         case "node-con-iae-s":
             experiment_id = f"2024-03-17_22-26-44/n_z_{n_z}_seed_{seed}"
             num_mlp_layers, mlp_hidden_dim = 2, 12
+        case "dsim-con-iae-cfa":
+            n_z = 8
+            experiment_id = "2024-05-07_20-07-24"
+            num_mlp_layers, mlp_hidden_dim = 5, 30
+            sim_dt = 1e-2
         case _:
             raise ValueError(
                 f"No experiment_id for dynamics_model_name={dynamics_model_name}"
@@ -366,7 +371,7 @@ if __name__ == "__main__":
     rollout_duration = 3.0  # s
     rollout_fps = 30  # frames per second
     rollout_dt = 1 / rollout_fps  # s
-    rollout_sim_dt = 1e-3 * rollout_dt  # simulation time step of 1e-5 s
+    rollout_sim_dt = 1e-3 * rollout_dt  # simulation time step
     ts_rollout = jnp.linspace(
         0.0, rollout_duration, num=int(rollout_duration / rollout_dt)
     )
@@ -387,7 +392,7 @@ if __name__ == "__main__":
         system_type,
         nn_model,
         ts=ts_rollout,
-        sim_dt=rollout_sim_dt,
+        sim_dt=sim_dt,
         loss_weights=loss_weights,
         ae_type=ae_type,
         dynamics_type=dynamics_type,
