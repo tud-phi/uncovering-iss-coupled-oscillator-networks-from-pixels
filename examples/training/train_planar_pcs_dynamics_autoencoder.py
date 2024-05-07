@@ -53,11 +53,11 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 """
 dynamics_model_name = "node-mechanical-mlp"
 # size of latent space
-n_z = 4
+n_z = 8
 # simulation time step
 sim_dt = 1e-2
 
-batch_size = 100
+batch_size = 80
 num_epochs = 50
 warmup_epochs = 5
 start_time_idx = 1
@@ -117,18 +117,17 @@ if long_horizon_dataset:
                 weight_decay = 5.5340117045438595e-06
                 num_mlp_layers, mlp_hidden_dim = 5, 30
             case "dsim-con-iae-cfa":
-                # TODO: optimize these hyperparameters
-                base_lr = 0.018486990918444367
+                # optimized for n_z=8
+                base_lr = 0.018088317332901616
                 loss_weights = dict(
-                    mse_z=0.3733687489479885,
+                    mse_z=0.10824911140537369,
                     mse_rec_static=1.0,
-                    mse_rec_dynamic=83.7248326772002,
-                    beta=0.00020068384639167935,
+                    mse_rec_dynamic=80.45564515992584,
+                    beta=0.00010659152931072577,
                     mse_tau_rec=1e1,
                 )
-                weight_decay = 5.5340117045438595e-06
+                weight_decay = 2.6404635847920316e-05
                 num_mlp_layers, mlp_hidden_dim = 5, 30
-                sim_dt = 1e0 * sim_dt
             case _:
                 raise NotImplementedError(
                     f"beta_vae with dynamics_model_name '{dynamics_model_name}' not implemented yet."
