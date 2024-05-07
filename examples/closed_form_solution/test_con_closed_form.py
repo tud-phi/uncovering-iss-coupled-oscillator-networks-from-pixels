@@ -225,7 +225,7 @@ def simulate_closed_form_approximation(
     sim_dt = ts[1] - ts[0]
     ts_dt_template = jnp.arange(0.0, sim_dt + readout_dt, readout_dt)
 
-    if jnp.all(D == 0.0):
+    if jnp.all(jnp.diag(D) == 0.0):
         closed_form_approximation_step_fn = partial(
             closed_form_approximation_step_no_damping, m=m, k=jnp.diag(K)
         )
