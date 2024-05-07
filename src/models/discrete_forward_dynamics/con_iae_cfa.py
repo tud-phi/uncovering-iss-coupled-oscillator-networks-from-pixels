@@ -74,9 +74,7 @@ class DiscreteConIaeCfaDynamics(DiscreteForwardDynamicsBase):
         num_w_params = int((self.latent_dim**2 + self.latent_dim) / 2)
 
         # constructing Bw_inv as a positive definite matrix
-        w = self.param(
-            "w", tri_params_init, (num_w_params,), self.param_dtype
-        )
+        w = self.param("w", tri_params_init, (num_w_params,), self.param_dtype)
         self.W = generate_positive_definite_matrix_from_params(
             self.latent_dim,
             w,
@@ -109,7 +107,7 @@ class DiscreteConIaeCfaDynamics(DiscreteForwardDynamicsBase):
         z, z_d = jnp.split(x, 2)
 
         # compute the oscillator parameters
-        m = jnp.ones((self.latent_dim, ))
+        m = jnp.ones((self.latent_dim,))
         Gamma = self.Gamma_w @ self.W
         E = self.E_w @ self.W
 
@@ -121,7 +119,10 @@ class DiscreteConIaeCfaDynamics(DiscreteForwardDynamicsBase):
         u = self.encode_input(tau)
 
         closed_form_approximation_step_fn = partial(
-            harmonic_oscillator_closed_form_dynamics, m=m, gamma=jnp.diag(Gamma), epsilon=jnp.diag(E)
+            harmonic_oscillator_closed_form_dynamics,
+            m=m,
+            gamma=jnp.diag(Gamma),
+            epsilon=jnp.diag(E),
         )
 
         """
@@ -237,8 +238,8 @@ class DiscreteConIaeCfaDynamics(DiscreteForwardDynamicsBase):
 
         # compute the potential energy
         U = (
-                0.5 * z[None, :] @ Gamma @ z[:, None]
-                + jnp.sum(jnp.log(jnp.cosh(self.W @ z + self.bias)))
+            0.5 * z[None, :] @ Gamma @ z[:, None]
+            + jnp.sum(jnp.log(jnp.cosh(self.W @ z + self.bias)))
         ).squeeze()
 
         # compute the total energy

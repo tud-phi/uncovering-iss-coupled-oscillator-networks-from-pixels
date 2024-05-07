@@ -94,9 +94,13 @@ def task_factory(
     # maximum of integrator steps
     max_int_steps = int((tf - t0) / sim_dt) + 1
     # make sure that the simulation time steps are consistent with the sample time steps
-    assert sample_dt >= sim_dt, "The simulation time step needs to be smaller or equal to the sample time step."
-    assert sample_dt % sim_dt == 0, "The sample time step needs to be a multiple of the simulation time step."
-    sample_sim_skip_step = int(sample_dt//sim_dt)
+    assert (
+        sample_dt >= sim_dt
+    ), "The simulation time step needs to be smaller or equal to the sample time step."
+    assert (
+        sample_dt % sim_dt == 0
+    ), "The sample time step needs to be a multiple of the simulation time step."
+    sample_sim_skip_step = int(sample_dt // sim_dt)
     # simulation time stamps
     ts_sim = jnp.arange(t0, tf + sim_dt, sim_dt)
 
@@ -170,8 +174,6 @@ def task_factory(
         z_static_pred_bt = z_static_pred_flat_bt.reshape(
             (batch_size, -1, *z_static_pred_flat_bt.shape[1:])
         )
-
-
 
         def estimate_initial_latent_velocity() -> Array:
             match latent_velocity_source:
@@ -281,7 +283,9 @@ def task_factory(
             # construct the input for the discrete forward dynamics
             z_past_bt = z_static_pred_bt[:, start_time_idx - num_past_timesteps + 1 :]
             # construct batch of external torques of shape batch_dim x time_dim x n_tau
-            tau_bt_discrete = jnp.expand_dims(batch["tau"], axis=1).repeat(ts.shape[0], axis=1)
+            tau_bt_discrete = jnp.expand_dims(batch["tau"], axis=1).repeat(
+                ts.shape[0], axis=1
+            )
 
             def autoregress_fn(_z_past_ts: Array, _tau_ts: Array) -> Array:
                 """
@@ -380,7 +384,9 @@ def task_factory(
             # specify initial state for the dynamic rollout
             x_init_bt = jnp.concatenate((z_init_bt, z_d_init_bt), axis=-1)
             # construct batch of external torques of shape batch_dim x time_dim x n_tau
-            tau_bt_sim = jnp.expand_dims(batch["tau"], axis=1).repeat(ts_sim.shape[0], axis=1)
+            tau_bt_sim = jnp.expand_dims(batch["tau"], axis=1).repeat(
+                ts_sim.shape[0], axis=1
+            )
 
             def autoregress_fn(_x: Array, _tau: Array) -> Array:
                 """
@@ -401,7 +407,7 @@ def task_factory(
                 return _x_next
 
             def scan_fn(
-                    _carry: Dict[str, Array], _tau: Array
+                _carry: Dict[str, Array], _tau: Array
             ) -> Tuple[Dict[str, Array], Array]:
                 """
                 Function used as part of lax.scan rollout for the discrete forward dynamics

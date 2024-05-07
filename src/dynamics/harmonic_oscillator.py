@@ -44,7 +44,9 @@ def harmonic_oscillator_closed_form_dynamics(
     ctilde2 = (c1 - c2) * 1j
     """
     ctilde1 = x0 - f / gamma
-    ctilde2 = (-2*v0 + (lambda1 + lambda2)*(x0 - f / gamma))/(lambda2-lambda1)*1j
+    ctilde2 = (
+        (-2 * v0 + (lambda1 + lambda2) * (x0 - f / gamma)) / (lambda2 - lambda1) * 1j
+    )
 
     x = (
         ctilde1 * jnp.cos(beta * (t - t0)) + ctilde2 * jnp.sin(beta * (t - t0))

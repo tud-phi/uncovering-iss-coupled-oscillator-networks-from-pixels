@@ -160,7 +160,11 @@ def closed_form_approximation_step(
     ctilde2 = (c1 - c2) * 1j
     """
     ctilde1 = x0 - f_ext / jnp.diag(K)
-    ctilde2 = (-2*v0 + (lambda1 + lambda2)*(x0 - f_ext / jnp.diag(K)))/(lambda2-lambda1)*1j
+    ctilde2 = (
+        (-2 * v0 + (lambda1 + lambda2) * (x0 - f_ext / jnp.diag(K)))
+        / (lambda2 - lambda1)
+        * 1j
+    )
 
     x = (
         ctilde1 * jnp.cos(beta * (t - t0)) + ctilde2 * jnp.sin(beta * (t - t0))
@@ -205,7 +209,11 @@ def simulate_closed_form_approximation(
 
         # jax.debug.print("K-diag(K) = {diff}", diff=(K-jnp.diag(K)))
 
-        f_ext = -(K-jnp.diag(jnp.diag(K))) @ x - (D-jnp.diag(jnp.diag(D))) @ x_d - jnp.tanh(W @ x + b)
+        f_ext = (
+            -(K - jnp.diag(jnp.diag(K))) @ x
+            - (D - jnp.diag(jnp.diag(D))) @ x_d
+            - jnp.tanh(W @ x + b)
+        )
 
         ts_dt = ts_dt_template + carry["t"]
         f_ext_ts = jnp.repeat(f_ext[None, :], ts_dt.shape[0], axis=0)

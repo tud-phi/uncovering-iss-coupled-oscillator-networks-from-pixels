@@ -285,7 +285,11 @@ print(f"Number of segments: {num_segments}")
 
 # identify the dynamics_type
 dynamics_type = dynamics_model_name.split("-")[0]
-assert dynamics_type in ["node", "discrete", "dsim"], f"Unknown dynamics_type: {dynamics_type}"
+assert dynamics_type in [
+    "node",
+    "discrete",
+    "dsim",
+], f"Unknown dynamics_type: {dynamics_type}"
 
 now = datetime.now()
 logdir = (
