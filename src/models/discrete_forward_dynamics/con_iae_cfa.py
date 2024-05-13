@@ -125,39 +125,6 @@ class DiscreteConIaeCfaDynamics(DiscreteForwardDynamicsBase):
             epsilon=jnp.diag(E),
         )
 
-        """
-        def approx_step_fn(
-            carry: Dict[str, Array], input: Dict[str, Array]
-        ) -> Tuple[Dict[str, Array], Dict[str, Array]]:
-            _t = input["t"]
-            _x = carry["x"]
-            _z, _z_d = jnp.split(_x, 2)
-
-            # external force on the harmonic oscillators
-            f = u - Gamma_coup @ _z - E_coup @ _z_d - jnp.tanh(self.W @ _z + self.bias)
-
-            _x_next = closed_form_approximation_step_fn(t=_t, t0=carry["t"], y0=_x, f=f)
-
-            carry = dict(t=_t, x=_x_next)
-            step_data = dict(t=_t, x=_x_next)
-            return carry, step_data
-
-        # time steps for the closed-form approximation
-        ts = jnp.arange(0.0, self.dt + self.sim_dt, self.sim_dt)
-
-        input_ts = dict(
-            ts=ts[1:],
-        )
-
-        carry = dict(
-            t=ts[0],
-            x=x,
-        )
-
-        carry, sim_ts = lax.scan(approx_step_fn, carry, input_ts)
-        x_next = sim_ts["x_ts"][-1]
-        """
-
         f = u - Gamma_coup @ z - E_coup @ z_d - jnp.tanh(self.W @ z + self.bias)
         x_next = closed_form_approximation_step_fn(t0=jnp.array(0.0), t1=jnp.array(self.dt), y0=x, f=f)
 
