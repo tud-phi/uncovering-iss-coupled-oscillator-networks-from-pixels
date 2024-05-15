@@ -19,6 +19,7 @@ Long horizon dataset:
 node-w-con: sweep_id = "2024-03-12_12-53-29"
 node-con-iae: sweep_id = "2024-03-15_21-44-34"
 node-con-iae-s: sweep_id = "2024-03-17_22-26-44"
+dsim-con-iae-cfa: "2024-05-08_00-21-02"
 # 2-body problem
 node-mechanical-mlp: sweep_id = "2024-03-20_21-13-37"
 """
