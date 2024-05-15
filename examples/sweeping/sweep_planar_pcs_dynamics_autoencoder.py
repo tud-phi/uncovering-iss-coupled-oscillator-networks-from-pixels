@@ -50,9 +50,9 @@ tf.config.experimental.set_visible_devices([], "GPU")
 
 # set sweep settings
 # set the range of latent dimensions
-n_z_range = onp.arange(2, 34, 2)
+n_z_range = onp.arange(1, 32, step=2)
 # set the range of random seeds
-seed_range = onp.array([0])
+seed_range = onp.array([0, 1, 2])
 
 system_type = "pcc_ns-2"
 long_horizon_dataset = True
@@ -69,7 +69,7 @@ dynamics_model_name = "node-con-iae-s"
 # simulation time step
 sim_dt = 1e-2
 
-batch_size = 100
+batch_size = 80
 num_epochs = 50
 warmup_epochs = 5
 start_time_idx = 1
