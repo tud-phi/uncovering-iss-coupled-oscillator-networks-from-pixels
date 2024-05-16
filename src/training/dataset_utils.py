@@ -33,7 +33,7 @@ def load_dataset(
         test_perc: Percentage of single_pendulum dataset with respect to the entire dataset size. Needs to be in interval [0, 100].
         num_threads: Number of threads to use for parallel processing.
         prefetch: Number of batches to prefetch.
-        normalize: Whether to normalize the rendering image to [0, 1].
+        normalize: Whether to normalize the rendering image to [-1, 1].
         grayscale: Whether to convert the rendering image to grayscale.
     Returns:
         datasets: A dictionary with the following keys:
@@ -94,7 +94,7 @@ def load_dataset(
             )
 
         if normalize:
-            # normalize rendering image to [0, 1]
+            # normalize rendering image to [-1, 1]
             ds = ds.map(
                 lambda sample: sample
                 | {

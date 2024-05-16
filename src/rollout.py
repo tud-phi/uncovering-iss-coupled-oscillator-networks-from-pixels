@@ -43,7 +43,7 @@ def rollout_ode(
             If None, tau needs to be provided.
         control_state_init (Optional[Dict[str, Array]]): Initial control state.
         grayscale_rendering: Whether to convert the rendering image to grayscale.
-        normalize_rendering: Whether to normalize the rendering image to [0, 1].
+        normalize_rendering: Whether to normalize the rendering image to [-1, 1].
         show_progress: Whether to show the progress bar.
     Returns:
         data_ts: Dictionary with the following keys:
@@ -202,7 +202,7 @@ def rollout_ode_with_latent_space_control(
             - "latent-space-finite-differences": Finite differences in the latent space.
             - "latent-space-integration": Integrating the latent dynamics.
         grayscale_rendering: Whether to convert the rendering image to grayscale.
-        normalize_rendering: Whether to normalize the rendering image to [0, 1].
+        normalize_rendering: Whether to normalize the rendering image to [-1, 1].
     Returns:
         sim_ts: Dictionary with the following keys:
             - t_ts: Time steps of the rollout.
@@ -361,7 +361,7 @@ def rollout_ode_with_latent_space_control(
         # convert rendering image to grayscale
         img_prior_init = tf.image.rgb_to_grayscale(img_prior_init)
     if normalize_rendering:
-        # normalize rendering image to [0, 1]
+        # normalize rendering image to [-1, 1]
         img_prior_init = tf.cast(img_prior_init, tf.float32) / 128.0 - 1.0
     # convert image to jax array
     img_prior_init = jnp.array(img_prior_init)
