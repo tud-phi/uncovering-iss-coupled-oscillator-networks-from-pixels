@@ -322,6 +322,18 @@ if __name__ == "__main__":
             {"params": state.params},
             method=nn_model.decode,
         )(z[None, ...])[0, ...]
+    
+    # get an estimate of the maximum latent
+    img_q0_max = rendering_fn(q0_max)
+    img_q0_max = jnp.array(
+        preprocess_rendering(img_q0_max, grayscale=True, normalize=True)
+    )
+    z0_max = nn_model_bound.encode(img_q0_max[None, ...])[0, ...]
+    # create grid for plotting the potential energy landscape
+    z1_range = jnp.linspace(-z0_max[0], z0_max[0], 100)
+    z2_range = jnp.linspace(-z0_max[1], z0_max[1], 100)
+    z1_grid, z2_grid = jnp.meshgrid(z1_range, z2_range)
+    z_grid = jnp.stack([z1_grid, z2_grid], axis=-1)
 
     if n_z == 2:
         match dynamics_model_name:
@@ -333,10 +345,6 @@ if __name__ == "__main__":
                     figsize=figsize,
                     num="Potential energy landscape in z-coordinates",
                 )
-                z1_range = jnp.linspace(-1.0, 1.0, 100)
-                z2_range = jnp.linspace(-1.0, 1.0, 100)
-                z1_grid, z2_grid = jnp.meshgrid(z1_range, z2_range)
-                z_grid = jnp.stack([z1_grid, z2_grid], axis=-1)
                 xi_grid = jnp.concatenate([z_grid, jnp.zeros_like(z_grid)], axis=-1)
                 U_grid = jax.vmap(
                     partial(dynamics_model_bound.energy_fn, coordinate="z"),
@@ -468,10 +476,6 @@ if __name__ == "__main__":
                     figsize=figsize,
                     num="Potential energy landscape in z-coordinates",
                 )
-                z1_range = jnp.linspace(-1.0, 1.0, 100)
-                z2_range = jnp.linspace(-1.0, 1.0, 100)
-                z1_grid, z2_grid = jnp.meshgrid(z1_range, z2_range)
-                z_grid = jnp.stack([z1_grid, z2_grid], axis=-1)
                 xi_grid = jnp.concatenate([z_grid, jnp.zeros_like(z_grid)], axis=-1)
                 U_grid = jax.vmap(
                     partial(dynamics_model_bound.energy_fn),
