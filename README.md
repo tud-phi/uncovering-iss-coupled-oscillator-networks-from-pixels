@@ -1,8 +1,9 @@
-# Uncovering Archetype Networks
+# Leveraging Input-to-State Stable Coupled Oscillator Networks for Learning Control-oriented Latent Dynamics from Pixels
 
 ## Installation
 
-### Install System Dependencies
+### Install the system dependencies
+
 On Ubuntu, please install the following system dependencies:
 
 ```bash
@@ -17,7 +18,8 @@ conda install -c conda-forge ffmpeg
 
 ### Install the Python dependencies
 
-Please install the Python dependencies using the following command:
+This library requires Python 3.10 or higher. Please install the Python dependencies using the following command:
+
 ```bash
 pip install -r requirements.txt
 ```
@@ -33,7 +35,15 @@ This can be done by running the following command:
 export PYTHONPATH="${PYTHONPATH}://src"
 ```
 
-## Generating the Tensorflow Dataset
+Alternatively, you can also use our helper script:
+
+```bash
+source ./01-configure-env-vars.sh
+```
+
+Afterwards, you can run the scripts in the `src` folder. Some examples are given below.
+
+## Generating the datasets
 
 The compressed Tensorflow dataset can be generated using the following commands:
 
@@ -45,16 +55,36 @@ tfds build datasets/pendulum --data_dir data/tensorflow_datasets --config single
 
 ### Planar PCS robot
 
+#### One Constant Strain segment
+
+```bash
+tfds build datasets/planar_pcs --data_dir data/tensorflow_datasets --config cs_32x32px_h-101 --overwrite
+```
+
 #### Two Piecewise Constant Curvature segments
 
 ```bash
 tfds build datasets/planar_pcs --data_dir data/tensorflow_datasets --config pcc_ns-2_32x32px_h-101 --overwrite
 ```
 
+#### Four Piecewise Constant Curvature segments
+
+```bash
+tfds build datasets/planar_pcs --data_dir data/tensorflow_datasets --config pcc_ns-4_32x32px_h-101 --overwrite
+```
+
 ### N-Body problem
 
 ```bash
 tfds build datasets/nbody_problem --data_dir data/tensorflow_datasets --config nb-2_h-101_32x32px --overwrite
+```
+
+## Latent-space control
+
+The experiment of exploiting the coupled oscillator network for latent-space control can be run using the following command:
+
+```bash
+python examples/control/control_planar_pcs_dynamics_autoencoder_setpoint_sequence.py
 ```
 
 ## Tips & Tricks
