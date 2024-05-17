@@ -40,10 +40,12 @@ The compressed Tensorflow dataset can be generated using the following commands:
 ### Single Pendulum
 
 ```bash
-tfds build datasets/pendulum --data_dir data/tensorflow_datasets --config single_pendulum_64x64px --overwrite
+tfds build datasets/pendulum --data_dir data/tensorflow_datasets --config single_pendulum_32x32px_h-101 --overwrite
 ```
 
 ### Planar PCS robot
+
+#### Two Piecewise Constant Curvature segments
 
 ```bash
 tfds build datasets/planar_pcs --data_dir data/tensorflow_datasets --config pcc_ns-2_32x32px_h-101 --overwrite

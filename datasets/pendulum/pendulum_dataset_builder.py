@@ -40,6 +40,14 @@ class Pendulum(tfds.core.GeneratorBasedBuilder):
             num_links=1,
         ),
         PendulumDatasetConfig(
+            name="single_pendulum_32x32px_h-101",
+            description="Single pendulum dataset with images of size 32x32px and a horizon of 101 steps.",
+            state_dim=2,
+            horizon_dim=101,
+            img_size=(32, 32),
+            num_links=1,
+        ),
+        PendulumDatasetConfig(
             name="single_pendulum_64x64px",
             description="Single pendulum dataset with images of size 64x64px.",
             state_dim=2,
