@@ -71,7 +71,7 @@ dynamics_model_name = "node-con-iae-s"
 if system_type in ["cc", "ccs",  "pcc_ns-2", "pcc_ns-3", "pcc_ns-4"]:
     sim_dt = 1e-2
 elif system_type in ["single_pendulum", "double_pendulum"]:
-    sim_dt = 2.5e-3
+    sim_dt = 2.5e-2
 else:
     raise ValueError(f"Unknown system_type: {system_type}")
 
