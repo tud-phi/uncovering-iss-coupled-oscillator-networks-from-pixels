@@ -145,6 +145,40 @@ class ConIaeOde(NeuralOdeBase):
         u = self.encode_input(tau)
         tau_hat = self.decode_input(u)
         return tau_hat
+    
+    def kinetic_energy_fn(self, x: Array) -> Array:
+        """
+        Compute the kinetic energy of the system.
+        Args:
+            x: state of shape (2* latent_dim, )
+        Returns:
+            T: kinetic energy of the system of shape ()
+        """
+        zw_d = x[..., self.latent_dim :]
+
+        # mass matrix
+        B = jnp.linalg.inv(self.B_w_inv)
+
+        T = (0.5 * zw_d[None, :] @ B @ zw_d[:, None]).squeeze()
+
+        return T
+    
+    def potential_energy_fn(self, x: Array) -> Array:
+        """
+        Compute the potential energy of the system.
+        Args:
+            x: state of shape (2* latent_dim, )
+        Returns:
+            U: potential energy of the system of shape ()
+        """
+        zw = x[..., : self.latent_dim]
+
+        U = (
+            0.5 * zw[None, :] @ self.Lambda_w @ zw[:, None]
+            + jnp.sum(jnp.log(jnp.cosh(zw + self.bias)))
+        ).squeeze()
+
+        return U
 
     def energy_fn(self, x: Array) -> Array:
         """
@@ -154,20 +188,8 @@ class ConIaeOde(NeuralOdeBase):
         Returns:
             V: energy of the system of shape ()
         """
-        zw = x[..., : self.latent_dim]
-        zw_d = x[..., self.latent_dim :]
-
-        # mass matrix
-        B = jnp.linalg.inv(self.B_w_inv)
-
-        # compute the kinetic energy
-        T = (0.5 * zw_d[None, :] @ B @ zw_d[:, None]).squeeze()
-
-        # compute the potential energy
-        U = (
-            0.5 * zw[None, :] @ self.Lambda_w @ zw[:, None]
-            + jnp.sum(jnp.log(jnp.cosh(zw + self.bias)))
-        ).squeeze()
+        T = self.kinetic_energy_fn(x)
+        U = self.potential_energy_fn(x)
 
         # compute the total energy
         V = T + U

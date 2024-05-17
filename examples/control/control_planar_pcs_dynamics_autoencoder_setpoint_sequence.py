@@ -52,7 +52,7 @@ simulate_with_learned_dynamics = False
 
 # simulation settings
 # num setpoints
-num_setpoints = 10
+num_setpoints = 7
 sim_duration_per_setpoint = 5.0  # s
 sim_duration = num_setpoints * sim_duration_per_setpoint  # s
 # initial configuration
@@ -120,7 +120,7 @@ for k in range(n_z // len(plt_colors_cycle) + 1):
 
 if __name__ == "__main__":
     # generate a random setpoint sequence
-    rng_setpoint = random.PRNGKey(seed=0)
+    rng_setpoint = random.PRNGKey(seed=1)
     q_des_ps = 5.0 * jnp.pi * random.uniform(rng_setpoint, shape=(num_setpoints, n_q), minval=-1.0, maxval=1.0)
 
     dataset_name = f"planar_pcs/{system_type}_32x32px_h-101"
@@ -631,6 +631,28 @@ if __name__ == "__main__":
     sim_ts["img_des_ts"] = img_des_ts
     sim_ts["z_des_ts"] = z_des_ts
 
+    energy_fn = getattr(dynamics_model_bound, "energy_fn", None)
+    potential_energy_fn: callable = getattr(dynamics_model_bound, "potential_energy_fn", None)
+    kinetic_energy_fn: callable = getattr(dynamics_model_bound, "kinetic_energy_fn", None)
+    if callable(energy_fn):
+        if type(dynamics_model) is ConOde:
+            energy_fn = partial(
+                energy_fn,
+                coordinate="zw" if dynamics_model_bound.use_w_coordinates else "z",
+            )
+            potential_energy_fn = partial(
+                potential_energy_fn,
+                coordinate="zw" if dynamics_model_bound.use_w_coordinates else "z",
+            )
+            kinetic_energy_fn = partial(
+                kinetic_energy_fn,
+                coordinate="zw" if dynamics_model_bound.use_w_coordinates else "z",
+            )
+
+        sim_ts["V_ts"] = jax.vmap(energy_fn)(xi_ts)
+        sim_ts["T_ts"] = jax.vmap(kinetic_energy_fn)(xi_ts)
+        sim_ts["U_ts"] = jax.vmap(potential_energy_fn)(xi_ts)
+
     # save the simulation results
     onp.savez(ckpt_dir / "setpoint_sequence_controlled_rollout.npz", **sim_ts)
 
@@ -737,18 +759,10 @@ if __name__ == "__main__":
     plt.savefig(ckpt_dir / "setpoint_sequence_ff_fb_torques_vs_time.pdf")
     plt.show()
 
-    energy_fn = getattr(dynamics_model_bound, "energy_fn", None)
-    if callable(energy_fn):
-        if type(dynamics_model) is ConOde:
-            energy_fn = partial(
-                energy_fn,
-                coordinate="zw" if dynamics_model_bound.use_w_coordinates else "z",
-            )
-
+    if "V_ts" in sim_ts:
         # plot the energy over time
         fig, ax = plt.subplots(1, 1, figsize=figsize, num="Energy vs time")
-        V_ts = jax.vmap(energy_fn)(xi_ts)
-        ax.plot(ts, V_ts, color=colors[0], label="Energy")
+        ax.plot(ts, sim_ts["V_ts"], color=colors[0], label="Energy")
         ax.set_xlabel("Time [s]")
         ax.set_ylabel("Energy")
         ax.set_title("Energy vs. time")

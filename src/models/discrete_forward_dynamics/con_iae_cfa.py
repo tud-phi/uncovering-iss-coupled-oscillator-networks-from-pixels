@@ -185,6 +185,38 @@ class DiscreteConIaeCfaDynamics(DiscreteForwardDynamicsBase):
         u = self.encode_input(tau)
         tau_hat = self.decode_input(u)
         return tau_hat
+    
+    def kinetic_energy_fn(self, x: Array) -> Array:
+        """
+        Compute the kinetic energy of the system.
+        Args:
+            x: state of shape (2* latent_dim, )
+        Returns:
+            T: kinetic energy of the system of shape ()
+        """
+        z_d = x[..., self.latent_dim :]
+        T = 0.5 * jnp.sum(z_d**2)
+        return T
+    
+    def potential_energy_fn(self, x: Array) -> Array:
+        """
+        Compute the potential energy of the system.
+        Args:
+            x: state of shape (2* latent_dim, )
+        Returns:
+            U: potential energy of the system of shape ()
+        """
+        z = x[..., : self.latent_dim]
+
+        # compute the stiffness and damping matrices
+        Gamma = self.Gamma_w @ self.W
+
+        U = (
+            0.5 * z[None, :] @ Gamma @ z[:, None]
+            + jnp.sum(jnp.log(jnp.cosh(self.W @ z + self.bias)))
+        ).squeeze()
+
+        return U
 
     def energy_fn(self, x: Array) -> Array:
         """
@@ -194,20 +226,8 @@ class DiscreteConIaeCfaDynamics(DiscreteForwardDynamicsBase):
         Returns:
             V: energy of the system of shape ()
         """
-        z = x[..., : self.latent_dim]
-        z_d = x[..., self.latent_dim :]
-
-        # compute the stiffness and damping matrices
-        Gamma = self.Gamma_w @ self.W
-
-        # compute the kinetic energy
-        T = (0.5 * z_d[None, :] @ z_d[:, None]).squeeze()
-
-        # compute the potential energy
-        U = (
-            0.5 * z[None, :] @ Gamma @ z[:, None]
-            + jnp.sum(jnp.log(jnp.cosh(self.W @ z + self.bias)))
-        ).squeeze()
+        T = self.kinetic_energy_fn(x)
+        U = self.potential_energy_fn(x)
 
         # compute the total energy
         V = T + U

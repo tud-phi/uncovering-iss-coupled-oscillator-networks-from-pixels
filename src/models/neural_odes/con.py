@@ -284,6 +284,46 @@ class ConOde(NeuralOdeBase):
                 raise ValueError(f"Coordinate {coordinate} not supported.")
 
         return terms
+    
+    def kinetic_energy_fn(self, x: Array, coordinate: str = "z") -> Array:
+        """
+        Compute the kinetic energy of the system.
+        Args:
+            x: state of shape (2* latent_dim, )
+            coordinate: coordinates in the state x is expressed. Can be ["z", "zw", "zeta"]
+        Returns:
+            T: kinetic energy of the system of shape ()
+        """
+        terms = self.get_terms(coordinate=coordinate)
+
+        z_d = x[..., self.latent_dim :]
+
+        # mass matrix
+        B = jnp.linalg.inv(terms["B"])
+
+        T = (0.5 * z_d[None, :] @ B @ z_d[:, None]).squeeze()
+
+        return T
+    
+    def potential_energy_fn(self, x: Array, coordinate: str = "z") -> Array:
+        """
+        Compute the potential energy of the system.
+        Args:
+            x: state of shape (2* latent_dim, )
+            coordinate: coordinates in the state x is expressed. Can be ["z", "zw", "zeta"]
+        Returns:
+            U: potential energy of the system of shape ()
+        """
+        terms = self.get_terms(coordinate=coordinate)
+
+        z = x[..., : self.latent_dim]
+
+        U = (
+            0.5 * z[None, :] @ terms["Lambda"] @ z[:, None]
+            + jnp.sum(jnp.log(jnp.cosh(terms["W"] @ z + terms["bias"])))
+        ).squeeze()
+
+        return U
 
     def energy_fn(self, x: Array, coordinate: str = "z") -> Array:
         """
@@ -294,20 +334,8 @@ class ConOde(NeuralOdeBase):
         Returns:
             V: energy of the system of shape ()
         """
-        terms = self.get_terms(coordinate=coordinate)
-
-        z = x[..., : self.latent_dim]
-        z_d = x[..., self.latent_dim :]
-
-        # compute the kinetic energy
-        T = (0.5 * z_d[None, :] @ terms["B"] @ z_d[:, None]).squeeze()
-
-        # compute the potential energy
-        U = (
-            0.5 * z[None, :] @ terms["Lambda"] @ z[:, None]
-            + jnp.sum(jnp.log(jnp.cosh(terms["W"] @ z + terms["bias"])))
-        ).squeeze()
-
+        T = self.kinetic_energy_fn(x, coordinate=coordinate)
+        U = self.potential_energy_fn(x, coordinate=coordinate)
         # compute the total energy
         V = T + U
 
