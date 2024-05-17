@@ -605,11 +605,13 @@ def task_factory(
 
         if compute_psnr:
             batch_loss_dict["psnr_rec_static"] = peak_signal_to_noise_ratio(
-                preds["img_static_ts"], batch["rendering_ts"]
+                preds["img_static_ts"], batch["rendering_ts"],
+                data_min=-1.0, data_max=1.0
             )
             batch_loss_dict["psnr_rec_dynamic"] = peak_signal_to_noise_ratio(
                 preds["img_dynamic_ts"],
                 batch["rendering_ts"][:, start_time_idx:],
+                data_min=-1.0, data_max=1.0
             )
 
         if compute_ssim:
