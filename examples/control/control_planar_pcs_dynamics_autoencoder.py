@@ -188,9 +188,9 @@ if __name__ == "__main__":
     robot_params = dataset_metadata["system_params"]
     if long_horizon_dataset is False:
         robot_params["D"] = 5 * robot_params["D"]
-    warnings.warn(
-        "The damping parameter D is scaled by 1e1 to improve the numerical stability."
-    )
+        warnings.warn(
+            "The damping parameter D is scaled by 5 to improve the numerical stability."
+        )
     print(f"Robot parameters: {robot_params}")
     # dimension of the configuration space
     n_q = train_ds.element_spec["x_ts"].shape[-1] // 2
