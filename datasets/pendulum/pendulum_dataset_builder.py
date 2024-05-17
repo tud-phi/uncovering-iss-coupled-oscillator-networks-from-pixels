@@ -224,7 +224,7 @@ class Pendulum(tfds.core.GeneratorBasedBuilder):
             x0_min=x0_min,
             x0_max=x0_max,
             dataset_dir=str(self.data_path),
-            solver=diffrax.Dopri5(),
+            solver=diffrax.Tsit5(),
             sim_dt=jnp.array(self.builder_config.sim_dt),
             system_params=robot_params,
             metadata=metadata,
