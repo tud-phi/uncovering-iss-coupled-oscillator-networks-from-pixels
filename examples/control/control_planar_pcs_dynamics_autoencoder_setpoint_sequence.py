@@ -52,7 +52,7 @@ simulate_with_learned_dynamics = False
 
 # simulation settings
 # num setpoints
-num_setpoints = 3
+num_setpoints = 10
 sim_duration_per_setpoint = 5.0  # s
 sim_duration = num_setpoints * sim_duration_per_setpoint  # s
 # initial configuration
@@ -70,7 +70,7 @@ match dynamics_model_name:
             kp, ki, kd = 1e0, 1e0, 0e0
             psatid_gamma = 1.0
         else:
-            kp, ki, kd = 1e0, 2e0, 0e0
+            kp, ki, kd = 1e0, 3e0, 0e0
             psatid_gamma = 1.0
 
 batch_size = 10
@@ -121,7 +121,7 @@ for k in range(n_z // len(plt_colors_cycle) + 1):
 if __name__ == "__main__":
     # generate a random setpoint sequence
     rng_setpoint = random.PRNGKey(seed=0)
-    q_des_ps = 3.0 * jnp.pi * random.uniform(rng_setpoint, shape=(num_setpoints, n_q), minval=-1.0, maxval=1.0)
+    q_des_ps = 5.0 * jnp.pi * random.uniform(rng_setpoint, shape=(num_setpoints, n_q), minval=-1.0, maxval=1.0)
 
     dataset_name = f"planar_pcs/{system_type}_32x32px_h-101"
     datasets, dataset_info, dataset_metadata = load_dataset(
@@ -251,6 +251,271 @@ if __name__ == "__main__":
             {"params": state.params},
             method=nn_model.decode,
         )(z[None, ...])[0, ...]
+    
+    if n_z == 2:
+        match dynamics_model_name:
+            case "node-con" | "node-w-con":
+                # plot the potential energy landscape in the original latent space
+                fig, ax = plt.subplots(
+                    1,
+                    1,
+                    figsize=figsize,
+                    num="Potential energy landscape in z-coordinates",
+                )
+                z1_range = jnp.linspace(-1.0, 1.0, 100)
+                z2_range = jnp.linspace(-1.0, 1.0, 100)
+                z1_grid, z2_grid = jnp.meshgrid(z1_range, z2_range)
+                z_grid = jnp.stack([z1_grid, z2_grid], axis=-1)
+                xi_grid = jnp.concatenate([z_grid, jnp.zeros_like(z_grid)], axis=-1)
+                U_grid = jax.vmap(
+                    partial(dynamics_model_bound.energy_fn, coordinate="z"),
+                )(xi_grid.reshape(-1, xi_grid.shape[-1])).reshape(xi_grid.shape[:2])
+                tau_pot_grid = -jax.vmap(
+                    grad(partial(dynamics_model_bound.energy_fn, coordinate="z")),
+                )(xi_grid.reshape(-1, xi_grid.shape[-1]))[..., :n_z].reshape(
+                    *xi_grid.shape[:2], -1
+                )
+                # contour plot of the potential energy
+                cs = ax.contourf(z1_grid, z2_grid, U_grid, levels=100)
+                # quiver plot of the potential energy gradient
+                qv_skip = 10
+                ax.quiver(
+                    z1_grid[::qv_skip, ::qv_skip],
+                    z2_grid[::qv_skip, ::qv_skip],
+                    tau_pot_grid[::qv_skip, ::qv_skip, 0],
+                    tau_pot_grid[::qv_skip, ::qv_skip, 1],
+                    angles="xy",
+                    scale=None,
+                    scale_units="xy",
+                    color="white",
+                )
+                plt.colorbar(cs)
+                ax.set_xlabel(r"$z_1$")
+                ax.set_ylabel(r"$z_2$")
+                ax.set_title("Potential energy landscape of learned latent dynamics")
+                plt.grid(True)
+                plt.box(True)
+                plt.savefig(ckpt_dir / "potential_energy_landscape_z.pdf")
+                plt.show()
+
+                # plot the potential energy in the w-coordinates
+                fig, ax = plt.subplots(
+                    1,
+                    1,
+                    figsize=figsize,
+                    num="Potential energy landscape in zw-coordinates",
+                )
+                zw1_range = jnp.linspace(-1.0, 1.0, 100)
+                zw2_range = jnp.linspace(-1.0, 1.0, 100)
+                zw1_grid, zw2_grid = jnp.meshgrid(zw1_range, zw2_range)
+                zw_grid = jnp.stack([zw1_grid, zw2_grid], axis=-1)
+                xi_grid = jnp.concatenate([zw_grid, jnp.zeros_like(zw_grid)], axis=-1)
+                U_grid = jax.vmap(
+                    partial(dynamics_model_bound.energy_fn, coordinate="zw"),
+                )(xi_grid.reshape(-1, xi_grid.shape[-1])).reshape(xi_grid.shape[:2])
+                tau_pot_grid = -jax.vmap(
+                    grad(partial(dynamics_model_bound.energy_fn, coordinate="zw")),
+                )(xi_grid.reshape(-1, xi_grid.shape[-1]))[..., :n_z].reshape(
+                    *xi_grid.shape[:2], -1
+                )
+                # contour plot of the potential energy
+                cs = ax.contourf(zw1_grid, zw2_grid, U_grid, levels=100)
+                # quiver plot of the potential energy gradient
+                qv_skip = 10
+                ax.quiver(
+                    zw1_grid[::qv_skip, ::qv_skip],
+                    zw2_grid[::qv_skip, ::qv_skip],
+                    tau_pot_grid[::qv_skip, ::qv_skip, 0],
+                    tau_pot_grid[::qv_skip, ::qv_skip, 1],
+                    angles="xy",
+                    scale=None,
+                    scale_units="xy",
+                    color="white",
+                )
+                plt.colorbar(cs)
+                ax.set_xlabel(r"$z_{w,1}$")
+                ax.set_ylabel(r"$z_{w,2}$")
+                ax.set_title(
+                    "Potential energy landscape of learned latent dynamics in w-coordinates"
+                )
+                plt.grid(True)
+                plt.box(True)
+                plt.savefig(ckpt_dir / "potential_energy_landscape_zw.pdf")
+                plt.show()
+
+                # plot the potential energy in the collocated coordinates
+                fig, ax = plt.subplots(
+                    1,
+                    1,
+                    figsize=figsize,
+                    num="Potential energy landscape in collocated coordinates",
+                )
+                zeta1_range = jnp.linspace(-1.0, 1.0, 100)
+                zeta2_range = jnp.linspace(-1.0, 1.0, 100)
+                zeta1_grid, zeta2_grid = jnp.meshgrid(zeta1_range, zeta2_range)
+                zeta_grid = jnp.stack([zeta1_grid, zeta2_grid], axis=-1)
+                xi_grid = jnp.concatenate(
+                    [zeta_grid, jnp.zeros_like(zeta_grid)], axis=-1
+                )
+                U_grid = jax.vmap(
+                    partial(dynamics_model_bound.energy_fn, coordinate="zeta"),
+                )(xi_grid.reshape(-1, xi_grid.shape[-1])).reshape(xi_grid.shape[:2])
+                tau_pot_grid = -jax.vmap(
+                    grad(partial(dynamics_model_bound.energy_fn, coordinate="zeta")),
+                )(xi_grid.reshape(-1, xi_grid.shape[-1]))[..., :n_z].reshape(
+                    *xi_grid.shape[:2], -1
+                )
+                # contour plot of the potential energy
+                cs = ax.contourf(zeta1_grid, zeta2_grid, U_grid, levels=100)
+                # quiver plot of the potential energy gradient
+                qv_skip = 10
+                ax.quiver(
+                    zeta1_grid[::qv_skip, ::qv_skip],
+                    zeta2_grid[::qv_skip, ::qv_skip],
+                    tau_pot_grid[::qv_skip, ::qv_skip, 0],
+                    tau_pot_grid[::qv_skip, ::qv_skip, 1],
+                    angles="xy",
+                    scale=None,
+                    scale_units="xy",
+                    color="white",
+                )
+                plt.colorbar(cs)
+                ax.set_xlabel(r"$\zeta_1$")
+                ax.set_ylabel(r"$\zeta_2$")
+                ax.set_title(
+                    "Potential energy landscape of learned latent dynamics in collocated coordinates"
+                )
+                plt.grid(True)
+                plt.box(True)
+                plt.savefig(ckpt_dir / "potential_energy_landscape_zeta.pdf")
+                plt.show()
+            case "node-con-iae" | "node-con-iae-s":
+                # plot the potential energy landscape in the original latent space
+                fig, ax = plt.subplots(
+                    1,
+                    1,
+                    figsize=figsize,
+                    num="Potential energy landscape in z-coordinates",
+                )
+                z1_range = jnp.linspace(-1.0, 1.0, 100)
+                z2_range = jnp.linspace(-1.0, 1.0, 100)
+                z1_grid, z2_grid = jnp.meshgrid(z1_range, z2_range)
+                z_grid = jnp.stack([z1_grid, z2_grid], axis=-1)
+                xi_grid = jnp.concatenate([z_grid, jnp.zeros_like(z_grid)], axis=-1)
+                U_grid = jax.vmap(
+                    partial(dynamics_model_bound.energy_fn),
+                )(xi_grid.reshape(-1, xi_grid.shape[-1])).reshape(xi_grid.shape[:2])
+                tau_pot_grid = -jax.vmap(
+                    grad(partial(dynamics_model_bound.energy_fn)),
+                )(xi_grid.reshape(-1, xi_grid.shape[-1]))[..., :n_z].reshape(
+                    *xi_grid.shape[:2], -1
+                )
+                # contour plot of the potential energy
+                cs = ax.contourf(z1_grid, z2_grid, U_grid, levels=100)
+                # quiver plot of the potential energy gradient
+                qv_skip = 10
+                ax.quiver(
+                    z1_grid[::qv_skip, ::qv_skip],
+                    z2_grid[::qv_skip, ::qv_skip],
+                    tau_pot_grid[::qv_skip, ::qv_skip, 0],
+                    tau_pot_grid[::qv_skip, ::qv_skip, 1],
+                    angles="xy",
+                    scale=None,
+                    scale_units="xy",
+                    color="white",
+                )
+                plt.colorbar(cs)
+                ax.set_xlabel(r"$z_1$")
+                ax.set_ylabel(r"$z_2$")
+                ax.set_title("Potential energy landscape of learned latent dynamics")
+                plt.grid(True)
+                plt.box(True)
+                plt.savefig(ckpt_dir / "potential_energy_landscape_z.pdf")
+                plt.show()
+
+    if n_q == 2:
+        # plot the learned potential energy landscape in the configuration space
+        q1_range = jnp.linspace(q0_min[0], q0_max[0], 25)
+        q2_range = jnp.linspace(q0_min[1], q0_max[1], 25)
+        q1_grid, q2_grid = jnp.meshgrid(q1_range, q2_range)
+        q_grid = jnp.stack([q1_grid, q2_grid], axis=-1)
+        U_grid = jnp.zeros(q_grid.shape[:2])
+        tau_pot_grid = jnp.zeros(q_grid.shape[:2] + (n_tau,))
+
+        match dynamics_model_name:
+            case "node-con" | "node-w-con":
+                terms = dynamics_model_bound.get_terms(coordinate="zeta")
+                for i in range(q_grid.shape[0]):
+                    for j in range(q_grid.shape[1]):
+                        q = q_grid[i, j]
+                        img = rendering_fn(q)
+                        img = jnp.array(
+                            preprocess_rendering(img, grayscale=True, normalize=True)
+                        )
+                        z = nn_model_bound.encode(img[None, ...])[0, ...]
+                        zeta = terms["J_h"] @ terms["J_w"] @ z
+                        xi = jnp.concatenate([zeta, jnp.zeros((n_z,))])
+                        U = dynamics_model_bound.energy_fn(xi, coordinate="zeta")
+                        tau_pot = -grad(
+                            partial(dynamics_model_bound.energy_fn, coordinate="zeta")
+                        )(xi)[..., :n_tau]
+                        U_grid = U_grid.at[i, j].set(U)
+                        tau_pot_grid = tau_pot_grid.at[i, j, :].set(tau_pot)
+            case "node-con-iae" | "node-con-iae-s":
+                for i in range(q_grid.shape[0]):
+                    for j in range(q_grid.shape[1]):
+                        q = q_grid[i, j]
+                        img = rendering_fn(q)
+                        img = jnp.array(
+                            preprocess_rendering(img, grayscale=True, normalize=True)
+                        )
+                        z = nn_model_bound.encode(img[None, ...])[0, ...]
+                        xi = jnp.concatenate([z, jnp.zeros((n_z,))])
+                        U = dynamics_model_bound.energy_fn(xi)
+                        tau_pot = -grad(dynamics_model_bound.energy_fn)(xi)[..., :n_tau]
+                        U_grid = U_grid.at[i, j].set(U)
+                        tau_pot_grid = tau_pot_grid.at[i, j, :].set(tau_pot)
+            case _:
+                raise ValueError(f"Unknown dynamics_model_name: {dynamics_model_name}")
+
+        fig, axes = plt.subplots(
+            1,
+            2,
+            figsize=(12, 5),
+            num="Learned potential energy landscape in configuration space",
+        )
+        # contour plot of the potential energy
+        cs = axes[0].contourf(q1_grid, q2_grid, U_grid, levels=100)
+        plt.colorbar(cs, ax=axes[0])
+        axes[0].set_xlabel(r"$q_1$ [rad/m]")
+        axes[0].set_ylabel(r"$q_2$ [rad/m]")
+        axes[0].set_title("Learned potential energy in $q$-space")
+        # quiver plot of the potential energy gradient
+        qv_skip = 3
+        qs = axes[1].quiver(
+            q1_grid[::qv_skip, ::qv_skip],
+            q2_grid[::qv_skip, ::qv_skip],
+            tau_pot_grid[::qv_skip, ::qv_skip, 0],
+            tau_pot_grid[::qv_skip, ::qv_skip, 1],
+            jnp.hypot(
+                tau_pot_grid[::qv_skip, ::qv_skip, 0],
+                tau_pot_grid[::qv_skip, ::qv_skip, 1],
+            ),
+            angles="xy",
+            scale=None,
+            scale_units="xy",
+        )
+        qk = axes[1].quiverkey(
+            qs, 0.9, 0.9, 1, r"$\tau: 1$ Nm", labelpos="E", coordinates="figure"
+        )
+        axes[1].set_xlabel(r"$q_1$ [rad/m]")
+        axes[1].set_ylabel(r"$q_2$ [rad/m]")
+        axes[1].set_title("Learned potential force in $q$-space")
+        plt.colorbar(qs, ax=axes[1], label=r"$\tau$ [Nm]")
+        plt.grid(True)
+        plt.box(True)
+        plt.savefig(ckpt_dir / "potential_energy_landscape_q.pdf")
+        plt.show()
 
     def control_fn(
         t: Array, x: Array, control_state: Dict[str, Array]
@@ -366,13 +631,16 @@ if __name__ == "__main__":
     sim_ts["img_des_ts"] = img_des_ts
     sim_ts["z_des_ts"] = z_des_ts
 
+    # save the simulation results
+    onp.savez(ckpt_dir / "setpoint_sequence_controlled_rollout.npz", **sim_ts)
+
     # animate the rollout
     print("Animate the rollout...")
     animate_pred_vs_target_image_pyplot(
         onp.array(ts),
         img_pred_ts=onp.array(img_ts),
         img_target_ts=onp.array(img_des_ts),
-        filepath=ckpt_dir / "controlled_rollout.mp4",
+        filepath=ckpt_dir / "setpoint_sequence_controlled_rollout.mp4",
         step_skip=1,
         show=True,
         label_pred="Actual behavior",
@@ -397,7 +665,7 @@ if __name__ == "__main__":
         ax.set_title("Configuration vs. time")
         plt.grid(True)
         plt.box(True)
-        plt.savefig(ckpt_dir / "setpoint_squence_configuration_vs_time.pdf")
+        plt.savefig(ckpt_dir / "setpoint_sequence_configuration_vs_time.pdf")
         plt.show()
 
     # plot evolution of latent state
@@ -417,7 +685,7 @@ if __name__ == "__main__":
     ax.legend()
     plt.grid(True)
     plt.box(True)
-    plt.savefig(ckpt_dir / "latent_vs_time.pdf")
+    plt.savefig(ckpt_dir / "setpoint_sequence_latent_vs_time.pdf")
     plt.show()
     # plot the estimated latent velocity
     fig, ax = plt.subplots(1, 1, figsize=figsize, num="Latent velocity vs time")
@@ -429,7 +697,7 @@ if __name__ == "__main__":
     ax.legend()
     plt.grid(True)
     plt.box(True)
-    plt.savefig(ckpt_dir / "latent_velocity_vs_time.pdf")
+    plt.savefig(ckpt_dir / "setpoint_sequence_latent_velocity_vs_time.pdf")
     plt.show()
 
     # plot the control inputs
@@ -442,7 +710,7 @@ if __name__ == "__main__":
     ax.legend()
     plt.grid(True)
     plt.box(True)
-    plt.savefig(ckpt_dir / "control_input_vs_time.pdf")
+    plt.savefig(ckpt_dir / "setpoint_sequence_control_input_vs_time.pdf")
     plt.show()
     # plot the feedforward and feedback torques
     fig, ax = plt.subplots(1, 1, figsize=figsize, num="Latent-space torques vs time")
@@ -466,7 +734,7 @@ if __name__ == "__main__":
     ax.legend()
     plt.grid(True)
     plt.box(True)
-    plt.savefig(ckpt_dir / "ff_fb_torques_vs_time.pdf")
+    plt.savefig(ckpt_dir / "setpoint_sequence_ff_fb_torques_vs_time.pdf")
     plt.show()
 
     energy_fn = getattr(dynamics_model_bound, "energy_fn", None)
@@ -487,5 +755,5 @@ if __name__ == "__main__":
         ax.legend()
         plt.grid(True)
         plt.box(True)
-        plt.savefig(ckpt_dir / "energy_vs_time.pdf")
+        plt.savefig(ckpt_dir / "setpoint_sequence_energy_vs_time.pdf")
         plt.show()
