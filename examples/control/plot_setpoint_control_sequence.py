@@ -151,6 +151,6 @@ if __name__ == "__main__":
     plt.box(True)
     plt.legend()
     plt.tight_layout()
-    plt.savefig(str(ckpt_dir / f"setpoint_control_sequence_energy.pdf"))
-    plt.savefig(str(ckpt_dir / f"setpoint_control_sequence_energy.eps"))
+    plt.savefig(str(ckpt_dir / f"setpoint_control_sequence_U.pdf"))
+    plt.savefig(str(ckpt_dir / f"setpoint_control_sequence_U.eps"))
     plt.show()

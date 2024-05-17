@@ -649,9 +649,10 @@ if __name__ == "__main__":
                 coordinate="zw" if dynamics_model_bound.use_w_coordinates else "z",
             )
 
-        sim_ts["V_ts"] = jax.vmap(energy_fn)(xi_ts)
-        sim_ts["T_ts"] = jax.vmap(kinetic_energy_fn)(xi_ts)
-        sim_ts["U_ts"] = jax.vmap(potential_energy_fn)(xi_ts)
+        sim_ts["V_ts"] = jax.vmap(energy_fn)(xi_ts)  # total energy
+        sim_ts["T_ts"] = jax.vmap(kinetic_energy_fn)(xi_ts)  # kinetic energy
+        sim_ts["U_ts"] = jax.vmap(potential_energy_fn)(xi_ts)  # potential energy
+        sim_ts["U_des_ts"] = jax.vmap(potential_energy_fn)(z_des_ts)  # desired potential energy
 
     # save the simulation results
     onp.savez(ckpt_dir / "setpoint_sequence_controlled_rollout.npz", **sim_ts)
