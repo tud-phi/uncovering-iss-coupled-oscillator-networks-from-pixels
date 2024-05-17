@@ -17,6 +17,14 @@ import tensorflow as tf
 from typing import Dict, Tuple, Union
 import warnings
 
+plt.rcParams.update(
+    {
+        "text.usetex": True,
+        "font.family": "serif",
+        "font.serif": ["Computer Modern Romand"],
+    }
+)
+
 from src.models.autoencoders import Autoencoder, VAE
 from src.models.neural_odes import (
     ConOde,
@@ -111,7 +119,7 @@ ckpt_dir = (
 )
 
 # plotting setttings
-figsize = (8, 6)
+figsize = (6, 4.5)
 plt_colors_cycle = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 colors = []
 for k in range(n_z // len(plt_colors_cycle) + 1):
@@ -268,10 +276,10 @@ if __name__ == "__main__":
                 z_grid = jnp.stack([z1_grid, z2_grid], axis=-1)
                 xi_grid = jnp.concatenate([z_grid, jnp.zeros_like(z_grid)], axis=-1)
                 U_grid = jax.vmap(
-                    partial(dynamics_model_bound.energy_fn, coordinate="z"),
+                    partial(dynamics_model_bound.potential_energy_fn, coordinate="z"),
                 )(xi_grid.reshape(-1, xi_grid.shape[-1])).reshape(xi_grid.shape[:2])
                 tau_pot_grid = -jax.vmap(
-                    grad(partial(dynamics_model_bound.energy_fn, coordinate="z")),
+                    grad(partial(dynamics_model_bound.potential_energy_fn, coordinate="z")),
                 )(xi_grid.reshape(-1, xi_grid.shape[-1]))[..., :n_z].reshape(
                     *xi_grid.shape[:2], -1
                 )
@@ -311,10 +319,10 @@ if __name__ == "__main__":
                 zw_grid = jnp.stack([zw1_grid, zw2_grid], axis=-1)
                 xi_grid = jnp.concatenate([zw_grid, jnp.zeros_like(zw_grid)], axis=-1)
                 U_grid = jax.vmap(
-                    partial(dynamics_model_bound.energy_fn, coordinate="zw"),
+                    partial(dynamics_model_bound.potential_energy_fn, coordinate="zw"),
                 )(xi_grid.reshape(-1, xi_grid.shape[-1])).reshape(xi_grid.shape[:2])
                 tau_pot_grid = -jax.vmap(
-                    grad(partial(dynamics_model_bound.energy_fn, coordinate="zw")),
+                    grad(partial(dynamics_model_bound.potential_energy_fn, coordinate="zw")),
                 )(xi_grid.reshape(-1, xi_grid.shape[-1]))[..., :n_z].reshape(
                     *xi_grid.shape[:2], -1
                 )
@@ -358,10 +366,10 @@ if __name__ == "__main__":
                     [zeta_grid, jnp.zeros_like(zeta_grid)], axis=-1
                 )
                 U_grid = jax.vmap(
-                    partial(dynamics_model_bound.energy_fn, coordinate="zeta"),
+                    partial(dynamics_model_bound.potential_energy_fn, coordinate="zeta"),
                 )(xi_grid.reshape(-1, xi_grid.shape[-1])).reshape(xi_grid.shape[:2])
                 tau_pot_grid = -jax.vmap(
-                    grad(partial(dynamics_model_bound.energy_fn, coordinate="zeta")),
+                    grad(partial(dynamics_model_bound.potential_energy_fn, coordinate="zeta")),
                 )(xi_grid.reshape(-1, xi_grid.shape[-1]))[..., :n_z].reshape(
                     *xi_grid.shape[:2], -1
                 )
@@ -403,10 +411,10 @@ if __name__ == "__main__":
                 z_grid = jnp.stack([z1_grid, z2_grid], axis=-1)
                 xi_grid = jnp.concatenate([z_grid, jnp.zeros_like(z_grid)], axis=-1)
                 U_grid = jax.vmap(
-                    partial(dynamics_model_bound.energy_fn),
+                    partial(dynamics_model_bound.potential_energy_fn),
                 )(xi_grid.reshape(-1, xi_grid.shape[-1])).reshape(xi_grid.shape[:2])
                 tau_pot_grid = -jax.vmap(
-                    grad(partial(dynamics_model_bound.energy_fn)),
+                    grad(partial(dynamics_model_bound.potential_energy_fn)),
                 )(xi_grid.reshape(-1, xi_grid.shape[-1]))[..., :n_z].reshape(
                     *xi_grid.shape[:2], -1
                 )
@@ -424,10 +432,10 @@ if __name__ == "__main__":
                     scale_units="xy",
                     color="white",
                 )
-                plt.colorbar(cs)
+                plt.colorbar(cs, label=r"$\mathcal{U}$")
                 ax.set_xlabel(r"$z_1$")
                 ax.set_ylabel(r"$z_2$")
-                ax.set_title("Potential energy landscape of learned latent dynamics")
+                # ax.set_title("Potential energy landscape of learned latent dynamics")
                 plt.grid(True)
                 plt.box(True)
                 plt.savefig(ckpt_dir / "potential_energy_landscape_z.pdf")
@@ -455,9 +463,9 @@ if __name__ == "__main__":
                         z = nn_model_bound.encode(img[None, ...])[0, ...]
                         zeta = terms["J_h"] @ terms["J_w"] @ z
                         xi = jnp.concatenate([zeta, jnp.zeros((n_z,))])
-                        U = dynamics_model_bound.energy_fn(xi, coordinate="zeta")
+                        U = dynamics_model_bound.potential_energy_fn(xi, coordinate="zeta")
                         tau_pot = -grad(
-                            partial(dynamics_model_bound.energy_fn, coordinate="zeta")
+                            partial(dynamics_model_bound.potential_energy_fn, coordinate="zeta")
                         )(xi)[..., :n_tau]
                         U_grid = U_grid.at[i, j].set(U)
                         tau_pot_grid = tau_pot_grid.at[i, j, :].set(tau_pot)
@@ -471,28 +479,39 @@ if __name__ == "__main__":
                         )
                         z = nn_model_bound.encode(img[None, ...])[0, ...]
                         xi = jnp.concatenate([z, jnp.zeros((n_z,))])
-                        U = dynamics_model_bound.energy_fn(xi)
-                        tau_pot = -grad(dynamics_model_bound.energy_fn)(xi)[..., :n_tau]
+                        U = dynamics_model_bound.potential_energy_fn(xi)
+                        tau_pot = -grad(dynamics_model_bound.potential_energy_fn)(xi)[..., :n_tau]
                         U_grid = U_grid.at[i, j].set(U)
                         tau_pot_grid = tau_pot_grid.at[i, j, :].set(tau_pot)
             case _:
                 raise ValueError(f"Unknown dynamics_model_name: {dynamics_model_name}")
 
-        fig, axes = plt.subplots(
+        fig, ax = plt.subplots(
             1,
-            2,
-            figsize=(12, 5),
+            1,
+            figsize=figsize,
             num="Learned potential energy landscape in configuration space",
         )
         # contour plot of the potential energy
-        cs = axes[0].contourf(q1_grid, q2_grid, U_grid, levels=100)
-        plt.colorbar(cs, ax=axes[0])
-        axes[0].set_xlabel(r"$q_1$ [rad/m]")
-        axes[0].set_ylabel(r"$q_2$ [rad/m]")
-        axes[0].set_title("Learned potential energy in $q$-space")
+        cs = ax.contourf(q1_grid, q2_grid, U_grid, levels=100)
+        plt.colorbar(cs, ax=ax, label=r"$\mathcal{U}$")
+        ax.set_xlabel(r"$q_1$ [rad/m]")
+        ax.set_ylabel(r"$q_2$ [rad/m]")
+        # axes[0].set_title("Learned potential energy in $q$-space")
+        plt.grid(True)
+        plt.box(True)
+        plt.savefig(ckpt_dir / "potential_energy_landscape_q.pdf")
+        plt.show()
+
+        fig, ax = plt.subplots(
+            1,
+            1,
+            figsize=figsize,
+            num="Learned potential energy gradient in configuration space",
+        )
         # quiver plot of the potential energy gradient
         qv_skip = 3
-        qs = axes[1].quiver(
+        qs = ax.quiver(
             q1_grid[::qv_skip, ::qv_skip],
             q2_grid[::qv_skip, ::qv_skip],
             tau_pot_grid[::qv_skip, ::qv_skip, 0],
@@ -505,16 +524,16 @@ if __name__ == "__main__":
             scale=None,
             scale_units="xy",
         )
-        qk = axes[1].quiverkey(
+        qk = ax.quiverkey(
             qs, 0.9, 0.9, 1, r"$\tau: 1$ Nm", labelpos="E", coordinates="figure"
         )
-        axes[1].set_xlabel(r"$q_1$ [rad/m]")
-        axes[1].set_ylabel(r"$q_2$ [rad/m]")
-        axes[1].set_title("Learned potential force in $q$-space")
-        plt.colorbar(qs, ax=axes[1], label=r"$\tau$ [Nm]")
+        plt.colorbar(qs, ax=ax, label=r"$\tau$ [Nm]")
+        ax.set_xlabel(r"$q_1$ [rad/m]")
+        ax.set_ylabel(r"$q_2$ [rad/m]")
+        ax.set_title("Learned potential force in $q$-space")
         plt.grid(True)
         plt.box(True)
-        plt.savefig(ckpt_dir / "potential_energy_landscape_q.pdf")
+        plt.savefig(ckpt_dir / "potential_energy_gradient_q.pdf")
         plt.show()
 
     def control_fn(

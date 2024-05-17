@@ -102,7 +102,7 @@ if __name__ == "__main__":
             label=r"$z_" + str(i) + "$",
         )
     plt.xlabel(r"Time $t$ [s]")
-    plt.ylabel(r"Latent variable $z$ [m]")
+    plt.ylabel(r"Latent variable $z$")
     plt.grid(True)
     plt.box(True)
     plt.legend()
@@ -146,7 +146,7 @@ if __name__ == "__main__":
     # plot the potential energy
     ax.plot(sim_ts["ts"], sim_ts["U_ts"], color=colors[0], linewidth=linewidth_solid, label=r"$\mathcal{U}$")
     plt.xlabel(r"Time $t$ [s]")
-    plt.ylabel(r"Energy [J]")
+    plt.ylabel(r"Energy")
     plt.grid(True)
     plt.box(True)
     plt.legend()
