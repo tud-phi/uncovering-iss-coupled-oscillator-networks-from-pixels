@@ -87,6 +87,15 @@ The experiment of exploiting the coupled oscillator network for latent-space con
 python examples/control/control_planar_pcs_dynamics_autoencoder_setpoint_sequence.py
 ```
 
+## Analysis of the approximate closed form solution
+
+The following command can be used to analyze the behavior and performance of the approximate closed form solution: (e.g., measuring the error w.r.t. to the CON dynamics, plotting the approximated solution, benchmarking the computation time, etc.) 
+
+
+```bash
+python examples/approximate_closed_form_solution/evaluate_con_cfa.py
+```
+
 ## Tips & Tricks
 
 ### GPU memory allocation
