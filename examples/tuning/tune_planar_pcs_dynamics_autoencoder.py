@@ -1,3 +1,9 @@
+import os
+# restrict to using one GPU
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+
+
+
 from datetime import datetime
 import dill
 import flax.linen as nn
@@ -61,7 +67,7 @@ n_z = 8
 sim_dt = 1e-2
 
 # identify the number of segments
-if system_type == "cc":
+if system_type in ["cc", "cs"]:
     num_segments = 1
 elif system_type.split("_")[0] == "pcc":
     num_segments = int(system_type.split("-")[-1])
