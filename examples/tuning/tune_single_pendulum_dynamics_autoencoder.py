@@ -15,8 +15,23 @@ import optuna
 from optuna.samplers import TPESampler
 import tensorflow as tf
 from src.models.autoencoders import Autoencoder, VAE
-from src.models.discrete_forward_dynamics import DiscreteMlpDynamics
-from src.models.neural_odes import ConOde, CornnOde, LinearStateSpaceOde, LnnOde, MlpOde
+from src.models.discrete_forward_dynamics import (
+    DiscreteConIaeCfaDynamics,
+    DiscreteLssDynamics,
+    DiscreteMambaDynamics,
+    DiscreteMlpDynamics,
+    DiscreteRnnDynamics,
+)
+from src.models.neural_odes import (
+    ConOde,
+    ConIaeOde,
+    CornnOde,
+    DconOde,
+    LnnOde,
+    LinearStateSpaceOde,
+    MambaOde,
+    MlpOde,
+)
 from src.models.dynamics_autoencoder import DynamicsAutoencoder
 from src.tasks import dynamics_autoencoder
 from src.training.callbacks import OptunaPruneCallback
@@ -32,11 +47,17 @@ seed = 0
 rng = random.PRNGKey(seed=seed)
 
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
-# dynamics_model_name in ["node-general-mlp", "node-mechanical-mlp", "node-cornn", "node-con",
-# "node-lnn", "node-general-lss", "node-mechanical-lss", "discrete-mlp"]
+""" dynamics_model_name in [
+    "node-general-mlp", "node-mechanical-mlp", "node-mechanical-mlp-s", 
+    "node-cornn", "node-con", "node-w-con", "node-con-iae", "node-dcon", "node-lnn", 
+    "node-hippo-lss", "node-mamba",
+    "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
+    "dsim-con-iae-cfa"
+]
+"""
 dynamics_model_name = "node-mechanical-lss"
 # latent space shape
-n_z = 3
+n_z = 2
 
 # identify the dynamics_type
 dynamics_type = dynamics_model_name.split("-")[0]
@@ -44,7 +65,7 @@ assert dynamics_type in ["node", "discrete"], f"Unknown dynamics_type: {dynamics
 
 max_num_epochs = 50
 warmup_epochs = 5
-batch_size = 100
+batch_size = 80
 
 now = datetime.now()
 experiment_name = "single_pendulum_dynamics_autoencoder"
@@ -74,8 +95,6 @@ if __name__ == "__main__":
         mse_rec_dynamic_weight = trial.suggest_float(
             "mse_rec_dynamic_weight", 1e0, 5e2, log=True
         )
-        b1 = 0.9
-        b2 = 0.999
         weight_decay = trial.suggest_float("weight_decay", 5e-6, 2e-4, log=True)
         # latent_velocity_source = trial.suggest_categorical(
         #     "latent_velocity_source",
@@ -101,7 +120,7 @@ if __name__ == "__main__":
             loss_weights["mmd"] = mmd
 
         datasets, dataset_info, dataset_metadata = load_dataset(
-            "pendulum/single_pendulum_32x32px",
+            "pendulum/single_pendulum_32x32px_h-101",
             seed=seed,
             batch_size=batch_size,
             normalize=True,
@@ -147,19 +166,23 @@ if __name__ == "__main__":
                 if dynamics_model_name == "node-mechanical-mlp"
                 else False,
             )
-        elif dynamics_model_name == "node-cornn":
-            cornn_gamma = trial.suggest_float("cornn_gamma", 1e-2, 1e2, log=True)
-            cornn_epsilon = trial.suggest_float("cornn_epsilon", 1e-2, 1e2, log=True)
-            dynamics_model = CornnOde(
-                latent_dim=n_z,
-                input_dim=n_tau,
-                gamma=cornn_gamma,
-                epsilon=cornn_epsilon,
-            )
-        elif dynamics_model_name == "node-con":
+        elif dynamics_model_name in ["node-con", "node-w-con"]:
             dynamics_model = ConOde(
                 latent_dim=n_z,
                 input_dim=n_tau,
+                use_w_coordinates=dynamics_model_name == "node-w-con",
+            )
+        elif dynamics_model_name in ["node-con-iae"]:
+            # loss_weights["mse_tau_rec"] = trial.suggest_float("mse_tau_rec_weight", 1e-1, 1e3, log=True)
+            loss_weights["mse_tau_rec"] = 1e1
+            # num_mlp_layers = trial.suggest_int("num_mlp_layers", 1, 6)
+            # mlp_hidden_dim = trial.suggest_int("mlp_hidden_dim", 4, 96)
+            num_mlp_layers, mlp_hidden_dim = 5, 30
+            dynamics_model = ConIaeOde(
+                latent_dim=n_z,
+                input_dim=n_tau,
+                num_layers=num_mlp_layers,
+                hidden_dim=mlp_hidden_dim,
             )
         elif dynamics_model_name == "node-lnn":
             learn_dissipation = trial.suggest_categorical(
@@ -213,6 +236,18 @@ if __name__ == "__main__":
                 hidden_dim=mlp_hidden_dim,
                 nonlinearity=mlp_nonlinearity,
             )
+        elif dynamics_model_name == "dsim-con-iae-cfa":
+            loss_weights["mse_tau_rec"] = 1e1
+            # num_mlp_layers = trial.suggest_int("num_mlp_layers", 1, 6)
+            # mlp_hidden_dim = trial.suggest_int("mlp_hidden_dim", 4, 96)
+            num_mlp_layers, mlp_hidden_dim = 5, 30
+            dynamics_model = DiscreteConIaeCfaDynamics(
+                latent_dim=n_z,
+                input_dim=n_tau,
+                dt=dataset_metadata["sim_dt"],
+                num_layers=num_mlp_layers,
+                hidden_dim=mlp_hidden_dim,
+            )
         else:
             raise ValueError(f"Unknown dynamics_model_name: {dynamics_model_name}")
         nn_model = DynamicsAutoencoder(
@@ -260,8 +295,6 @@ if __name__ == "__main__":
             init_fn=nn_model.forward_all_layers,
             base_lr=base_lr,
             warmup_epochs=warmup_epochs,
-            b1=b1,
-            b2=b2,
             weight_decay=weight_decay,
             callbacks=callbacks,
             logdir=None,
