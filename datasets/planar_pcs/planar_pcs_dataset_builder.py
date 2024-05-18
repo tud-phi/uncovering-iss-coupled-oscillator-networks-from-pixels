@@ -51,6 +51,19 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             num_segments=1,
         ),
         PlanarPcsDatasetConfig(
+            name="cs_32x32px_h-101",
+            description="Planar constant strain continuum robot with images of size 32x32px.",
+            state_dim=6,
+            horizon_dim=101,
+            img_size=(32, 32),
+            origin_uv=(16, 4),
+            num_segments=1,
+            strain_selector=(True, True, True),
+            q0_max=(5 * jnp.pi, 0.2, 0.2),
+            q_d0_max=(5 * jnp.pi, 0.2, 0.2),
+            num_simulations=15000,
+        ),
+        PlanarPcsDatasetConfig(
             name="pcc_ns-2_32x32px",
             description="Planar two segment piecewise constant curvature continuum robot with images of size 32x32px.",
             state_dim=4,
@@ -103,6 +116,20 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             ),
             q0_max=(3.33 * jnp.pi, 3.33 * jnp.pi, 3.33 * jnp.pi),
             q_d0_max=(3.33 * jnp.pi, 3.33 * jnp.pi, 3.33 * jnp.pi),
+        ),
+        PlanarPcsDatasetConfig(
+            name="pcc_ns-4_32x32px_h-101",
+            description="Planar four segment piecewise constant curvature continuum robot with images of size 32x32px and a horizon of 101 steps.",
+            state_dim=8,
+            horizon_dim=101,
+            img_size=(32, 32),
+            origin_uv=(16, 4),
+            num_segments=4,
+            strain_selector=(True, False, False, True, False, False, True, False, False, True, False, False),
+            q0_max=(5 * jnp.pi, 5 * jnp.pi, 5 * jnp.pi, 5 * jnp.pi),
+            q_d0_max=(5 * jnp.pi, 5 * jnp.pi, 5 * jnp.pi, 5 * jnp.pi),
+            num_simulations=14000,
+            sim_dt=1e-4,
         ),
     ]
     # pytype: enable=wrong-keyword-args
@@ -213,7 +240,7 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
         }
 
         # initialize the system
-        strain_basis, forward_kinematics_fn, dynamical_matrices_fn = planar_pcs.factory(
+        strain_basis, forward_kinematics_fn, dynamical_matrices_fn, auxiliary_fns = planar_pcs.factory(
             sym_exp_filepath, strain_selector
         )
 

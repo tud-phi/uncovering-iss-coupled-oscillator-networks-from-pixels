@@ -74,7 +74,7 @@ if __name__ == "__main__":
     )
 
     # initialize the system
-    strain_basis, forward_kinematics_fn, dynamical_matrices_fn = planar_pcs.factory(
+    strain_basis, forward_kinematics_fn, dynamical_matrices_fn, auxiliary_fns = planar_pcs.factory(
         sym_exp_filepath, dataset_metadata["strain_selector"]
     )
 

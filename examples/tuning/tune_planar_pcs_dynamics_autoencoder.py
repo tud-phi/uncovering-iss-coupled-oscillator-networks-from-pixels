@@ -54,7 +54,7 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
     "dsim-con-iae-cfa"
 ]
 """
-dynamics_model_name = "node-w-con"
+dynamics_model_name = "dsim-con-iae-cfa"
 # latent space shape
 n_z = 8
 # simulation time step
@@ -79,7 +79,7 @@ assert dynamics_type in [
 
 max_num_epochs = 50
 warmup_epochs = 5
-batch_size = 100
+batch_size = 80
 
 now = datetime.now()
 experiment_name = f"{system_type}_dynamics_autoencoder"

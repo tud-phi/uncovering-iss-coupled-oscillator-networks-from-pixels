@@ -51,7 +51,7 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
     "dsim-con-iae-cfa"
 ]
 """
-dynamics_model_name = "node-mechanical-mlp"
+dynamics_model_name = "dsim-con-iae-cfa"
 # size of latent space
 n_z = 8
 # simulation time step

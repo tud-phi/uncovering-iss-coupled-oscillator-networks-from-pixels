@@ -92,7 +92,7 @@ if __name__ == "__main__":
     )
 
     # get the dynamics function
-    strain_basis, forward_kinematics_fn, dynamical_matrices_fn = planar_pcs.factory(
+    strain_basis, forward_kinematics_fn, dynamical_matrices_fn, auxiliary_fns = planar_pcs.factory(
         sym_exp_filepath, strain_selector=dataset_metadata["strain_selector"]
     )
 
