@@ -44,7 +44,7 @@ tf.config.experimental.set_visible_devices([], "GPU")
 seed = 0
 rng = random.PRNGKey(seed=seed)
 
-system_type = "pcc_ns-2"
+system_type = "pcc_ns-2"  # "cc", "cs", "pcc_ns-2", "pcc_ns-3"
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 """ dynamics_model_name in [
     "node-general-mlp", "node-mechanical-mlp", "node-mechanical-mlp-s", 
@@ -197,11 +197,15 @@ if __name__ == "__main__":
                 input_dim=n_tau,
                 use_w_coordinates=dynamics_model_name == "node-w-con",
             )
-        elif dynamics_model_name in ["node-con-iae"]:
+        elif dynamics_model_name in ["node-con-iae", "node-con-iae-s"]:
             # loss_weights["mse_tau_rec"] = trial.suggest_float("mse_tau_rec_weight", 1e-1, 1e3, log=True)
             loss_weights["mse_tau_rec"] = 1e1
-            num_mlp_layers = trial.suggest_int("num_mlp_layers", 1, 6)
-            mlp_hidden_dim = trial.suggest_int("mlp_hidden_dim", 4, 96)
+            # num_mlp_layers = trial.suggest_int("num_mlp_layers", 1, 6)
+            # mlp_hidden_dim = trial.suggest_int("mlp_hidden_dim", 4, 96)
+            if dynamics_model_name == "node-con-iae-s":
+                num_mlp_layers, mlp_hidden_dim = 2, 12
+            else:
+                num_mlp_layers, mlp_hidden_dim = 5, 30
             dynamics_model = ConIaeOde(
                 latent_dim=n_z,
                 input_dim=n_tau,
