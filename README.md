@@ -67,10 +67,10 @@ tfds build datasets/planar_pcs --data_dir data/tensorflow_datasets --config cs_3
 tfds build datasets/planar_pcs --data_dir data/tensorflow_datasets --config pcc_ns-2_32x32px_h-101 --overwrite
 ```
 
-#### Four Piecewise Constant Curvature segments
+#### Three Piecewise Constant Curvature segments
 
 ```bash
-tfds build datasets/planar_pcs --data_dir data/tensorflow_datasets --config pcc_ns-4_32x32px_h-101 --overwrite
+tfds build datasets/planar_pcs --data_dir data/tensorflow_datasets --config pcc_ns-3_32x32px_h-101 --overwrite
 ```
 
 ### N-Body problem
