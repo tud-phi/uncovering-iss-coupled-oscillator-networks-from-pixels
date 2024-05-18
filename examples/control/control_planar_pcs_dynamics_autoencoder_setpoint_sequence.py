@@ -154,7 +154,7 @@ if __name__ == "__main__":
     q0_min, q0_max = dataset_metadata["x0_min"][:n_q], dataset_metadata["x0_max"][:n_q]
 
     # get the dynamics function
-    strain_basis, forward_kinematics_fn, dynamical_matrices_fn = planar_pcs.factory(
+    strain_basis, forward_kinematics_fn, dynamical_matrices_fn, auxiliary_fns = planar_pcs.factory(
         sym_exp_filepath, strain_selector=dataset_metadata["strain_selector"]
     )
     ode_fn = ode_with_forcing_factory(dynamical_matrices_fn, robot_params)
@@ -321,6 +321,9 @@ if __name__ == "__main__":
                     figsize=figsize,
                     num="Potential energy landscape in zw-coordinates",
                 )
+                zw0_max = dynamics_model_bound.W @ z0_max
+                zw1_range = jnp.linspace(-zw0_max[0], zw0_max[0], 100)
+                zw2_range = jnp.linspace(-zw0_max[1], zw0_max[1], 100)
                 zw1_grid, zw2_grid = jnp.meshgrid(zw1_range, zw2_range)
                 zw_grid = jnp.stack([zw1_grid, zw2_grid], axis=-1)
                 xi_grid = jnp.concatenate([zw_grid, jnp.zeros_like(zw_grid)], axis=-1)
@@ -536,6 +539,47 @@ if __name__ == "__main__":
         plt.grid(True)
         plt.box(True)
         plt.savefig(ckpt_dir / "potential_energy_gradient_q.pdf")
+        plt.show()
+
+        # compute the ground-truth potential energy landscape in the configuration space
+        U_grid = jnp.zeros(q_grid.shape[:2])
+        tau_pot_grid = jnp.zeros(q_grid.shape[:2] + (n_tau,))
+        robot_potential_energy_fn = jit(partial(auxiliary_fns["potential_energy_fn"], robot_params))
+        for i in range(q_grid.shape[0]):
+            for j in range(q_grid.shape[1]):
+                q = q_grid[i, j]
+                U = robot_potential_energy_fn(q)
+                tau_pot = -grad(robot_potential_energy_fn)(q)[..., :n_tau]
+                U_grid = U_grid.at[i, j].set(U)
+                tau_pot_grid = tau_pot_grid.at[i, j, :].set(tau_pot)
+        # plot the ground-truth potential energy landscape in the configuration space
+        fig, ax = plt.subplots(
+            1,
+            1,
+            figsize=figsize,
+            num="Ground-truth potential energy landscape in configuration space",
+        )
+        # contour plot of the potential energy
+        cs = ax.contourf(q1_grid, q2_grid, U_grid, levels=100)
+        # quiver plot of the potential energy gradient
+        qv_skip = 3
+        ax.quiver(
+            q1_grid[::qv_skip, ::qv_skip],
+            q2_grid[::qv_skip, ::qv_skip],
+            tau_pot_grid[::qv_skip, ::qv_skip, 0],
+            tau_pot_grid[::qv_skip, ::qv_skip, 1],
+            angles="xy",
+            scale=None,
+            scale_units="xy",
+            color="white",
+        )
+        plt.colorbar(cs, ax=ax, label=r"$\mathcal{U}$")
+        ax.set_xlabel(r"$q_1$ [rad/m]")
+        ax.set_ylabel(r"$q_2$ [rad/m]")
+        # axes[0].set_title("Ground-truth potential energy in $q$-space")
+        plt.grid(True)
+        plt.box(True)
+        plt.savefig(ckpt_dir / "potential_energy_landscape_q_gt.pdf")
         plt.show()
 
     def control_fn(
