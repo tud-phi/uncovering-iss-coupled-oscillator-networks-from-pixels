@@ -4,7 +4,7 @@ jax.config.update("jax_enable_x64", True)  # double precision
 jax.config.update("jax_platform_name", "cpu")  # use CPU
 from diffrax import diffeqsolve, Euler, ODETerm, SaveAt, Tsit5
 from functools import partial
-from jax import jit, lax
+from jax import jit, lax, random
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import timeit
@@ -13,45 +13,12 @@ from typing import Callable, Dict, Optional, Tuple
 from src.dynamics.utils import apply_eps_to_array
 
 # time steps
-dt_readout = 1e-2
-dt_high_precision = jnp.array(1e-5)
-dt_low_precision = jnp.array(5e-2)
+dt_readout = jnp.array(1e-2)
+dt_high_precision = jnp.array(5e-5)
+dt_low_precision_tsit = jnp.array(1e-1)
+dt_low_precision_euler = jnp.array(5e-2)
 ts_readout = jnp.arange(0.0, 60.0, dt_readout)
 dt_closed_form = 1e-1
-
-# parameters
-num_units = 50
-m = 1.0 * jnp.ones((num_units,))  # mass
-K = 0.1 * jnp.eye(num_units)  # stiffness matrix
-D = 0.05 * jnp.eye(num_units)  # damping matrix
-# D = jnp.diag(2*jnp.sqrt(m * jnp.diag(K)))  # damping matrix for critically damped oscillator
-match num_units:
-    case 1:
-        W = 1.5e-1 * jnp.array([[1.0]])  # coupling matrix
-        b = 1.5e-1 * jnp.array([-0.5])  # bias
-        # W = jnp.array([[0.0]])
-        # b = jnp.array([0.0])
-        y0 = jnp.array([1.0, 0.0])
-    case 2:
-        K = 0.1 * jnp.array([[1.0, 0.25], [0.25, 1.0]])
-        D = 0.05 * jnp.array([[1.0, 0.3], [0.3, 1.0]])
-        W = 2e-1 * jnp.array([[1.0, 0.5], [0.5, 1.0]])
-        print("Eigvals of W:", jnp.linalg.eigvals(W))
-        b = 2e-1 * jnp.array([-0.5, 0.5])
-        y0 = jnp.array([1.0, 0.5, 0.0, 0.0])
-    case 3:
-        K = 0.1 * jnp.array([[1.0, 0.25, 0.15], [0.25, 1.0, -0.1], [0.15, -0.1, 1.0]])
-        D = 0.05 * jnp.array([[1.0, 0.3, -0.2], [0.3, 1.0, 0.1], [-0.2, 0.1, 1.0]])
-        W = 2e-1 * jnp.array([[1.0, 0.5, 0.2], [0.5, 1.0, 0.3], [0.2, 0.3, 1.0]])
-        print("Eigvals of W:", jnp.linalg.eigvals(W))
-        b = 2e-1 * jnp.array([-0.5, 0.5, 0.0])
-        y0 = jnp.array([1.0, 0.7, 0.4, 0.0, 0.0, 0.0])
-    case _:
-        K = 0.1 * jnp.eye(num_units)
-        D = 0.05 * jnp.eye(num_units)
-        W = 2e-1 * jnp.eye(num_units)
-        b = jnp.zeros((num_units, ))
-        y0 = jnp.ones((2*num_units, ))
 
 
 def apply_eps_to_diagonal(A: jax.Array, eps: float = 1e-6) -> jax.Array:
@@ -78,19 +45,23 @@ def apply_eps_to_diagonal(A: jax.Array, eps: float = 1e-6) -> jax.Array:
     return A_epsed
 
 
-K, D = apply_eps_to_diagonal(K), apply_eps_to_diagonal(D)
-
-
-if jnp.all(jnp.diag(D) == 0.0):
-    print("Undamped oscillators")
-elif jnp.all(jnp.diag(D) < 2 * jnp.sqrt(m * jnp.diag(K))):
-    print("Underdamped oscillators")
-elif jnp.all(jnp.diag(D) == 2 * jnp.sqrt(m * jnp.diag(K))):
-    print("Critically damped oscillators")
-elif jnp.all(jnp.diag(D) > 2 * jnp.sqrt(m * jnp.diag(K))):
-    print("Overdamped oscillators")
-else:
-    raise ValueError
+# K, D = apply_eps_to_diagonal(K), apply_eps_to_diagonal(D)
+def classify_damping_regime(m: jax.Array, K: jax.Array, D: jax.Array) -> str:
+    if jnp.all(jnp.diag(D) == 0.0):
+        print("Undamped oscillators")
+        return "undamped"
+    elif jnp.all(jnp.diag(D) < 2 * jnp.sqrt(m * jnp.diag(K))):
+        print("Underdamped oscillators")
+        return "underdamped"
+    elif jnp.all(jnp.diag(D) == 2 * jnp.sqrt(m * jnp.diag(K))):
+        print("Critically damped oscillators")
+        return "critically-damped"
+    elif jnp.all(jnp.diag(D) > 2 * jnp.sqrt(m * jnp.diag(K))):
+        print("Overdamped oscillators")
+        return "overdamped"
+    else:
+        print("General damping regime")
+        return "general"
 
 
 def ode_fn(
@@ -120,6 +91,7 @@ def ode_fn(
     x_dd = m ** (-1) * (-K @ x - D @ x_d - jnp.tanh(W @ x + b))
     y_d = jnp.concatenate([x_d, x_dd])
     return y_d
+
 
 def closed_form_approximation_step_no_damping(
     t: jax.Array,
@@ -162,6 +134,7 @@ def closed_form_approximation_step_no_damping(
 
     y = jnp.concatenate([x, x_d]).astype(jnp.float64)
     return y
+
 
 def closed_form_approximation_step(
     t: jax.Array,
@@ -315,7 +288,7 @@ def cfa_factory(
         _b: jax.Array,
     ) -> Tuple[Dict[str, jax.Array], Dict[str, jax.Array]]:
         cfa_step_fn = partial(
-            closed_form_approximation_step_fn , m=m, k=jnp.diag(_K), d=jnp.diag(_D)
+            closed_form_approximation_step_fn , m=_m, k=jnp.diag(_K), d=jnp.diag(_D)
         )
 
         def approx_step_fn(
@@ -398,7 +371,7 @@ def euler_factory(
         _b: jax.Array,
     ) -> Tuple[Dict[str, jax.Array], Dict[str, jax.Array]]:
         ode_bound_fn = partial(
-            ode_fn, m=m, K=_K, D=_D, W=_W, b=_b
+            ode_fn, m=_m, K=_K, D=_D, W=_W, b=_b
         )
 
         def approx_step_fn(
@@ -436,6 +409,44 @@ def euler_factory(
 
 
 def plot_single_rollout():
+    # parameters
+    num_units = 3
+    m = 1.0 * jnp.ones((num_units,))  # mass
+    match num_units:
+        case 1:
+            W = 1.5e-1 * jnp.array([[1.0]])  # coupling matrix
+            b = 1.5e-1 * jnp.array([-0.5])  # bias
+            # W = jnp.array([[0.0]])
+            # b = jnp.array([0.0])
+            y0 = jnp.array([1.0, 0.0])
+        case 2:
+            K = 0.1 * jnp.array([[1.0, 0.25], [0.25, 1.0]])
+            D = 0.05 * jnp.array([[1.0, 0.3], [0.3, 1.0]])
+            W = 2e-1 * jnp.array([[1.0, 0.5], [0.5, 1.0]])
+            print("Eigvals of W:", jnp.linalg.eigvals(W))
+            b = 2e-1 * jnp.array([-0.5, 0.5])
+            y0 = jnp.array([1.0, 0.5, 0.0, 0.0])
+        case 3:
+            K = 0.1 * jnp.array([[1.0, 0.25, 0.15], [0.25, 1.0, -0.1], [0.15, -0.1, 1.0]])
+            D = 0.05 * jnp.array([[1.0, 0.3, -0.2], [0.3, 1.0, 0.1], [-0.2, 0.1, 1.0]])
+            W = 2e-1 * jnp.array([[1.0, 0.5, 0.2], [0.5, 1.0, 0.3], [0.2, 0.3, 1.0]])
+            print("Eigvals of W:", jnp.linalg.eigvals(W))
+            b = 2e-1 * jnp.array([-0.5, 0.5, 0.0])
+            y0 = jnp.array([1.0, 0.7, 0.4, 0.0, 0.0, 0.0])
+        case 4:
+            m = 0.02 * jnp.ones((num_units,))
+            K = 0.5 * jnp.eye(num_units)
+            D = jnp.diag(jnp.sqrt(jnp.diag(K) * m))
+            W = 1e0 * jnp.eye(num_units)
+            b = jnp.zeros((num_units,))
+            y0 = jnp.array([1.0, 0.75, 0.25, 0.0, 0.0, 0.0, 0.0, 0.0])
+        case _:
+            raise ValueError("Unsupported number of units")
+
+    damping_regime = classify_damping_regime(m, K, D)
+    omega_n = jnp.sqrt(jnp.diag(K) / m)
+    print("Natural frequencies:", omega_n)
+
     # Define the harmonic oscillator ODE term
     ode_term = ODETerm(
         partial(ode_fn, m=m, K=K, D=D, W=W, b=b),
@@ -460,7 +471,7 @@ def plot_single_rollout():
         Tsit5(),
         t0=ts_readout[0],
         t1=ts_readout[-1],
-        dt0=dt_low_precision,
+        dt0=dt_low_precision_tsit,
         y0=y0,
         saveat=SaveAt(ts=ts_readout),
         max_steps=None,
@@ -484,7 +495,7 @@ def plot_single_rollout():
     ts_low_precision_euler = ts_readout
     y_ts_numerical_low_precision_euler = sol_numerical_low_precision_euler.ys
     """
-    ts_sim_low_precision_euler = jnp.arange(ts_readout[0], ts_readout[-1], dt_low_precision)
+    ts_sim_low_precision_euler = jnp.arange(ts_readout[0], ts_readout[-1], dt_low_precision_euler)
     simulation_fn_low_precision_euler = euler_factory(ts_sim_low_precision_euler, readout=True)
     _, sim_ts_low_precision_euler = simulation_fn_low_precision_euler(y0, _m=m, _K=K, _D=D, _W=W, _b=b)
     ts_low_precision_euler  = sim_ts_low_precision_euler["ts"]
@@ -494,7 +505,7 @@ def plot_single_rollout():
     # evaluate the closed-form solution
     ts_sim_closed_form = jnp.arange(ts_readout[0], ts_readout[-1], dt_closed_form)
     simulate_closed_form_approximation_fn = jit(partial(
-        cfa_factory(ts_sim_closed_form, readout_dt=jnp.array(dt_readout)), y0, m, K, D, W, b
+        cfa_factory(ts_sim_closed_form, readout_dt=dt_readout), y0, m, K, D, W, b
     ))
     _, closed_form_sim_ts = simulate_closed_form_approximation_fn()
     for key in closed_form_sim_ts.keys():
@@ -513,21 +524,19 @@ def plot_single_rollout():
         linestyle="--",
         linewidth=2.5,
     )
-    """
     plt.gca().set_prop_cycle(None)
     plt.plot(
         ts_readout,
         y_ts_numerical_low_precision_tsit[:, :num_units],
-        label=rf"Tsit5 with dt = {dt_low_precision}s",
+        label=rf"Tsit5 with dt = {dt_low_precision_tsit}s",
         linestyle=":",
         linewidth=2.0,
     )
-    """
     plt.gca().set_prop_cycle(None)
     plt.plot(
         ts_low_precision_euler,
         y_ts_numerical_low_precision_euler[:, :num_units],
-        label=rf"Euler with dt = {dt_low_precision}s",
+        label=rf"Euler with dt = {dt_low_precision_euler}s",
         linestyle="dashdot",
         linewidth=2.0,
     )
@@ -557,7 +566,7 @@ def plot_single_rollout():
     plt.plot(
         ts_readout,
         y_ts_numerical_low_precision_tsit[:, num_units:],
-        label=rf"Tsit5 with dt = {dt_low_precision}s",
+        label=rf"Tsit5 with dt = {dt_low_precision_euler}s",
         linestyle=":",
         linewidth=2.0,
     )
@@ -565,7 +574,7 @@ def plot_single_rollout():
     plt.plot(
         ts_low_precision_euler,
         y_ts_numerical_low_precision_euler[:, num_units:],
-        label=rf"Euler with dt = {dt_low_precision}s",
+        label=rf"Euler with dt = {dt_low_precision_euler}s",
         linestyle="dashdot",
         linewidth=2.0,
     )
@@ -585,6 +594,39 @@ def plot_single_rollout():
 
 
 def benchmark_sim_to_real_time_factor():
+    # parameters
+    num_units = 50
+    m = 1.0 * jnp.ones((num_units,))  # mass
+    match num_units:
+        case 1:
+            W = 1.5e-1 * jnp.array([[1.0]])  # coupling matrix
+            b = 1.5e-1 * jnp.array([-0.5])  # bias
+            # W = jnp.array([[0.0]])
+            # b = jnp.array([0.0])
+            y0 = jnp.array([1.0, 0.0])
+        case 2:
+            K = 0.1 * jnp.array([[1.0, 0.25], [0.25, 1.0]])
+            D = 0.05 * jnp.array([[1.0, 0.3], [0.3, 1.0]])
+            W = 2e-1 * jnp.array([[1.0, 0.5], [0.5, 1.0]])
+            print("Eigvals of W:", jnp.linalg.eigvals(W))
+            b = 2e-1 * jnp.array([-0.5, 0.5])
+            y0 = jnp.array([1.0, 0.5, 0.0, 0.0])
+        case 3:
+            K = 0.1 * jnp.array([[1.0, 0.25, 0.15], [0.25, 1.0, -0.1], [0.15, -0.1, 1.0]])
+            D = 0.05 * jnp.array([[1.0, 0.3, -0.2], [0.3, 1.0, 0.1], [-0.2, 0.1, 1.0]])
+            W = 2e-1 * jnp.array([[1.0, 0.5, 0.2], [0.5, 1.0, 0.3], [0.2, 0.3, 1.0]])
+            print("Eigvals of W:", jnp.linalg.eigvals(W))
+            b = 2e-1 * jnp.array([-0.5, 0.5, 0.0])
+            y0 = jnp.array([1.0, 0.7, 0.4, 0.0, 0.0, 0.0])
+        case _:
+            K = 0.1 * jnp.eye(num_units)
+            D = 0.05 * jnp.eye(num_units)
+            W = 2e-1 * jnp.eye(num_units)
+            b = jnp.zeros((num_units,))
+            y0 = jnp.ones((2 * num_units,))
+
+    classify_damping_regime(m, K, D)
+
     # Define the harmonic oscillator ODE term
     ode_term = ODETerm(
         partial(ode_fn, m=m, K=K, D=D, W=W, b=b),
@@ -607,7 +649,7 @@ def benchmark_sim_to_real_time_factor():
         Tsit5(),
         t0=ts_readout[0],
         t1=ts_readout[-1],
-        dt0=dt_low_precision,
+        dt0=dt_low_precision_tsit,
         y0=y0,
         # saveat=SaveAt(ts=ts_readout),
         max_steps=None,
@@ -626,7 +668,7 @@ def benchmark_sim_to_real_time_factor():
         max_steps=None,
     ))
     """
-    ts_sim_low_precision_euler = jnp.arange(ts_readout[0], ts_readout[-1], dt_low_precision)
+    ts_sim_low_precision_euler = jnp.arange(ts_readout[0], ts_readout[-1], dt_low_precision_euler)
     simulation_low_precision_euler_fn = jit(partial(
         euler_factory(ts_sim_low_precision_euler, readout=False),
         y0, _m=m, _K=K, _D=D, _W=W, _b=b
@@ -705,6 +747,190 @@ def benchmark_sim_to_real_time_factor():
     )
 
 
+def benchmark_integration_error():
+    num_samples = 100
+    num_units = 50
+    enforce_underdamping = False
+    plot_solution = False
+
+    # set random seed
+    rng = jax.random.PRNGKey(0)
+    sample_idx = -1
+
+    benchmarking_data = dict(
+        low_precision_tsit_mse=[],
+        low_precision_euler_mse=[],
+        cfa_mse=[],
+        cfa_underdamped_mse=[]
+    )
+    while sample_idx < (num_samples-1):
+        sample_idx += 1
+        print(f"Sample {sample_idx + 1}/{num_samples}")
+
+        # split the rng key
+        rng, key1, key2, key3, key4, key5, key6 = random.split(rng, num=7)
+
+        # sample the parameters
+        """
+        L_K = jnp.tril(random.uniform(key1, shape=(num_units, num_units), minval=-1.0, maxval=1.0))  # lower triangular matrix
+        K = L_K @ L_K.T  # positive definite matrix
+        L_D = jnp.tril(random.uniform(key1, shape=(num_units, num_units), minval=-1.0, maxval=1.0))  # lower triangular matrix
+        # make sure that the diagional elements are positive
+        L_D = L_D.at[jnp.diag_indices(num_units)].set(jnp.abs(jnp.diag(L_D)))
+        # make sure that the diagional elements are positive
+        L_D = L_D.at[jnp.diag_indices(num_units)].set(jnp.abs(jnp.diag(L_D)))
+        D = L_D @ L_D.T  # positive definite matrix
+        """
+        # sample the natural frequencies
+        omega_n = random.uniform(key1, shape=(num_units,), minval=5e-2, maxval=5e-1)
+        # print("Natural frequencies:\n", omega_n)
+        # sample the stiffnesses
+        K = jnp.diag(random.uniform(key1, shape=(num_units,), minval=2e-1, maxval=2e0))
+        # print("Stiffnesses:\n", jnp.diag(K))
+        # sample the masses
+        m = jnp.diag(K) / omega_n ** 2
+        # print("Masses:\n", m)
+        # sample the damping coefficients
+        # K = jnp.diag(random.uniform(key2, shape=(num_units,), minval=2e-2, maxval=2e-1))
+        if enforce_underdamping is True:
+            zeta = random.uniform(key3, shape=(num_units,), minval=0.1, maxval=0.9)
+            D = jnp.diag(2 * zeta * jnp.sqrt(m * jnp.diag(K)))
+        else:
+            zeta = random.uniform(key3, shape=(num_units,), minval=0.1, maxval=2.0)
+            D = jnp.diag(2 * zeta * jnp.sqrt(m * jnp.diag(K)))
+        # print("Damping ratios:\n", zeta)
+
+        L_W = random.uniform(key4, shape=(num_units, num_units), minval=-1.0, maxval=1.0)  # lower triangular matrix
+        # make sure that the diagional elements are positive
+        L_W = L_W.at[jnp.diag_indices(num_units)].set(jnp.abs(jnp.diag(L_W)))
+        W = L_W @ L_W.T  # hyperbolic coupling matrix
+        b = random.uniform(key5, shape=(num_units,), minval=-1.0, maxval=1.0)
+        # sample the initial state
+        y0 = random.uniform(key6, shape=(2 * num_units,), minval=-1.0, maxval=1.0)
+
+        # check the damping regime
+        damping_regime = classify_damping_regime(m, K, D)
+
+        # Define the harmonic oscillator ODE term
+        ode_term = ODETerm(
+            partial(ode_fn, m=m, K=K, D=D, W=W, b=b),
+        )
+        sol_high_precision = diffeqsolve(
+            ode_term,
+            Tsit5(),
+            t0=ts_readout[0],
+            t1=ts_readout[-1],
+            dt0=dt_high_precision,
+            y0=y0,
+            saveat=SaveAt(ts=ts_readout),
+            max_steps=None,
+        )
+        y_ts_numerical_high_precision = sol_high_precision.ys
+
+        sol_low_precision_tsit = diffeqsolve(
+            ode_term,
+            Tsit5(),
+            t0=ts_readout[0],
+            t1=ts_readout[-1],
+            dt0=dt_low_precision_tsit,
+            y0=y0,
+            saveat=SaveAt(ts=ts_readout),
+            max_steps=None,
+        )
+        y_ts_numerical_low_precision_tsit = sol_low_precision_tsit.ys
+
+        sol_low_precision_euler = diffeqsolve(
+            ode_term,
+            Euler(),
+            t0=ts_readout[0],
+            t1=ts_readout[-1],
+            dt0=dt_low_precision_euler,
+            y0=y0,
+            saveat=SaveAt(ts=ts_readout),
+            max_steps=None,
+        )
+        y_ts_numerical_low_precision_euler = sol_low_precision_euler.ys
+
+        # evaluate the closed-form solution
+        ts_sim_closed_form = jnp.arange(ts_readout[0], ts_readout[-1], dt_closed_form)
+        _, closed_form_sim_ts = cfa_factory(
+            ts_sim_closed_form, readout_dt=jnp.array(dt_readout)
+        )(y0, m, K, D, W, b)
+        for key in closed_form_sim_ts.keys():
+            closed_form_sim_ts[key] = closed_form_sim_ts[key].reshape(
+                (-1,) + closed_form_sim_ts[key].shape[2:]
+            )
+        y_ts_closed_form = closed_form_sim_ts["y_ts"]
+        _, closed_form_sim_ts_underdamped = cfa_factory(
+            ts_sim_closed_form, readout_dt=jnp.array(dt_readout), damping_regime="underdamped"
+        )(y0, m, K, D, W, b)
+        for key in closed_form_sim_ts_underdamped.keys():
+            closed_form_sim_ts_underdamped[key] = closed_form_sim_ts_underdamped[key].reshape(
+                (-1,) + closed_form_sim_ts_underdamped[key].shape[2:]
+            )
+        y_ts_closed_form_underdamped = closed_form_sim_ts_underdamped["y_ts"]
+
+        benchmarking_data["low_precision_tsit_mse"].append(
+            jnp.mean((y_ts_numerical_high_precision - y_ts_numerical_low_precision_tsit) ** 2)
+        )
+        benchmarking_data["low_precision_euler_mse"].append(
+            jnp.mean((y_ts_numerical_high_precision - y_ts_numerical_low_precision_euler) ** 2)
+        )
+        benchmarking_data["cfa_mse"].append(
+            jnp.mean((y_ts_numerical_high_precision - y_ts_closed_form) ** 2)
+        )
+        benchmarking_data["cfa_underdamped_mse"].append(
+            jnp.mean((y_ts_numerical_high_precision - y_ts_closed_form_underdamped) ** 2)
+        )
+
+        if plot_solution is True:
+            plt.figure()
+            plt.plot(
+                ts_readout,
+                y_ts_numerical_high_precision[:, :num_units],
+            )
+            plt.xlabel("Time")
+            plt.ylabel("Position")
+            plt.legend()
+            plt.grid()
+            plt.box(True)
+            plt.title("Coupled oscillator position")
+            plt.show()
+
+    for key, data in benchmarking_data.items():
+        benchmarking_data[key] = jnp.array(data)
+        """
+        if key.split("_")[-1] == "mse":
+            rmse_key = key.replace("mse", "rmse")
+            benchmarking_data[rmse_key] = jnp.sqrt(benchmarking_data[key])
+        """
+
+    print(
+        "Low precision Tsit5 RMSE mean:",
+        jnp.mean(jnp.sqrt(benchmarking_data["low_precision_tsit_mse"])),
+        "std:", jnp.std(jnp.sqrt(benchmarking_data["low_precision_tsit_mse"]))
+    )
+    print(
+        "Low precision Euler RMSE mean:",
+        jnp.mean(jnp.sqrt(benchmarking_data["low_precision_euler_mse"])),
+        "std:", jnp.std(jnp.sqrt(benchmarking_data["low_precision_euler_mse"]))
+    )
+    print(
+        "CFA RMSE mean:",
+        jnp.mean(jnp.sqrt(benchmarking_data["cfa_mse"])),
+        "std:", jnp.std(jnp.sqrt(benchmarking_data["cfa_mse"]))
+    )
+    print(
+        "CFA underdamped RMSE mean:",
+        jnp.mean(jnp.sqrt(benchmarking_data["cfa_underdamped_mse"])),
+        "std:", jnp.std(jnp.sqrt(benchmarking_data["cfa_underdamped_mse"]))
+    )
+
+
 if __name__ == "__main__":
-    # plot_single_rollout()
+    print("Plotting the single rollout")
+    plot_single_rollout()
+    print("Benchmarking the simulation to real-time factor")
     benchmark_sim_to_real_time_factor()
+    print("Benchmarking the integration error")
+    benchmark_integration_error()
