@@ -59,7 +59,7 @@ n_z_range = onp.arange(1, 32, step=2)
 # set the range of random seeds
 seed_range = onp.array([0, 1, 2])
 
-# set the system type in ["single_pendulum", "cc", "pcc_ns-2"]
+# set the system type in ["single_pendulum", "cc", "cs", "pcc_ns-2"]
 system_type = "pcc_ns-2"
 long_horizon_dataset = True
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
