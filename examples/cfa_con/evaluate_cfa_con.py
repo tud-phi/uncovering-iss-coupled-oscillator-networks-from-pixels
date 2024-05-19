@@ -21,7 +21,7 @@ plt.rcParams.update(
         "font.serif": ["Computer Modern Romand"],
     }
 )
-figsize = (5.0, 3.0)
+figsize = (4.5, 3.0)
 colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
 # time steps
@@ -559,7 +559,8 @@ def plot_single_rollout():
             linestyle=":",
             linewidth=linewidth_dotted,
             color="black",
-            label=rf"CON Tsit5 $\delta t = {dt_high_precision}$s",
+            # label=rf"CON Tsit5 $\delta t = {dt_high_precision}$s",
+            label=rf"CON ground-truth",
         )
         """
         line_low_precision_tsit, = ax.plot(
