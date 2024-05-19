@@ -524,26 +524,6 @@ if __name__ == "__main__":
                 train_metrics["rmse_rec_dynamic"][None, ...],
                 axis=0,
             )
-            sweep_results["train"]["psnr_rec_static"] = concat_or_none(
-                sweep_results["train"]["psnr_rec_static"],
-                train_metrics["psnr_rec_static"][None, ...],
-                axis=0,
-            )
-            sweep_results["train"]["psnr_rec_dynamic"] = concat_or_none(
-                sweep_results["train"]["psnr_rec_dynamic"],
-                train_metrics["psnr_rec_dynamic"][None, ...],
-                axis=0,
-            )
-            sweep_results["train"]["ssim_rec_static"] = concat_or_none(
-                sweep_results["train"]["ssim_rec_static"],
-                train_metrics["ssim_rec_static"][None, ...],
-                axis=0,
-            )
-            sweep_results["train"]["ssim_rec_dynamic"] = concat_or_none(
-                sweep_results["train"]["ssim_rec_dynamic"],
-                train_metrics["ssim_rec_dynamic"][None, ...],
-                axis=0,
-            )
             sweep_results["test"]["rmse_rec_static"] = concat_or_none(
                 sweep_results["test"]["rmse_rec_static"],
                 test_metrics["rmse_rec_static"][None, ...],
