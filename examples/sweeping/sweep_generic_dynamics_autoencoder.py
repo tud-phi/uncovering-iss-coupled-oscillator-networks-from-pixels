@@ -411,7 +411,7 @@ if __name__ == "__main__":
             )
 
             # call the factory function for the dynamics autoencoder task
-            task_callables, metrics_collection_cls = dynamics_autoencoder.task_factory(
+            task_callables_train, metrics_collection_cls_train = dynamics_autoencoder.task_factory(
                 system_type,
                 nn_model,
                 ts=dataset_metadata["ts"],
@@ -423,8 +423,6 @@ if __name__ == "__main__":
                 solver=solver_class(),
                 latent_velocity_source=latent_velocity_source,
                 num_past_timesteps=num_past_timesteps,
-                compute_psnr=True,
-                compute_ssim=True,
             )
 
             # run the training loop
@@ -433,8 +431,8 @@ if __name__ == "__main__":
                 rng=rng,
                 train_ds=train_ds,
                 val_ds=val_ds,
-                task_callables=task_callables,
-                metrics_collection_cls=metrics_collection_cls,
+                task_callables=task_callables_train,
+                metrics_collection_cls=metrics_collection_cls_train,
                 num_epochs=num_epochs,
                 nn_model=nn_model,
                 init_fn=nn_model.forward_all_layers,
@@ -451,20 +449,37 @@ if __name__ == "__main__":
             # count the number of trainable parameters
             params_count = count_number_of_trainable_params(state, verbose=False)
 
+            # call the factory function for the dynamics autoencoder task
+            task_callables_test, metrics_collection_cls_test = dynamics_autoencoder.task_factory(
+                system_type,
+                nn_model,
+                ts=dataset_metadata["ts"],
+                sim_dt=sim_dt,
+                loss_weights=loss_weights,
+                ae_type=ae_type,
+                dynamics_type=dynamics_type,
+                start_time_idx=start_time_idx,
+                solver=solver_class(),
+                latent_velocity_source=latent_velocity_source,
+                num_past_timesteps=num_past_timesteps,
+                compute_psnr=True,
+                compute_ssim=True,
+            )
+
             # load the neural network dummy input
-            nn_dummy_input = load_dummy_neural_network_input(test_ds, task_callables)
+            nn_dummy_input = load_dummy_neural_network_input(test_ds, task_callables_test)
             # load the training state from the checkpoint directory
             state = restore_train_state(
                 rng=rng,
                 ckpt_dir=logdir_run,
                 nn_model=nn_model,
                 nn_dummy_input=nn_dummy_input,
-                metrics_collection_cls=metrics_collection_cls,
+                metrics_collection_cls=metrics_collection_cls_test,
                 init_fn=nn_model.forward_all_layers,
             )
 
             print(f"Run testing for n_z={n_z}, seed={seed}...")
-            state, test_history = run_eval(test_ds, state, task_callables)
+            state, test_history = run_eval(test_ds, state, task_callables_test)
             test_metrics = state.metrics.compute()
             print(
                 "\n"
