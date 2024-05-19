@@ -327,7 +327,7 @@ if __name__ == "__main__":
             # num_mlp_layers = trial.suggest_int("num_mlp_layers", 1, 6)
             # mlp_hidden_dim = trial.suggest_int("mlp_hidden_dim", 4, 96)
             num_mlp_layers, mlp_hidden_dim = 5, 30
-            sim_dt = trial.suggest_categorical("sim_dt", [1e-2, 5e-3, 2.5e-3])
+            # sim_dt = trial.suggest_categorical("sim_dt", [1e-2, 5e-3, 2.5e-3])
             dynamics_model = DiscreteConIaeCfaDynamics(
                 latent_dim=n_z,
                 input_dim=n_tau,
