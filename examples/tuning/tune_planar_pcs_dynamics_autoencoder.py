@@ -182,14 +182,14 @@ if __name__ == "__main__":
                 num_mlp_layers, mlp_hidden_dim = 2, 12
             else:
                 num_mlp_layers, mlp_hidden_dim = 5, 30
-            mlp_nonlinearity_name = nn.softplus
+            mlp_nonlinearity_name = nn.tanh
 
             dynamics_model = MlpOde(
                 latent_dim=n_z,
                 input_dim=n_tau,
                 num_layers=num_mlp_layers,
                 hidden_dim=mlp_hidden_dim,
-                nonlinearity=nn.softplus,
+                nonlinearity=mlp_nonlinearity_name,
                 mechanical_system=True
                 if dynamics_model_name.split("-")[1] == "mechanical"
                 else False,
