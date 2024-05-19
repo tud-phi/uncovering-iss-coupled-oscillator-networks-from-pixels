@@ -7,10 +7,22 @@ from functools import partial
 from jax import jit, lax, random
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
+from pathlib import Path
 import timeit
 from typing import Callable, Dict, Optional, Tuple
 
 from src.dynamics.utils import apply_eps_to_array
+
+
+plt.rcParams.update(
+    {
+        "text.usetex": True,
+        "font.family": "serif",
+        "font.serif": ["Computer Modern Romand"],
+    }
+)
+figsize = (4.5, 3.0)
+colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 
 # time steps
 dt_readout = jnp.array(1e-2)
@@ -20,6 +32,9 @@ dt_low_precision_euler = jnp.array(5e-2)
 ts_readout = jnp.arange(0.0, 60.0, dt_readout)
 dt_closed_form = 1e-1
 
+# output directory
+outputs_dir = Path(__file__).resolve().parent / "outputs"
+outputs_dir.mkdir(exist_ok=True)
 
 def apply_eps_to_diagonal(A: jax.Array, eps: float = 1e-6) -> jax.Array:
     """
@@ -411,6 +426,7 @@ def euler_factory(
 def plot_single_rollout():
     # parameters
     num_units = 3
+    ts_readout = jnp.arange(0.0, 40.0, dt_readout)
     m = 1.0 * jnp.ones((num_units,))  # mass
     match num_units:
         case 1:
@@ -427,11 +443,21 @@ def plot_single_rollout():
             b = 2e-1 * jnp.array([-0.5, 0.5])
             y0 = jnp.array([1.0, 0.5, 0.0, 0.0])
         case 3:
+            """
             K = 0.1 * jnp.array([[1.0, 0.25, 0.15], [0.25, 1.0, -0.1], [0.15, -0.1, 1.0]])
             D = 0.05 * jnp.array([[1.0, 0.3, -0.2], [0.3, 1.0, 0.1], [-0.2, 0.1, 1.0]])
             W = 2e-1 * jnp.array([[1.0, 0.5, 0.2], [0.5, 1.0, 0.3], [0.2, 0.3, 1.0]])
             print("Eigvals of W:", jnp.linalg.eigvals(W))
             b = 2e-1 * jnp.array([-0.5, 0.5, 0.0])
+            y0 = jnp.array([1.0, 0.7, 0.4, 0.0, 0.0, 0.0])
+            """
+            omega_n = jnp.array([0.4, 0.3, 0.5])
+            K = jnp.diag(jnp.array([1.5, 1.8, 2.0]))
+            m = jnp.diag(K) / omega_n ** 2
+            zeta = jnp.array([0.1, 0.05, 0.02])
+            D = jnp.diag(2 * zeta * jnp.sqrt(jnp.diag(K) * m))
+            W = jnp.array([[1.0, 0.5, 0.2], [0.5, 1.0, 0.3], [0.2, 0.3, 1.0]])
+            b = jnp.array([-0.5, 0.5, 0.0])
             y0 = jnp.array([1.0, 0.7, 0.4, 0.0, 0.0, 0.0])
         case 4:
             m = 0.02 * jnp.ones((num_units,))
@@ -515,81 +541,102 @@ def plot_single_rollout():
     ts_closed_form = closed_form_sim_ts["ts"]
     y_ts_closed_form = closed_form_sim_ts["y_ts"]
 
-
+    linewidth_solid = 1.8
+    linewidth_dotted = 2.5
     # plot the position
-    plt.plot(
-        ts_readout,
-        y_ts_numerical_high_precision[:, :num_units],
-        label=rf"Tsit5 with dt = {dt_high_precision}s",
-        linestyle="--",
-        linewidth=2.5,
-    )
-    plt.gca().set_prop_cycle(None)
-    plt.plot(
-        ts_readout,
-        y_ts_numerical_low_precision_tsit[:, :num_units],
-        label=rf"Tsit5 with dt = {dt_low_precision_tsit}s",
-        linestyle=":",
-        linewidth=2.0,
-    )
-    plt.gca().set_prop_cycle(None)
-    plt.plot(
-        ts_low_precision_euler,
-        y_ts_numerical_low_precision_euler[:, :num_units],
-        label=rf"Euler with dt = {dt_low_precision_euler}s",
-        linestyle="dashdot",
-        linewidth=2.0,
-    )
-    plt.gca().set_prop_cycle(None)
-    plt.plot(
-        ts_closed_form,
-        y_ts_closed_form[:, :num_units:],
-        label=rf"Approx. closed-form solution dt = {dt_closed_form}s",
-    )
-    plt.xlabel("Time")
-    plt.ylabel("Position")
-    plt.legend()
-    plt.grid()
+    fig, ax = plt.subplots(1, 1, figsize=figsize)
+    for i in range(num_units):
+        """
+        markevery = 50
+        markersize = 5
+        marker="o",
+        markevery=markevery,
+        markersize=markersize,
+        """
+        line_high_precision, = ax.plot(
+            ts_readout,
+            y_ts_numerical_high_precision[:, i],
+            linestyle=":",
+            linewidth=linewidth_dotted,
+            color="black",
+            # label=rf"CON Tsit5 $\delta t = {dt_high_precision}$s",
+            label=rf"CON ground-truth",
+        )
+        """
+        line_low_precision_tsit, = ax.plot(
+            ts_readout,
+            y_ts_numerical_low_precision_tsit[:, i],
+            linewidth=linewidth_solid,
+            color=colors[0],
+            label=rf"CON Tsit5 $\delta t = {dt_low_precision_tsit}$s",
+        )
+        """
+        line_low_precision_euler, = ax.plot(
+            ts_low_precision_euler,
+            y_ts_numerical_low_precision_euler[:, i],
+            linewidth=linewidth_solid,
+            color=colors[1],
+            label=rf"CON Euler $\delta t = {dt_low_precision_euler}$s",
+        )
+        line_cfa, = ax.plot(
+            ts_closed_form,
+            y_ts_closed_form[:, i],
+            linewidth=linewidth_solid,
+            color=colors[2],
+            label=rf"CFA-CON $\delta t = {dt_closed_form}$s",
+        )
+    plt.xlabel("Time [s]")
+    plt.ylabel("Position [m]")
+    plt.legend(handles=[line_high_precision, line_low_precision_euler, line_cfa], loc="lower left")
+    plt.grid(True)
     plt.box(True)
-    plt.title("Coupled oscillator position")
+    # plt.title("Coupled oscillator position")
+    plt.tight_layout()
+    plt.savefig(outputs_dir / "coupled_oscillator_position.pdf")
     plt.show()
 
     # plot the velocity
-    plt.plot(
-        ts_readout,
-        y_ts_numerical_high_precision[:, num_units:],
-        label=rf"Tsit5 with dt = {dt_high_precision}s",
-        linestyle="--",
-        linewidth=2.5,
-    )
-    plt.gca().set_prop_cycle(None)
-    plt.plot(
-        ts_readout,
-        y_ts_numerical_low_precision_tsit[:, num_units:],
-        label=rf"Tsit5 with dt = {dt_low_precision_euler}s",
-        linestyle=":",
-        linewidth=2.0,
-    )
-    plt.gca().set_prop_cycle(None)
-    plt.plot(
-        ts_low_precision_euler,
-        y_ts_numerical_low_precision_euler[:, num_units:],
-        label=rf"Euler with dt = {dt_low_precision_euler}s",
-        linestyle="dashdot",
-        linewidth=2.0,
-    )
-    plt.gca().set_prop_cycle(None)
-    plt.plot(
-        ts_closed_form,
-        y_ts_closed_form[:, num_units:],
-        label=rf"Closed-form solution dt = {dt_closed_form}s",
-    )
-    plt.xlabel("Time")
-    plt.ylabel("Velocity")
-    plt.legend()
-    plt.grid()
+    fig, ax = plt.subplots(1, 1, figsize=figsize)
+    for i in range(num_units):
+        line_high_precision, = ax.plot(
+            ts_readout,
+            y_ts_numerical_high_precision[:, num_units + i],
+            linestyle=":",
+            linewidth=linewidth_dotted,
+            color="black",
+            label=rf"CON Tsit5 $\delta t = {dt_high_precision}$s",
+        )
+        """
+        line_low_precision_tsit, = ax.plot(
+            ts_readout,
+            y_ts_numerical_low_precision_tsit[:, num_units + i],
+            linewidth=linewidth_solid,
+            color=colors[0],
+            label=rf"CON Tsit5 $\delta t = {dt_low_precision_tsit}$s",
+        )
+        """
+        line_low_precision_euler, = ax.plot(
+            ts_low_precision_euler,
+            y_ts_numerical_low_precision_euler[:, num_units + i],
+            linewidth=linewidth_solid,
+            color=colors[1],
+            label=rf"CON Euler $\delta t = {dt_low_precision_euler}$s",
+        )
+        line_cfa, = ax.plot(
+            ts_closed_form,
+            y_ts_closed_form[:, num_units + i],
+            linewidth=linewidth_solid,
+            color=colors[2],
+            label=rf"CFA-CON $\delta t = {dt_closed_form}$s",
+        )
+    plt.xlabel("Time [s]")
+    plt.ylabel("Velocity [m/s]")
+    plt.legend(handles=[line_high_precision, line_low_precision_euler, line_cfa], loc="lower left")
+    plt.grid(True)
     plt.box(True)
-    plt.title("Coupled oscillator velocity")
+    # plt.title("Coupled oscillator position")
+    plt.tight_layout()
+    plt.savefig(outputs_dir / "coupled_oscillator_velocity.pdf")
     plt.show()
 
 

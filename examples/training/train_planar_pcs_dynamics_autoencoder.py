@@ -48,10 +48,10 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
     "node-cornn", "node-con", "node-w-con", "node-con-iae", "node-dcon", "node-lnn", 
     "node-hippo-lss", "node-mamba",
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
-    "dsim-con-iae-cfa"
+    "dsim-con-iae-cfa", "dsim-elman-rnn", "dsim-gru-rnn", "dsim-cornn"
 ]
 """
-dynamics_model_name = "dsim-con-iae-cfa"
+dynamics_model_name = "dsim-elman-rnn"
 # size of latent space
 n_z = 8
 # simulation time step
@@ -128,6 +128,15 @@ if long_horizon_dataset:
                 )
                 weight_decay = 2.6404635847920316e-05
                 num_mlp_layers, mlp_hidden_dim = 5, 30
+            case "dsim-elman-rnn":
+                base_lr = 0.009562362872368196
+                loss_weights = dict(
+                    mse_z=0.4515819661074938,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=45.25873190730584,
+                    beta=0.001817925663163544,
+                )
+                weight_decay = 0.00015443793550364007
             case _:
                 raise NotImplementedError(
                     f"beta_vae with dynamics_model_name '{dynamics_model_name}' not implemented yet."
@@ -415,6 +424,13 @@ if __name__ == "__main__":
             dt=sim_dt,
             num_layers=num_mlp_layers,
             hidden_dim=mlp_hidden_dim,
+        )
+    elif dynamics_model_name in ["dsim-elman-rnn", "dsim-gru-rnn"]:
+        dynamics_model = DiscreteRnnDynamics(
+            state_dim=2 * n_z,
+            input_dim=n_tau,
+            output_dim=2 * n_z,
+            rnn_method=dynamics_model_name.split("-")[1],  # "elman" or "gru"
         )
     else:
         raise ValueError(f"Unknown dynamics_model_name: {dynamics_model_name}")

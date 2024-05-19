@@ -68,7 +68,7 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
     "node-cornn", "node-con", "node-w-con", "node-con-iae",  "node-con-iae-s", "node-dcon", "node-lnn", 
     "node-hippo-lss", "node-mamba",
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
-    "dsim-con-iae-cfa"
+    "dsim-con-iae-cfa", "dsim-elman-rnn", "dsim-gru-rnn", "dsim-cornn"
 ]
 """
 dynamics_model_name = "node-con-iae-s"
@@ -144,7 +144,7 @@ match system_type:
                 )
     case "pcc_ns-2":
         match dynamics_model_name:
-            case "node-mechanical-mlp":
+            case "node-mechanical-mlp" | "node-mechanical-mlp-s":
                 # optimized for n_z=8
                 base_lr = 0.007137268676917664
                 loss_weights = dict(
@@ -154,7 +154,15 @@ match system_type:
                     beta=0.002678889167847793,
                 )
                 weight_decay = 4.5818408762378344e-05
+                """
+                originally tuned for
                 num_mlp_layers, mlp_hidden_dim = 5, 21
+                mlp_nonlinearity_name = "tanh"
+                """
+                if dynamics_model_name == "node-mechanical-mlp-s":
+                    num_mlp_layers, mlp_hidden_dim = 2, 12
+                else:
+                    num_mlp_layers, mlp_hidden_dim = 5, 30
                 mlp_nonlinearity_name = "tanh"
             case "node-w-con":
                 # optimized for n_z=32
@@ -393,6 +401,13 @@ if __name__ == "__main__":
                     dt=sim_dt,
                     num_layers=num_mlp_layers,
                     hidden_dim=mlp_hidden_dim,
+                )
+            elif dynamics_model_name in ["dsim-elman-rnn", "dsim-gru-rnn"]:
+                dynamics_model = DiscreteRnnDynamics(
+                    state_dim=2 * n_z,
+                    input_dim=n_tau,
+                    output_dim=2 * n_z,
+                    rnn_method=dynamics_model_name.split("-")[1],  # "elman" or "gru"
                 )
             else:
                 raise ValueError(f"Unknown dynamics_model_name: {dynamics_model_name}")
