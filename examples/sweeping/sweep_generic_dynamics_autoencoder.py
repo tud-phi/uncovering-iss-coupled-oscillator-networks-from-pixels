@@ -68,7 +68,7 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
     "node-cornn", "node-con", "node-w-con", "node-con-iae",  "node-con-iae-s", "node-dcon", "node-lnn", 
     "node-hippo-lss", "node-mamba",
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
-    "dsim-con-iae-cfa"
+    "dsim-con-iae-cfa", "dsim-elman-rnn", "dsim-gru-rnn", "dsim-cornn"
 ]
 """
 dynamics_model_name = "node-con-iae-s"
@@ -393,6 +393,13 @@ if __name__ == "__main__":
                     dt=sim_dt,
                     num_layers=num_mlp_layers,
                     hidden_dim=mlp_hidden_dim,
+                )
+            elif dynamics_model_name in ["dsim-elman-rnn", "dsim-gru-rnn"]:
+                dynamics_model = DiscreteRnnDynamics(
+                    state_dim=2 * n_z,
+                    input_dim=n_tau,
+                    output_dim=2 * n_z,
+                    rnn_method=dynamics_model_name.split("-")[1],  # "elman" or "gru"
                 )
             else:
                 raise ValueError(f"Unknown dynamics_model_name: {dynamics_model_name}")
