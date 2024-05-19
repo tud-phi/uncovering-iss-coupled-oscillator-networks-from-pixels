@@ -21,6 +21,7 @@ import tensorflow as tf
 from src.models.autoencoders import Autoencoder, VAE
 from src.models.discrete_forward_dynamics import (
     DiscreteConIaeCfaDynamics,
+    DiscreteCornn,
     DiscreteLssDynamics,
     DiscreteMambaDynamics,
     DiscreteMlpDynamics,
@@ -57,7 +58,7 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
     "node-cornn", "node-con", "node-w-con", "node-con-iae", "node-con-iae-s", "node-dcon", "node-lnn", 
     "node-hippo-lss", "node-mamba",
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
-    "dsim-con-iae-cfa"
+    "dsim-con-iae-cfa", "dsim-elman-rnn", "dsim-gru-rnn", "dsim-cornn"
 ]
 """
 dynamics_model_name = "dsim-con-iae-cfa"
@@ -182,14 +183,14 @@ if __name__ == "__main__":
                 num_mlp_layers, mlp_hidden_dim = 2, 12
             else:
                 num_mlp_layers, mlp_hidden_dim = 5, 30
-            mlp_nonlinearity_name = nn.softplus
+            mlp_nonlinearity_name = nn.tanh
 
             dynamics_model = MlpOde(
                 latent_dim=n_z,
                 input_dim=n_tau,
                 num_layers=num_mlp_layers,
                 hidden_dim=mlp_hidden_dim,
-                nonlinearity=nn.softplus,
+                nonlinearity=mlp_nonlinearity_name,
                 mechanical_system=True
                 if dynamics_model_name.split("-")[1] == "mechanical"
                 else False,
@@ -334,6 +335,23 @@ if __name__ == "__main__":
                 dt=sim_dt,
                 num_layers=num_mlp_layers,
                 hidden_dim=mlp_hidden_dim,
+            )
+        elif dynamics_model_name in ["dsim-elman-rnn", "dsim-gru-rnn"]:
+            dynamics_model = DiscreteRnnDynamics(
+                state_dim=2 * n_z,
+                input_dim=n_tau,
+                output_dim=2 * n_z,
+                rnn_method=dynamics_model_name.split("-")[1],  # "elman" or "gru"
+            )
+        elif dynamics_model_name == "dsim-cornn":
+            cornn_gamma = trial.suggest_float("cornn_gamma", 1e-2, 1e2, log=True)
+            cornn_epsilon = trial.suggest_float("cornn_epsilon", 1e-2, 1e2, log=True)
+            dynamics_model = DiscreteCornn(
+                latent_dim=n_z,
+                input_dim=n_tau,
+                dt=sim_dt,
+                gamma=cornn_gamma,
+                epsilon=cornn_epsilon,
             )
         else:
             raise ValueError(f"Unknown dynamics_model_name: {dynamics_model_name}")
