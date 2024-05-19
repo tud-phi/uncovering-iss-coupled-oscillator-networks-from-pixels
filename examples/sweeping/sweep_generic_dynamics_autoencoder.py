@@ -20,6 +20,7 @@ import tensorflow as tf
 from src.models.autoencoders import Autoencoder, VAE
 from src.models.discrete_forward_dynamics import (
     DiscreteConIaeCfaDynamics,
+    DiscreteCornn,
     DiscreteLssDynamics,
     DiscreteMambaDynamics,
     DiscreteMlpDynamics,
@@ -408,6 +409,14 @@ if __name__ == "__main__":
                     input_dim=n_tau,
                     output_dim=2 * n_z,
                     rnn_method=dynamics_model_name.split("-")[1],  # "elman" or "gru"
+                )
+            elif dynamics_model_name == "dsim-cornn":
+                dynamics_model = DiscreteCornn(
+                    latent_dim=n_z,
+                    input_dim=n_tau,
+                    dt=sim_dt,
+                    gamma=cornn_gamma,
+                    epsilon=cornn_epsilon,
                 )
             else:
                 raise ValueError(f"Unknown dynamics_model_name: {dynamics_model_name}")

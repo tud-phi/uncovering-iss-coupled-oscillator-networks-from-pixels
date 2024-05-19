@@ -13,6 +13,7 @@ import tensorflow as tf
 from src.models.autoencoders import Autoencoder, VAE
 from src.models.discrete_forward_dynamics import (
     DiscreteConIaeCfaDynamics,
+    DiscreteCornn,
     DiscreteLssDynamics,
     DiscreteMambaDynamics,
     DiscreteMlpDynamics,
@@ -128,7 +129,8 @@ if long_horizon_dataset:
                 )
                 weight_decay = 2.6404635847920316e-05
                 num_mlp_layers, mlp_hidden_dim = 5, 30
-            case "dsim-elman-rnn":
+            case "dsim-elman-rnn" | "dsim-gru-rnn" | "dsim-cornn":
+                ## Attention: the following params are not tuned
                 base_lr = 0.009562362872368196
                 loss_weights = dict(
                     mse_z=0.4515819661074938,
@@ -431,6 +433,14 @@ if __name__ == "__main__":
             input_dim=n_tau,
             output_dim=2 * n_z,
             rnn_method=dynamics_model_name.split("-")[1],  # "elman" or "gru"
+        )
+    elif dynamics_model_name == "dsim-cornn":
+        dynamics_model = DiscreteCornn(
+            latent_dim=n_z,
+            input_dim=n_tau,
+            dt=sim_dt,
+            gamma=cornn_gamma,
+            epsilon=cornn_epsilon,
         )
     else:
         raise ValueError(f"Unknown dynamics_model_name: {dynamics_model_name}")
