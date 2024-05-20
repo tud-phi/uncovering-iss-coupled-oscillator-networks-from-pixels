@@ -97,10 +97,10 @@ def generate_sweep_stats(sweep_results, verbose: bool = False) -> Dict:
         filtered_seeds = sweep_results["seed"][selector]
         filtered_num_trainable_params = {key: value[selector] for key, value in sweep_results["num_trainable_params"].items()}
         for key, value in filtered_num_trainable_params.items():
-            sweep_results_stats["num_trainable_params"][key] = sweep_results_stats["num_trainable_params"][key].at[i].set(jnp.mean(value).astype(jnp.int32).item())
+            sweep_results_stats["num_trainable_params"][key] = sweep_results_stats["num_trainable_params"][key].at[i].set(jnp.mean(value).astype(jnp.int32))
 
         if verbose:
-            print(f"Number of trainable parameters for n_z={n_z}: {filtered_num_trainable_params}")
+            print(f"Number of trainable parameters for n_z={n_z}:", {key: jnp.mean(value).astype(jnp.int32).item() for key, value in filtered_num_trainable_params.items()})
 
         filtered_train_results = {}
         for key, value in  sweep_results["train"].items():
