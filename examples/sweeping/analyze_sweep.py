@@ -296,6 +296,7 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
     ax.legend(handles=handles, labels=model_names)
     plt.grid(True)
     plt.box(True)
+    plt.tight_layout()
     plt.savefig(outputs_dir / f"sweep_rmse_rec_static_vs_n_z.pdf")
     plt.show()
 
@@ -326,6 +327,7 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
     ax.legend(handles=handles, labels=model_names)
     plt.grid(True)
     plt.box(True)
+    plt.tight_layout()
     plt.savefig(outputs_dir / f"sweep_rmse_rec_dynamic_vs_n_z.pdf")
     plt.show()
 
@@ -355,6 +357,7 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
     ax.legend(handles=handles, labels=model_names)
     plt.grid(True)
     plt.box(True)
+    plt.tight_layout()
     plt.savefig(outputs_dir / f"sweep_rmse_rec_static_vs_num_trainable_params.pdf")
     plt.show()
 
@@ -384,6 +387,7 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
     ax.legend(handles=handles, labels=model_names)
     plt.grid(True)
     plt.box(True)
+    plt.tight_layout()
     plt.savefig(outputs_dir / f"sweep_rmse_rec_dynamic_vs_num_trainable_params.pdf")
     plt.show()
 
@@ -413,6 +417,7 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
     ax.legend(handles=handles, labels=model_names)
     plt.grid(True)
     plt.box(True)
+    plt.tight_layout()
     plt.savefig(outputs_dir / f"sweep_ssim_rec_static_vs_n_z.pdf")
     plt.show()
 
@@ -442,6 +447,7 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
     ax.legend(handles=handles, labels=model_names)
     plt.grid(True)
     plt.box(True)
+    plt.tight_layout()
     plt.savefig(outputs_dir / f"sweep_ssim_rec_dynamic_vs_n_z.pdf")
     plt.show()
 
