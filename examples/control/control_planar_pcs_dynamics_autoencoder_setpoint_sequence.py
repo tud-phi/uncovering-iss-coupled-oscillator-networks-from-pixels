@@ -78,7 +78,8 @@ match dynamics_model_name:
             kp, ki, kd = 1e0, 1e0, 0e0
             psatid_gamma = 1.0
         else:
-            kp, ki, kd = 1e0, 3e0, 0e0
+            kp, ki, kd = 1.0e0, 3e0, 0e0
+            # kp, ki, kd = 0.1e0, 3e0, 0e0
             psatid_gamma = 1.0
 
 batch_size = 10
@@ -86,7 +87,7 @@ norm_layer = nn.LayerNorm
 diag_shift, diag_eps = 1e-6, 2e-6
 match dynamics_model_name:
     case "node-con-iae":
-        experiment_id = f"2024-03-15_21-44-34/n_z_{n_z}_seed_{seed}"
+        experiment_id = f"2024-05-20_13-14-46/n_z_{n_z}_seed_{seed}"
         num_mlp_layers, mlp_hidden_dim = 5, 30
     case "node-con-iae-s":
         experiment_id = f"2024-03-17_22-26-44/n_z_{n_z}_seed_{seed}"
