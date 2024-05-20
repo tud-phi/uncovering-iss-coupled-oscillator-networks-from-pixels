@@ -139,6 +139,26 @@ match system_type:
                 )
                 weight_decay = 4.957164364541807e-05
                 num_mlp_layers, mlp_hidden_dim = 5, 30
+            case "dsim-elman-rnn":
+                # optimized for n_z=12
+                base_lr = 0.010584414607144491
+                loss_weights = dict(
+                    mse_z=0.47946086114101605,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=30.23599724529981,
+                    beta=0.0006044356658904357,
+                )
+                weight_decay = 2.8561405134373477e-05
+            case "dsim-gru-rnn":
+                # optimized for n_z=12
+                base_lr = 0.01659248975820467
+                loss_weights = dict(
+                    mse_z=0.4542033795488454,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=1.1003672840517102,
+                    beta=0.00018196259604448875,
+                )
+                weight_decay = 8.527055579079863e-06
             case _:
                 raise NotImplementedError(
                     f"{system_type} with dynamics_model_name '{dynamics_model_name}' not implemented yet."
