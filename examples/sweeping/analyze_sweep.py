@@ -12,6 +12,9 @@ from pathlib import Path
 """
 # Constant strain
 node-con-iae: sweep_id = "2024-05-19_17-07-08"
+node-con-iae-s: sweep_id = "2024-05-19_17-09-42"
+dsim-con-iae-cfa: sweep_id = "2024-05-19_17-08-05"
+node-general-mlp: sweep_id = "2024-05-19_17-08-51"
 # Planar PCS with two segments
 Short horizon dataset: 
 node-mechanical-mlp: sweep_id = "2024-02-19_10-42-33"
