@@ -100,7 +100,7 @@ assert ae_type == "beta_vae", "Only beta_vae is supported."
 match system_type:
     case "cs":
         match dynamics_model_name:
-            case "node-general-mlp":
+            case "node-general-mlp" | "node-general-mlp-s":
                 # optimized for n_z=12
                 base_lr = 0.00876101681360705
                 loss_weights = dict(
@@ -110,8 +110,26 @@ match system_type:
                     beta=0.0006062384910441915,
                 )
                 weight_decay = 3.9597147111138965e-05
-                num_mlp_layers, mlp_hidden_dim = 5, 30
+                if dynamics_model_name == "node-general-mlp-s":
+                    num_mlp_layers, mlp_hidden_dim = 2, 12
+                else:
+                    num_mlp_layers, mlp_hidden_dim = 5, 30
                 mlp_nonlinearity_name = "softplus"
+            case "node-mechanical-mlp" | "node-mechanical-mlp-s":
+                # optimized for n_z=12
+                base_lr = 0.005698252456039503
+                loss_weights = dict(
+                    mse_z=0.185058657945758,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=24.66556644239504,
+                    beta=0.0003754713308144261,
+                )
+                weight_decay = 8.491179551549292e-06
+                if dynamics_model_name == "node-mechanical-mlp-s":
+                    num_mlp_layers, mlp_hidden_dim = 2, 12
+                else:
+                    num_mlp_layers, mlp_hidden_dim = 5, 30
+                mlp_nonlinearity_name = "tanh"
             case "node-con-iae" | "node-con-iae-s":
                 # optimized for n_z=12
                 base_lr = 0.0132475538170814
