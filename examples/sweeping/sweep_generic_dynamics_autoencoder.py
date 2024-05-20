@@ -165,6 +165,21 @@ match system_type:
                 )
     case "pcc_ns-2":
         match dynamics_model_name:
+            case "node-general-mlp" | "node-general-mlp-s":
+                # optimized for "node-general-mlp at n_z=8
+                base_lr = 0.014939778657771675
+                loss_weights = dict(
+                    mse_z=0.11585323330519746,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=1.0855655639592068,
+                    beta=0.00010190409372368565,
+                )
+                weight_decay = 6.3092347119914266e-6
+                if dynamics_model_name == "node-general-mlp-s":
+                    num_mlp_layers, mlp_hidden_dim = 2, 12
+                else:
+                    num_mlp_layers, mlp_hidden_dim = 5, 30
+                mlp_nonlinearity_name = "tanh"
             case "node-mechanical-mlp" | "node-mechanical-mlp-s":
                 # optimized for n_z=8
                 base_lr = 0.007137268676917664
