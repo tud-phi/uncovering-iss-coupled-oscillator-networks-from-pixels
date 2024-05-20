@@ -247,6 +247,16 @@ match system_type:
                     beta=0.00035525861444533717,
                 )
                 weight_decay = 1.7957485073520818e-05
+            case "dsim-gru-rnn":
+                # optimized for n_z=8
+                base_lr = 0.018086259222854423
+                loss_weights = dict(
+                    mse_z=0.4869102462993362,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=4.076717892106955,
+                    beta=0.00015467929625107515,
+                )
+                weight_decay = 2.655293203579677e-05
             case _:
                 raise NotImplementedError(
                     f"{system_type} with dynamics_model_name '{dynamics_model_name}' not implemented yet."
