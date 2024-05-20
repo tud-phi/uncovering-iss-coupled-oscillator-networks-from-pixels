@@ -68,7 +68,8 @@ def main():
 
         filtered_seeds = sweep_results["seed"][selector]
         filtered_num_trainable_params = {key: value[selector] for key, value in sweep_results["num_trainable_params"].items()}
-        sweep_results_stats["num_trainable_params"] = {key: jnp.mean(value) for key, value in filtered_num_trainable_params.items()}
+        sweep_results_stats["num_trainable_params"] = {key: jnp.mean(value).astype(jnp.int32).item() for key, value in filtered_num_trainable_params.items()}
+        print(f"Number of trainable parameters for n_z={n_z}: {sweep_results_stats['num_trainable_params']}")
 
         filtered_train_results = {}
         for key, value in  sweep_results["train"].items():
