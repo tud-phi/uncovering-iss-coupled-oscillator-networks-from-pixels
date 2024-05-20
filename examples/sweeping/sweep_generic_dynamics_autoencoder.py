@@ -237,6 +237,16 @@ match system_type:
                 )
                 weight_decay = 2.6404635847920316e-05
                 num_mlp_layers, mlp_hidden_dim = 5, 30
+            case "dsim-elman-rnn":
+                # optimized for n_z=8
+                base_lr = 0.007657437611794232
+                loss_weights = dict(
+                    mse_z=0.1842314509146704,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=81.49655648203793,
+                    beta=0.00035525861444533717,
+                )
+                weight_decay = 1.7957485073520818e-05
             case _:
                 raise NotImplementedError(
                     f"{system_type} with dynamics_model_name '{dynamics_model_name}' not implemented yet."
