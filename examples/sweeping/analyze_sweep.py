@@ -9,6 +9,15 @@ import matplotlib.pyplot as plt
 import numpy as onp
 from pathlib import Path
 
+plt.rcParams.update(
+    {
+        "text.usetex": True,
+        "font.family": "serif",
+        "font.serif": ["Computer Modern Romand"],
+    }
+)
+
+
 """
 # Constant strain
 node-con-iae: sweep_id = "2024-05-19_17-07-08"
@@ -16,14 +25,15 @@ node-con-iae-s: sweep_id = "2024-05-19_17-09-42"
 dsim-con-iae-cfa: sweep_id = "2024-05-19_17-08-05"
 node-general-mlp: sweep_id = "2024-05-19_17-08-51"
 # Planar PCS with two segments
-Short horizon dataset: 
+Short horizon dataset (one seed): 
 node-mechanical-mlp: sweep_id = "2024-02-19_10-42-33"
 node-mechanical-mlp-s: sweep_id = "2024-02-21_09-03-52"
 node-w-con: sweep_id = "2024-02-19_00-38-28"
-Long horizon dataset:
+Long horizon dataset (one seed):
 node-w-con: sweep_id = "2024-03-12_12-53-29"
 node-con-iae: sweep_id = "2024-03-15_21-44-34"
 node-con-iae-s: sweep_id = "2024-03-17_22-26-44"
+Long horizon dataset (three seeds):
 dsim-con-iae-cfa: "2024-05-08_00-21-02"
 # 2-body problem
 node-mechanical-mlp: sweep_id = "2024-03-20_21-13-37"
@@ -33,7 +43,8 @@ system_type = "pcc_ns-2"  #  "cs", "pcc_ns-2" or "nb-2"
 plot_sweep = True
 
 # plotting settings
-figsize = (8, 6)
+figsize = (5, 3)
+capsize = 2
 
 
 def main():
@@ -71,8 +82,9 @@ def main():
 
         filtered_seeds = sweep_results["seed"][selector]
         filtered_num_trainable_params = {key: value[selector] for key, value in sweep_results["num_trainable_params"].items()}
-        sweep_results_stats["num_trainable_params"] = {key: jnp.mean(value).astype(jnp.int32).item() for key, value in filtered_num_trainable_params.items()}
-        print(f"Number of trainable parameters for n_z={n_z}: {sweep_results_stats['num_trainable_params']}")
+        print(f"Number of trainable parameters for n_z={n_z}: {filtered_num_trainable_params}")
+        for key, value in filtered_num_trainable_params.items():
+            sweep_results_stats["num_trainable_params"][key] = sweep_results_stats["num_trainable_params"][key].at[i].set(jnp.mean(value).astype(jnp.int32).item())
 
         filtered_train_results = {}
         for key, value in  sweep_results["train"].items():
@@ -85,6 +97,8 @@ def main():
         for key, value in  sweep_results["test"].items():
             if value is not None:
                 filtered_test_results[key] = value[selector]
+                sweep_results_stats["test_mean"][key] = sweep_results_stats["test_mean"][key].at[i].set(jnp.mean(filtered_test_results[key]))
+                sweep_results_stats["test_std"][key] = sweep_results_stats["test_std"][key].at[i].set(jnp.std(filtered_test_results[key]))
 
             print(
                 f"Test results for n_z={n_z} {key}: "
@@ -101,14 +115,24 @@ def main():
             figsize=figsize,
             num="RMSE of reconstruction vs. number of latent variables",
         )
-        ax.plot(
-            sweep_results["n_z"], train_results["rmse_rec_static"], label="RMSE rec static"
+        ax.errorbar(
+            sweep_results_stats["n_z"],
+            sweep_results_stats["test_mean"]["rmse_rec_static"],
+            yerr=sweep_results_stats["test_std"]["rmse_rec_static"],
+            # ecolor="black",
+            capsize=capsize,
+            label="RMSE rec static"
         )
-        ax.plot(
-            sweep_results["n_z"], test_results["rmse_rec_dynamic"], label="RMSE rec dynamic"
+        ax.errorbar(
+            sweep_results_stats["n_z"], 
+            sweep_results_stats["test_mean"]["rmse_rec_dynamic"], 
+            yerr=sweep_results_stats["test_std"]["rmse_rec_dynamic"],
+            # ecolor="black",
+            capsize=capsize,
+            label="RMSE rec dynamic"
         )
         ax.set_xlabel("$n_z$")
-        ax.set_ylabel("RMSE of reconstruction")
+        ax.set_ylabel("RMSE")
         ax.legend()
         plt.grid(True)
         plt.box(True)
@@ -122,14 +146,24 @@ def main():
             figsize=figsize,
             num="SSIM of reconstruction vs. number of latent variables",
         )
-        ax.plot(
-            sweep_results["n_z"], train_results["ssim_rec_static"], label="SSIM rec static"
+        ax.errorbar(
+            sweep_results_stats["n_z"],
+            sweep_results_stats["test_mean"]["ssim_rec_static"],
+            yerr=sweep_results_stats["test_std"]["ssim_rec_static"],
+            # ecolor="black",
+            capsize=capsize,
+            label="SSIM rec static"
         )
-        ax.plot(
-            sweep_results["n_z"], test_results["ssim_rec_dynamic"], label="SSIM rec dynamic"
+        ax.errorbar(
+            sweep_results_stats["n_z"], 
+            sweep_results_stats["test_mean"]["ssim_rec_dynamic"], 
+            yerr=sweep_results_stats["test_std"]["ssim_rec_dynamic"],
+            # ecolor="black",
+            capsize=capsize,
+            label="SSIM rec dynamic"
         )
         ax.set_xlabel("$n_z$")
-        ax.set_ylabel("SSIM of reconstruction")
+        ax.set_ylabel("SSIM")
         ax.legend()
         plt.grid(True)
         plt.box(True)
@@ -144,12 +178,12 @@ def main():
             num="Number of trainable parameters vs. number of latent variables",
         )
         ax.plot(
-            sweep_results["n_z"],
-            sweep_results["num_trainable_params"]["dynamics"],
+            sweep_results_stats["n_z"],
+            sweep_results_stats["num_trainable_params"]["dynamics"],
             label="Trainable parameters of dynamics model",
         )
         ax.set_xlabel("$n_z$")
-        ax.set_ylabel("Number of trainable parameters")
+        ax.set_ylabel("Model parameters")
         ax.legend()
         plt.grid(True)
         plt.box(True)
@@ -163,18 +197,24 @@ def main():
             figsize=figsize,
             num="RMSE of reconstruction vs. number of trainable parameters",
         )
-        ax.plot(
-            sweep_results["num_trainable_params"]["dynamics"],
-            train_results["rmse_rec_static"],
+        ax.errorbar(
+            sweep_results_stats["num_trainable_params"]["dynamics"],
+            sweep_results_stats["test_mean"]["rmse_rec_static"],
+            yerr=sweep_results_stats["test_std"]["rmse_rec_static"],
+            # ecolor="black",
+            capsize=capsize,
             label="RMSE rec static",
         )
-        ax.plot(
-            sweep_results["num_trainable_params"]["dynamics"],
-            test_results["rmse_rec_dynamic"],
+        ax.errorbar(
+            sweep_results_stats["num_trainable_params"]["dynamics"],
+            sweep_results_stats["test_mean"]["rmse_rec_dynamic"],
+            yerr=sweep_results_stats["test_std"]["rmse_rec_dynamic"],
+            # ecolor="black",
+            capsize=capsize,
             label="RMSE rec dynamic",
         )
-        ax.set_xlabel("Number of trainable parameters")
-        ax.set_ylabel("RMSE of reconstruction")
+        ax.set_xlabel("Model parameters")
+        ax.set_ylabel("RMSE")
         ax.legend()
         plt.grid(True)
         plt.box(True)
