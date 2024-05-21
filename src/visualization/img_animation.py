@@ -112,7 +112,7 @@ def animate_pred_vs_target_image_pyplot(
     bgr_to_rgb: bool = False,
     cmap: str = "binary_r",
     label_pred: str = "Prediction",
-    label_target: str = "Reconstruction",
+    label_target: str = "Target",
 ):
     """
     Creates an animation of the predicted vs. target images using matplotlib.

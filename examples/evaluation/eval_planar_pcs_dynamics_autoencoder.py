@@ -448,6 +448,7 @@ if __name__ == "__main__":
         filepath=ckpt_dir / "rollout.mp4",
         step_skip=1,
         show=True,
+        label_target="Ground-truth"
     )
     animate_image_cv2(
         onp.array(ts_rollout[start_time_idx:]),
