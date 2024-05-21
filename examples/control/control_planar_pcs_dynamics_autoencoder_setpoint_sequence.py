@@ -86,7 +86,7 @@ norm_layer = nn.LayerNorm
 diag_shift, diag_eps = 1e-6, 2e-6
 match dynamics_model_name:
     case "node-con-iae":
-        experiment_id = f"2024-03-15_21-44-34/n_z_{n_z}_seed_{seed}"
+        experiment_id = f"2024-05-20_13-14-46/n_z_{n_z}_seed_{seed}"
         num_mlp_layers, mlp_hidden_dim = 5, 30
     case "node-con-iae-s":
         experiment_id = f"2024-03-17_22-26-44/n_z_{n_z}_seed_{seed}"
