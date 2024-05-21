@@ -333,17 +333,16 @@ match system_type:
                 else:
                     num_mlp_layers, mlp_hidden_dim = 5, 30
             case "dsim-con-iae-cfa":
-                raise NotImplementedError
                 # optimized for n_z=12
-                base_lr = 0.018088317332901616
+                base_lr = 0.014307900347859871
                 loss_weights = dict(
-                    mse_z=0.10824911140537369,
+                    mse_z=0.221692435490366,
                     mse_rec_static=1.0,
-                    mse_rec_dynamic=80.45564515992584,
-                    beta=0.00010659152931072577,
+                    mse_rec_dynamic=66.59826720119248,
+                    beta=0.00018829492150535288,
                     mse_tau_rec=1e1,
                 )
-                weight_decay = 2.6404635847920316e-05
+                weight_decay = 1.3789165265791588e-05
                 num_mlp_layers, mlp_hidden_dim = 5, 30
             case "dsim-elman-rnn":
                 # optimized for n_z=12
