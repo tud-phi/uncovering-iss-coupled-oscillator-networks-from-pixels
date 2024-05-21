@@ -37,8 +37,10 @@ from src.training.dataset_utils import load_dataset, load_dummy_neural_network_i
 from src.tasks import dynamics_autoencoder
 from src.training.train_state_utils import restore_train_state
 from src.visualization.img_animation import (
+    animate_image_cv2,
     animate_pred_vs_target_image_pyplot,
 )
+from src.visualization.utils import denormalize_img
 
 # prevent tensorflow from loading everything onto the GPU, as we don't have enough memory for that
 tf.config.experimental.set_visible_devices([], "GPU")
@@ -723,6 +725,12 @@ if __name__ == "__main__":
     # save the simulation results
     onp.savez(ckpt_dir / "setpoint_sequence_controlled_rollout.npz", **sim_ts)
 
+    # denormalize the images
+    img_ts = jax.vmap(partial(denormalize_img, apply_threshold=True))(img_ts)
+    img_des_ts = jax.vmap(partial(denormalize_img, apply_threshold=True))(
+        img_des_ts
+    )
+
     # animate the rollout
     print("Animate the rollout...")
     animate_pred_vs_target_image_pyplot(
@@ -734,6 +742,18 @@ if __name__ == "__main__":
         show=True,
         label_pred="Actual behavior",
         label_target="Desired behavior",
+    )
+    animate_image_cv2(
+        onp.array(ts),
+        onp.array(img_ts),
+        filepath=ckpt_dir / "setpoint_sequence_controlled_rollout_actual.mp4",
+        step_skip=1,
+    )
+    animate_image_cv2(
+        onp.array(ts),
+        onp.array(img_des_ts),
+        filepath=ckpt_dir / "setpoint_sequence_controlled_rollout_desired.mp4",
+        step_skip=1,
     )
 
     if simulate_with_learned_dynamics is False:
