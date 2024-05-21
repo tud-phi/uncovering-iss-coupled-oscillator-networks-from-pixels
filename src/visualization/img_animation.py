@@ -110,6 +110,7 @@ def animate_pred_vs_target_image_pyplot(
     show: bool = False,
     step_skip: int = 1,
     bgr_to_rgb: bool = False,
+    cmap: str = "binary_r",
     label_pred: str = "Prediction",
     label_target: str = "Reconstruction",
 ):
@@ -123,6 +124,9 @@ def animate_pred_vs_target_image_pyplot(
         show: whether to show the animation
         step_skip: number of time steps to skip between frames
         bgr_to_rgb: whether to convert the images from BGR to RGB
+        cmap: colormap for the images
+        label_pred: label for the predicted images
+        label_target: label for the target images
     """
     sample_rate = 1 / (onp.mean(t_ts[1:] - t_ts[:-1]))
     # frames
@@ -135,8 +139,8 @@ def animate_pred_vs_target_image_pyplot(
         img_pred_ts = cv2.cvtColor(img_pred_ts, cv2.COLOR_BGR2RGB)
         img_target_ts = cv2.cvtColor(img_target_ts, cv2.COLOR_BGR2RGB)
 
-    im_pred = axes[0].imshow(img_pred_ts[0])
-    im_target = axes[1].imshow(img_target_ts[1])
+    im_pred = axes[0].imshow(img_pred_ts[0], cmap=cmap)
+    im_target = axes[1].imshow(img_target_ts[1], cmap=cmap)
     text_time = fig.text(
         x=0.5, y=0.1, s="", color="black", fontsize=11, ha="center", va="center"
     )
