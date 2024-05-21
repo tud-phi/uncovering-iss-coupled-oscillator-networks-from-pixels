@@ -32,7 +32,7 @@ if __name__ == "__main__":
 
     match dynamics_model_name:
         case "node-con-iae":
-            experiment_id = f"2024-03-15_21-44-34/n_z_{n_z}_seed_{seed}"
+            experiment_id = f"2024-05-20_13-14-46/n_z_{n_z}_seed_{seed}"
         case "node-con-iae-s":
             experiment_id = f"2024-03-17_22-26-44/n_z_{n_z}_seed_{seed}"
         case _:

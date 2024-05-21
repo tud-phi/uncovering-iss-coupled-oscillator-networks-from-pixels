@@ -78,7 +78,8 @@ match dynamics_model_name:
             kp, ki, kd = 1e0, 1e0, 0e0
             psatid_gamma = 1.0
         else:
-            kp, ki, kd = 1e0, 3e0, 0e0
+            kp, ki, kd = 1.0e0, 3e0, 0e0
+            # kp, ki, kd = 0.1e0, 3e0, 0e0
             psatid_gamma = 1.0
 
 batch_size = 10

@@ -100,7 +100,7 @@ assert ae_type == "beta_vae", "Only beta_vae is supported."
 match system_type:
     case "cs":
         match dynamics_model_name:
-            case "node-general-mlp":
+            case "node-general-mlp" | "node-general-mlp-s":
                 # optimized for n_z=12
                 base_lr = 0.00876101681360705
                 loss_weights = dict(
@@ -110,8 +110,26 @@ match system_type:
                     beta=0.0006062384910441915,
                 )
                 weight_decay = 3.9597147111138965e-05
-                num_mlp_layers, mlp_hidden_dim = 5, 30
+                if dynamics_model_name == "node-general-mlp-s":
+                    num_mlp_layers, mlp_hidden_dim = 2, 12
+                else:
+                    num_mlp_layers, mlp_hidden_dim = 5, 30
                 mlp_nonlinearity_name = "softplus"
+            case "node-mechanical-mlp" | "node-mechanical-mlp-s":
+                # optimized for n_z=12
+                base_lr = 0.005698252456039503
+                loss_weights = dict(
+                    mse_z=0.185058657945758,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=24.66556644239504,
+                    beta=0.0003754713308144261,
+                )
+                weight_decay = 8.491179551549292e-06
+                if dynamics_model_name == "node-mechanical-mlp-s":
+                    num_mlp_layers, mlp_hidden_dim = 2, 12
+                else:
+                    num_mlp_layers, mlp_hidden_dim = 5, 30
+                mlp_nonlinearity_name = "tanh"
             case "node-con-iae" | "node-con-iae-s":
                 # optimized for n_z=12
                 base_lr = 0.0132475538170814
@@ -237,6 +255,26 @@ match system_type:
                 )
                 weight_decay = 2.6404635847920316e-05
                 num_mlp_layers, mlp_hidden_dim = 5, 30
+            case "dsim-elman-rnn":
+                # optimized for n_z=8
+                base_lr = 0.007657437611794232
+                loss_weights = dict(
+                    mse_z=0.1842314509146704,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=81.49655648203793,
+                    beta=0.00035525861444533717,
+                )
+                weight_decay = 1.7957485073520818e-05
+            case "dsim-gru-rnn":
+                # optimized for n_z=8
+                base_lr = 0.018086259222854423
+                loss_weights = dict(
+                    mse_z=0.4869102462993362,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=4.076717892106955,
+                    beta=0.00015467929625107515,
+                )
+                weight_decay = 2.655293203579677e-05
             case _:
                 raise NotImplementedError(
                     f"{system_type} with dynamics_model_name '{dynamics_model_name}' not implemented yet."
