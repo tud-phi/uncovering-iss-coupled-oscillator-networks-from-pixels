@@ -273,7 +273,7 @@ def analyze_single_sweep(sweep_id: str, system_type: str, verbose: bool = True, 
 
 
 def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_names: List[str], verbose: bool = False):
-    outputs_dir = Path(__file__).resolve().parents[1] / "outputs"
+    outputs_dir = Path(__file__).resolve().parent / "outputs"
     outputs_dir.mkdir(exist_ok=True)
     
     # load sweep results and generate stats
