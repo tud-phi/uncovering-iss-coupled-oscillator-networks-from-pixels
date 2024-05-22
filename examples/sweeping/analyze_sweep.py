@@ -44,7 +44,7 @@ node-mechanical-mlp: sweep_id = "2024-03-20_21-13-37"
 # sweep settings for planar PCS with two segments
 sweep_ids = [
     "2024-05-20_19-33-58",  # dsim-elman-rnn
-    "2024-05-19_19-44-28_2024-05-20_11-05-49",  # node-mechanical-mlp-s
+    "2024-05-20_19-35-36",  # node-mechanical-mlp-s
     "2024-05-19_19-44-28_2024-05-20_11-05-49",  # node-mechanical-mlp
     "2024-05-15_23-41-01",  # node-con-iae-s
     "2024-05-19_19-30-16_2024-05-20_11-04-27_2024-05-21_11-10-16",  # node-con-iae
