@@ -42,9 +42,23 @@ node-mechanical-mlp: sweep_id = "2024-03-20_21-13-37"
 """
 
 # sweep settings for planar PCS with two segments
-sweep_ids = ["2024-05-15_23-41-01", "2024-05-08_00-21-02"]
-system_types = ["pcc_ns-2", "pcc_ns-2"]  #  "cs", "pcc_ns-2" or "nb-2"
-model_names = ["CON-S", "CFA-CON"]
+sweep_ids = [
+    "2024-05-20_19-33-58",  # dsim-elman-rnn
+    "2024-05-19_19-44-28_2024-05-20_11-05-49",  # node-mechanical-mlp-s
+    "2024-05-19_19-44-28_2024-05-20_11-05-49",  # node-mechanical-mlp
+    "2024-05-15_23-41-01",  # node-con-iae-s
+    "2024-05-19_19-30-16_2024-05-20_11-04-27_2024-05-21_11-10-16",  # node-con-iae
+    "2024-05-08_00-21-02"  # dsim-con-iae-cfa
+]
+system_types = ["pcc_ns-2", "pcc_ns-2", "pcc_ns-2", "pcc_ns-2", "pcc_ns-2", "pcc_ns-2"]  #  "cs", "pcc_ns-2" or "nb-2"
+model_names = [
+    "RNN",
+    "MECH-NODE-S",
+    "MECH-NODE",
+    "CON-S",
+    "CON",
+    "CFA-CON"
+]
 
 # analysis settings
 plot_sweep = True
@@ -58,6 +72,8 @@ capsize = 2.5
 capthick = 1.5
 ecolor = None
 colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+legend_fontsize = 6
+legend_loc = "upper right"
 
 
 def load_sweep_results(sweep_id: str, system_type: str) -> Tuple[Dict, Path]:
@@ -159,7 +175,7 @@ def analyze_single_sweep(sweep_id: str, system_type: str, verbose: bool = True, 
         )
         ax.set_xlabel("$n_z$")
         ax.set_ylabel("RMSE")
-        ax.legend()
+        ax.legend(loc=legend_loc, fontsize=legend_fontsize)
         plt.grid(True)
         plt.box(True)
         plt.savefig(sweep_folder / "rmse_rec_vs_n_z.pdf")
@@ -194,7 +210,7 @@ def analyze_single_sweep(sweep_id: str, system_type: str, verbose: bool = True, 
         )
         ax.set_xlabel("$n_z$")
         ax.set_ylabel("SSIM")
-        ax.legend()
+        ax.legend(loc=legend_loc, fontsize=legend_fontsize)
         plt.grid(True)
         plt.box(True)
         plt.savefig(sweep_folder / "ssim_rec_vs_n_z.pdf")
@@ -214,7 +230,7 @@ def analyze_single_sweep(sweep_id: str, system_type: str, verbose: bool = True, 
         )
         ax.set_xlabel("$n_z$")
         ax.set_ylabel("Model parameters")
-        ax.legend()
+        ax.legend(loc=legend_loc, fontsize=legend_fontsize)
         plt.grid(True)
         plt.box(True)
         plt.savefig(sweep_folder / "num_trainable_params_dynamics_vs_n_z.pdf")
@@ -249,7 +265,7 @@ def analyze_single_sweep(sweep_id: str, system_type: str, verbose: bool = True, 
         )
         ax.set_xlabel("Model parameters")
         ax.set_ylabel("RMSE")
-        ax.legend()
+        ax.legend(loc=legend_loc, fontsize=legend_fontsize)
         plt.grid(True)
         plt.box(True)
         plt.savefig(sweep_folder / "rmse_rec_vs_num_trainable_params.pdf")
@@ -293,7 +309,7 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
         handles.append(errorbar_container_rmse_static.lines[0])
     ax.set_xlabel("$n_z$")
     ax.set_ylabel("RMSE")
-    ax.legend(handles=handles, labels=model_names)
+    ax.legend(handles=handles, labels=model_names, loc=legend_loc, fontsize=legend_fontsize)
     plt.grid(True)
     plt.box(True)
     plt.tight_layout()
@@ -324,7 +340,7 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
         handles.append(errorbar_container_rmse_dynamic.lines[0])
     ax.set_xlabel("$n_z$")
     ax.set_ylabel("RMSE")
-    ax.legend(handles=handles, labels=model_names)
+    ax.legend(handles=handles, labels=model_names, loc=legend_loc, fontsize=legend_fontsize)
     plt.grid(True)
     plt.box(True)
     plt.tight_layout()
@@ -354,7 +370,7 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
         handles.append(errorbar_container_rmse_static.lines[0])
     ax.set_xlabel("Model parameters")
     ax.set_ylabel("RMSE")
-    ax.legend(handles=handles, labels=model_names)
+    ax.legend(handles=handles, labels=model_names, loc=legend_loc, fontsize=legend_fontsize)
     plt.grid(True)
     plt.box(True)
     plt.tight_layout()
@@ -384,7 +400,7 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
         handles.append(errorbar_container_rmse_dynamic.lines[0])
     ax.set_xlabel("Model parameters")
     ax.set_ylabel("RMSE")
-    ax.legend(handles=handles, labels=model_names)
+    ax.legend(handles=handles, labels=model_names, loc=legend_loc, fontsize=legend_fontsize)
     plt.grid(True)
     plt.box(True)
     plt.tight_layout()
@@ -414,7 +430,7 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
         handles.append(errorbar_container_ssim_static.lines[0])
     ax.set_xlabel("$n_z$")
     ax.set_ylabel("SSIM")
-    ax.legend(handles=handles, labels=model_names)
+    ax.legend(handles=handles, labels=model_names, loc=legend_loc, fontsize=legend_fontsize)
     plt.grid(True)
     plt.box(True)
     plt.tight_layout()
@@ -444,7 +460,7 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
         handles.append(errorbar_container_ssim_dynamic.lines[0])
     ax.set_xlabel("$n_z$")
     ax.set_ylabel("SSIM")
-    ax.legend(handles=handles, labels=model_names)
+    ax.legend(handles=handles, labels=model_names, loc=legend_loc, fontsize=legend_fontsize)
     plt.grid(True)
     plt.box(True)
     plt.tight_layout()
