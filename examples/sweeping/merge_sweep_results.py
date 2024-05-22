@@ -64,5 +64,5 @@ if __name__ == "__main__":
 
     target_folder.mkdir(parents=True, exist_ok=True)
     with open(target_folder / "sweep_results.dill", "wb") as file:
-        dill.dump(sweep_results, file)
+        dill.dump(merged_sweep_results, file)
     print(f"Saved sweep results to {target_folder / 'sweep_results.dill'}")
