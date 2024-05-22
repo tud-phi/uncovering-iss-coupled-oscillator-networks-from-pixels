@@ -72,7 +72,7 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
     "dsim-con-iae-cfa", "dsim-elman-rnn", "dsim-gru-rnn", "dsim-cornn"
 ]
 """
-dynamics_model_name = "node-con-iae-s"
+dynamics_model_name = "node-con-iae"
 # simulation time step
 if system_type in ["cc", "cs",  "pcc_ns-2", "pcc_ns-3", "pcc_ns-4"]:
     sim_dt = 1e-2
@@ -177,6 +177,17 @@ match system_type:
                     beta=0.00018196259604448875,
                 )
                 weight_decay = 8.527055579079863e-06
+            case "dsim-cornn":
+                # optimized for n_z=12
+                base_lr = 0.007011746009022523
+                loss_weights = dict(
+                    mse_z=0.11121798647531202,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=31.902035052144733,
+                    beta=0.00014280447166145535,
+                )
+                weight_decay = 1.6883292308223353e-05
+                cornn_gamma, cornn_epsilon = 0.01203854209212066, 0.12603002603875063
             case _:
                 raise NotImplementedError(
                     f"{system_type} with dynamics_model_name '{dynamics_model_name}' not implemented yet."
@@ -275,6 +286,95 @@ match system_type:
                     beta=0.00015467929625107515,
                 )
                 weight_decay = 2.655293203579677e-05
+            case _:
+                raise NotImplementedError(
+                    f"{system_type} with dynamics_model_name '{dynamics_model_name}' not implemented yet."
+                )
+
+    case "pcc_ns-3":
+        match dynamics_model_name:
+            case "node-general-mlp" | "node-general-mlp-s":
+                # Attention: not tuned yet
+                base_lr = 0.014939778657771675
+                loss_weights = dict(
+                    mse_z=0.11585323330519746,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=1.0855655639592068,
+                    beta=0.00010190409372368565,
+                )
+                weight_decay = 6.3092347119914266e-6
+                if dynamics_model_name == "node-general-mlp-s":
+                    num_mlp_layers, mlp_hidden_dim = 2, 12
+                else:
+                    num_mlp_layers, mlp_hidden_dim = 5, 30
+                mlp_nonlinearity_name = "tanh"
+            case "node-mechanical-mlp" | "node-mechanical-mlp-s":
+                # optimized for n_z=12
+                base_lr = 0.005176340429875837
+                loss_weights = dict(
+                    mse_z=0.31615198615315904,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=16.051911333587626,
+                    beta=0.00026524963767594775,
+                )
+                weight_decay = 1.7532877050933287e-05
+                """
+                originally tuned for
+                num_mlp_layers, mlp_hidden_dim = 5, 21
+                mlp_nonlinearity_name = "tanh"
+                """
+                if dynamics_model_name == "node-mechanical-mlp-s":
+                    num_mlp_layers, mlp_hidden_dim = 2, 12
+                else:
+                    num_mlp_layers, mlp_hidden_dim = 5, 30
+                mlp_nonlinearity_name = "tanh"
+            case "node-con-iae" | "node-con-iae-s":
+                # optimized for n_z=12
+                base_lr = 0.013302787022802609
+                loss_weights = dict(
+                    mse_z=0.16836357054074094,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=14.471439878058165,
+                    beta=0.0003269794498651636,
+                    mse_tau_rec=5e1,
+                )
+                weight_decay = 1.220378359816519e-05
+                if dynamics_model_name == "node-con-iae-s":
+                    num_mlp_layers, mlp_hidden_dim = 2, 12
+                else:
+                    num_mlp_layers, mlp_hidden_dim = 5, 30
+            case "dsim-con-iae-cfa":
+                # optimized for n_z=12
+                base_lr = 0.014307900347859871
+                loss_weights = dict(
+                    mse_z=0.221692435490366,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=66.59826720119248,
+                    beta=0.00018829492150535288,
+                    mse_tau_rec=1e1,
+                )
+                weight_decay = 1.3789165265791588e-05
+                num_mlp_layers, mlp_hidden_dim = 5, 30
+            case "dsim-elman-rnn":
+                # optimized for n_z=12
+                base_lr = 0.002017289539796043
+                loss_weights = dict(
+                    mse_z=0.23962047984932014,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=47.06787693448245,
+                    beta=0.0001431412891866957,
+                )
+                weight_decay = 2.3556923826384874e-05
+            case "dsim-gru-rnn":
+                # optimized for n_z=12
+                base_lr = 0.010271074784281832
+                loss_weights = dict(
+                    mse_z=0.3302330270492981,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=91.12332977794878,
+                    beta=0.0006241137175631403,
+                )
+                weight_decay = 2.6275213514548362e-05
             case _:
                 raise NotImplementedError(
                     f"{system_type} with dynamics_model_name '{dynamics_model_name}' not implemented yet."

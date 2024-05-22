@@ -39,9 +39,11 @@ from src.training.loops import run_eval
 from src.tasks import dynamics_autoencoder
 from src.training.train_state_utils import restore_train_state
 from src.visualization.img_animation import (
+    animate_image_cv2,
     animate_pred_vs_target_image_cv2,
     animate_pred_vs_target_image_pyplot,
 )
+from src.visualization.utils import denormalize_img
 
 # prevent tensorflow from loading everything onto the GPU, as we don't have enough memory for that
 tf.config.experimental.set_visible_devices([], "GPU")
@@ -61,9 +63,9 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
     "dsim-con-iae-cfa"
 ]
 """
-dynamics_model_name = "node-con-iae-s"
+dynamics_model_name = "node-con-iae"
 # latent space shape
-n_z = 30
+n_z = 8
 # simulation time step
 sim_dt = None
 
@@ -87,7 +89,10 @@ if long_horizon_dataset:
         case "node-w-con":
             experiment_id = f"2024-03-12_12-53-29/n_z_{n_z}_seed_{seed}"
         case "node-con-iae":
-            experiment_id = f"2024-03-15_21-44-34/n_z_{n_z}_seed_{seed}"
+            if n_z == 8:
+                experiment_id = f"2024-05-20_13-20-49/n_z_8_seed_{seed}"
+            else:
+                experiment_id = f"2024-03-15_21-44-34/n_z_{n_z}_seed_{seed}"
             num_mlp_layers, mlp_hidden_dim = 5, 30
         case "node-con-iae-s":
             experiment_id = f"2024-03-17_22-26-44/n_z_{n_z}_seed_{seed}"
@@ -392,7 +397,7 @@ if __name__ == "__main__":
         system_type,
         nn_model,
         ts=ts_rollout,
-        sim_dt=sim_dt,
+        sim_dt=dataset_metadata["sim_dt"] if sim_dt is None else sim_dt,
         loss_weights=loss_weights,
         ae_type=ae_type,
         dynamics_type=dynamics_type,
@@ -428,15 +433,34 @@ if __name__ == "__main__":
     # extract the latent state trajectory
     xi_ts = preds["xi_dynamic_ts"][0]
 
+    # denormalize the images
+    img_pred_ts = jax.vmap(partial(denormalize_img, apply_threshold=True))(img_pred_ts)
+    img_target_ts = jax.vmap(partial(denormalize_img, apply_threshold=True))(
+        img_target_ts
+    )
+
     # animate the rollout
     print("Animate the rollout...")
     animate_pred_vs_target_image_pyplot(
-        onp.array(ts_rollout),
+        onp.array(ts_rollout[start_time_idx:]),
         img_pred_ts=img_pred_ts,
         img_target_ts=img_target_ts,
         filepath=ckpt_dir / "rollout.mp4",
         step_skip=1,
         show=True,
+        label_target="Ground-truth"
+    )
+    animate_image_cv2(
+        onp.array(ts_rollout[start_time_idx:]),
+        onp.array(img_target_ts),
+        filepath=ckpt_dir / "rollout_target.mp4",
+        step_skip=1,
+    )
+    animate_image_cv2(
+        onp.array(ts_rollout[start_time_idx:]),
+        onp.array(img_pred_ts),
+        filepath=ckpt_dir / "rollout_pred.mp4",
+        step_skip=1,
     )
 
     energy_fn = getattr(dynamics_model_bound, "energy_fn", None)
