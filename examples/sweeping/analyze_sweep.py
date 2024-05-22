@@ -42,9 +42,23 @@ node-mechanical-mlp: sweep_id = "2024-03-20_21-13-37"
 """
 
 # sweep settings for planar PCS with two segments
-sweep_ids = ["2024-05-15_23-41-01", "2024-05-08_00-21-02"]
-system_types = ["pcc_ns-2", "pcc_ns-2"]  #  "cs", "pcc_ns-2" or "nb-2"
-model_names = ["CON-S", "CFA-CON"]
+sweep_ids = [
+    "2024-05-20_19-33-58",  # dsim-elman-rnn
+    "2024-05-20_19-35-36",  # node-mechanical-mlp-s
+    "2024-05-19_19-44-28_2024-05-20_11-05-49",  # node-mechanical-mlp
+    "2024-05-15_23-41-01",  # node-con-iae-s
+    "2024-05-19_19-30-16_2024-05-20_11-04-27_2024-05-21_11-10-16",  # node-con-iae
+    "2024-05-08_00-21-02"  # dsim-con-iae-cfa
+]
+system_types = ["pcc_ns-2", "pcc_ns-2", "pcc_ns-2", "pcc_ns-2", "pcc_ns-2", "pcc_ns-2"]  #  "cs", "pcc_ns-2" or "nb-2"
+model_names = [
+    "RNN",
+    "MECH-NODE-S",
+    "MECH-NODE",
+    "CON-S",
+    "CON-M",
+    "CFA-CON"
+]
 
 # analysis settings
 plot_sweep = True
@@ -58,6 +72,8 @@ capsize = 2.5
 capthick = 1.5
 ecolor = None
 colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+legend_fontsize = 6
+legend_loc = "upper right"
 
 
 def load_sweep_results(sweep_id: str, system_type: str) -> Tuple[Dict, Path]:
@@ -159,7 +175,7 @@ def analyze_single_sweep(sweep_id: str, system_type: str, verbose: bool = True, 
         )
         ax.set_xlabel("$n_z$")
         ax.set_ylabel("RMSE")
-        ax.legend()
+        ax.legend(loc=legend_loc, fontsize=legend_fontsize)
         plt.grid(True)
         plt.box(True)
         plt.savefig(sweep_folder / "rmse_rec_vs_n_z.pdf")
@@ -194,7 +210,7 @@ def analyze_single_sweep(sweep_id: str, system_type: str, verbose: bool = True, 
         )
         ax.set_xlabel("$n_z$")
         ax.set_ylabel("SSIM")
-        ax.legend()
+        ax.legend(loc=legend_loc, fontsize=legend_fontsize)
         plt.grid(True)
         plt.box(True)
         plt.savefig(sweep_folder / "ssim_rec_vs_n_z.pdf")
@@ -214,7 +230,7 @@ def analyze_single_sweep(sweep_id: str, system_type: str, verbose: bool = True, 
         )
         ax.set_xlabel("$n_z$")
         ax.set_ylabel("Model parameters")
-        ax.legend()
+        ax.legend(loc=legend_loc, fontsize=legend_fontsize)
         plt.grid(True)
         plt.box(True)
         plt.savefig(sweep_folder / "num_trainable_params_dynamics_vs_n_z.pdf")
@@ -249,7 +265,7 @@ def analyze_single_sweep(sweep_id: str, system_type: str, verbose: bool = True, 
         )
         ax.set_xlabel("Model parameters")
         ax.set_ylabel("RMSE")
-        ax.legend()
+        ax.legend(loc=legend_loc, fontsize=legend_fontsize)
         plt.grid(True)
         plt.box(True)
         plt.savefig(sweep_folder / "rmse_rec_vs_num_trainable_params.pdf")
@@ -257,7 +273,7 @@ def analyze_single_sweep(sweep_id: str, system_type: str, verbose: bool = True, 
 
 
 def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_names: List[str], verbose: bool = False):
-    outputs_dir = Path(__file__).resolve().parents[1] / "outputs"
+    outputs_dir = Path(__file__).resolve().parent / "outputs"
     outputs_dir.mkdir(exist_ok=True)
     
     # load sweep results and generate stats
@@ -293,7 +309,7 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
         handles.append(errorbar_container_rmse_static.lines[0])
     ax.set_xlabel("$n_z$")
     ax.set_ylabel("RMSE")
-    ax.legend(handles=handles, labels=model_names)
+    ax.legend(handles=handles, labels=model_names, loc=legend_loc, fontsize=legend_fontsize)
     plt.grid(True)
     plt.box(True)
     plt.tight_layout()
@@ -324,7 +340,7 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
         handles.append(errorbar_container_rmse_dynamic.lines[0])
     ax.set_xlabel("$n_z$")
     ax.set_ylabel("RMSE")
-    ax.legend(handles=handles, labels=model_names)
+    ax.legend(handles=handles, labels=model_names, loc=legend_loc, fontsize=legend_fontsize)
     plt.grid(True)
     plt.box(True)
     plt.tight_layout()
@@ -354,7 +370,7 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
         handles.append(errorbar_container_rmse_static.lines[0])
     ax.set_xlabel("Model parameters")
     ax.set_ylabel("RMSE")
-    ax.legend(handles=handles, labels=model_names)
+    ax.legend(handles=handles, labels=model_names, loc=legend_loc, fontsize=legend_fontsize)
     plt.grid(True)
     plt.box(True)
     plt.tight_layout()
@@ -384,7 +400,7 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
         handles.append(errorbar_container_rmse_dynamic.lines[0])
     ax.set_xlabel("Model parameters")
     ax.set_ylabel("RMSE")
-    ax.legend(handles=handles, labels=model_names)
+    ax.legend(handles=handles, labels=model_names, loc=legend_loc, fontsize=legend_fontsize)
     plt.grid(True)
     plt.box(True)
     plt.tight_layout()
@@ -414,7 +430,7 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
         handles.append(errorbar_container_ssim_static.lines[0])
     ax.set_xlabel("$n_z$")
     ax.set_ylabel("SSIM")
-    ax.legend(handles=handles, labels=model_names)
+    ax.legend(handles=handles, labels=model_names, loc="lower right", fontsize=legend_fontsize)
     plt.grid(True)
     plt.box(True)
     plt.tight_layout()
@@ -444,13 +460,172 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
         handles.append(errorbar_container_ssim_dynamic.lines[0])
     ax.set_xlabel("$n_z$")
     ax.set_ylabel("SSIM")
-    ax.legend(handles=handles, labels=model_names)
+    ax.legend(handles=handles, labels=model_names, loc="lower right", fontsize=legend_fontsize)
     plt.grid(True)
     plt.box(True)
     plt.tight_layout()
     plt.savefig(outputs_dir / f"sweep_ssim_rec_dynamic_vs_n_z.pdf")
     plt.show()
 
+    # plot the SSIM of the dynamic reconstruction vs the number of trainable parameters
+    fig, ax = plt.subplots(
+        1,
+        1,
+        figsize=figsize,
+        num=f"SSIM of dynamic reconstruction vs. number of trainable parameters",
+    )
+    handles = []
+    for model_idx, (sweep_results_stats, model_name) in enumerate(zip(sweep_results_stats_ms, model_names)):
+        errorbar_container_ssim_dynamic = ax.errorbar(
+            sweep_results_stats["num_trainable_params"]["dynamics"],
+            sweep_results_stats["test_mean"]["ssim_rec_dynamic"],
+            yerr=sweep_results_stats["test_std"]["ssim_rec_dynamic"],
+            linewidth=lw,
+            color=colors[model_idx],
+            elinewidth=elinewidth,
+            ecolor=ecolor,
+            capsize=capsize,
+            capthick=capthick,
+        )
+        handles.append(errorbar_container_ssim_dynamic.lines[0])
+    ax.set_xlabel("Model parameters")
+    ax.set_ylabel("SSIM")
+    ax.legend(handles=handles, labels=model_names, loc="lower right", fontsize=legend_fontsize)
+    plt.grid(True)
+    plt.box(True)
+    plt.tight_layout()
+    plt.savefig(outputs_dir / f"sweep_ssim_rec_dynamic_vs_num_trainable_params.pdf")
+    plt.show()
+
+    # plot the PSNR of the static reconstruction vs the number of latent variables
+    fig, ax = plt.subplots(
+        1,
+        1,
+        figsize=figsize,
+        num=f"PSNR of static reconstruction vs. number of latent variables",
+    )
+    handles = []
+    for model_idx, (sweep_results_stats, model_name) in enumerate(zip(sweep_results_stats_ms, model_names)):
+        psnr_static_mean = jnp.log10(2) - 10*jnp.log10(sweep_results_stats["test_mean"]["rmse_rec_static"]**2)
+        psnr_static_std = 10*(
+                jnp.log10((sweep_results_stats["test_mean"]["rmse_rec_static"]+sweep_results_stats["test_std"]["rmse_rec_static"])**2)
+                - jnp.log10(sweep_results_stats["test_mean"]["rmse_rec_static"]**2)
+        )
+        errorbar_container_psnr_static = ax.errorbar(
+            sweep_results_stats["n_z"],
+            psnr_static_mean,
+            yerr=psnr_static_std,
+            linewidth=lw,
+            color=colors[model_idx],
+            elinewidth=elinewidth,
+            ecolor=ecolor,
+            capsize=capsize,
+            capthick=capthick,
+        )
+        handles.append(errorbar_container_psnr_static.lines[0])
+    ax.set_xlabel("$n_z$")
+    ax.set_ylabel("PSNR")
+    ax.legend(handles=handles, labels=model_names, loc="lower right", fontsize=legend_fontsize)
+    plt.grid(True)
+    plt.box(True)
+    plt.tight_layout()
+    plt.savefig(outputs_dir / f"sweep_psnr_rec_static_vs_n_z.pdf")
+    plt.show()
+
+    # plot the PSNR of the dynamic reconstruction vs the number of latent variables
+    fig, ax = plt.subplots(
+        1,
+        1,
+        figsize=figsize,
+        num=f"PSNR of dynamic reconstruction vs. number of latent variables",
+    )
+    handles = []
+    for model_idx, (sweep_results_stats, model_name) in enumerate(zip(sweep_results_stats_ms, model_names)):
+        psnr_dynamic_mean = jnp.log10(2) - 10*jnp.log10(sweep_results_stats["test_mean"]["rmse_rec_dynamic"]**2)
+        psnr_dynamic_std = 10*(
+                jnp.log10((sweep_results_stats["test_mean"]["rmse_rec_dynamic"]+sweep_results_stats["test_std"]["rmse_rec_dynamic"])**2)
+                - jnp.log10(sweep_results_stats["test_mean"]["rmse_rec_dynamic"]**2)
+        )
+        errorbar_container_psnr_dynamic = ax.errorbar(
+            sweep_results_stats["n_z"],
+            psnr_dynamic_mean,
+            yerr=psnr_dynamic_std,
+            linewidth=lw,
+            color=colors[model_idx],
+            elinewidth=elinewidth,
+            ecolor=ecolor,
+            capsize=capsize,
+            capthick=capthick,
+        )
+        handles.append(errorbar_container_psnr_dynamic.lines[0])
+    ax.set_xlabel("$n_z$")
+    ax.set_ylabel("PSNR")
+    ax.legend(handles=handles, labels=model_names, loc="lower right", fontsize=legend_fontsize)
+    plt.grid(True)
+    plt.box(True)
+    plt.tight_layout()
+    plt.savefig(outputs_dir / f"sweep_psnr_rec_dynamic_vs_n_z.pdf")
+    plt.show()
+
+    # plot the PSNR of the dynamic reconstruction vs the number of trainable parameters
+    fig, ax = plt.subplots(
+        1,
+        1,
+        figsize=figsize,
+        num=f"PSNR of dynamic reconstruction vs. number of trainable parameters",
+    )
+    handles = []
+    for model_idx, (sweep_results_stats, model_name) in enumerate(zip(sweep_results_stats_ms, model_names)):
+        psnr_dynamic_mean = jnp.log10(2) - 10*jnp.log10(sweep_results_stats["test_mean"]["rmse_rec_dynamic"]**2)
+        psnr_dynamic_std = 10*(
+                jnp.log10((sweep_results_stats["test_mean"]["rmse_rec_dynamic"]+sweep_results_stats["test_std"]["rmse_rec_dynamic"])**2)
+                - jnp.log10(sweep_results_stats["test_mean"]["rmse_rec_dynamic"]**2)
+        )
+        errorbar_container_psnr_dynamic = ax.errorbar(
+            sweep_results_stats["num_trainable_params"]["dynamics"],
+            psnr_dynamic_mean,
+            yerr=psnr_dynamic_std,
+            linewidth=lw,
+            color=colors[model_idx],
+            elinewidth=elinewidth,
+            ecolor=ecolor,
+            capsize=capsize,
+            capthick=capthick,
+        )
+        handles.append(errorbar_container_psnr_dynamic.lines[0])
+    ax.set_xlabel("Model parameters")
+    ax.set_ylabel("PSNR")
+    ax.legend(handles=handles, labels=model_names, loc="lower right", fontsize=legend_fontsize)
+    plt.grid(True)
+    plt.box(True)
+    plt.tight_layout()
+    plt.savefig(outputs_dir / f"sweep_psnr_rec_dynamic_vs_num_trainable_params.pdf")
+    plt.show()
+
+    # plot the latent dimension vs the number of trainable parameters
+    fig, ax = plt.subplots(
+        1,
+        1,
+        figsize=figsize,
+        num=f"Number of trainable parameters vs. number of latent variables",
+    )
+    handles = []
+    for model_idx, (sweep_results_stats, model_name) in enumerate(zip(sweep_results_stats_ms, model_names)):
+        ax.plot(
+            sweep_results_stats["n_z"],
+            sweep_results_stats["num_trainable_params"]["dynamics"],
+            linewidth=lw,
+            color=colors[model_idx],
+            label=model_name,
+        )
+    ax.set_xlabel("$n_z$")
+    ax.set_ylabel("Model parameters")
+    ax.legend(loc=legend_loc, fontsize=legend_fontsize)
+    plt.grid(True)
+    plt.box(True)
+    plt.tight_layout()
+    plt.savefig(outputs_dir / f"sweep_num_trainable_params_vs_n_z.pdf")
+    plt.show()
 
 
 

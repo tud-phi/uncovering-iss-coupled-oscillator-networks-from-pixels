@@ -87,6 +87,35 @@ The following command can be used to analyze the behavior and performance of the
 python examples/cfa_con/evaluate_cfa_con.py
 ```
 
+## Tuning of the hyperparameters
+
+The hyperparameters of the models can be tuned using the following command:
+
+```bash
+python examples/tuning/tune_planar_pcs_dynamics_autoencoder.py
+```
+
+Subsequently, navigate into the log folder of the experiment that you just started and run the following command to visualize the results:
+
+```bash
+optuna-dashboard sqliet:///optuna_study.db
+```
+
+## Sweep across the latent dimensions and seeds
+
+We can sweep across the latent dimensions and seeds. For each combination of latent dimension and see, we train the model and evaluate it on the test set. The following command can be used to run the sweep:
+
+```bash
+python examples/sweep/sweep_planar_pcs_dynamics_autoencoder.py
+```
+
+The script will store the results inside the `sweep_results.dill` dictionary in the log folder of the experiment.
+Subsequently, statistics across seeds can be computed using the following command:
+
+```bash
+python examples/sweep/analyze_sweep.py
+```
+
 ## Latent-space control
 
 The experiment of exploiting the coupled oscillator network for latent-space control can be run using the following command:
