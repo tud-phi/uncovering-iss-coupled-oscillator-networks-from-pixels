@@ -58,10 +58,10 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
     "node-cornn", "node-con", "node-w-con", "node-con-iae", "node-con-iae-s", "node-dcon", "node-lnn", 
     "node-hippo-lss", "node-mamba",
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
-    "dsim-con-iae-cfa", "dsim-elman-rnn", "dsim-gru-rnn", "dsim-cornn"
+    "ar-con-iae-cfa", "ar-elman-rnn", "ar-gru-rnn", "ar-cornn"
 ]
 """
-dynamics_model_name = "dsim-con-iae-cfa"
+dynamics_model_name = "ar-con-iae-cfa"
 # latent space shape
 n_z = 8
 # simulation time step
@@ -81,7 +81,7 @@ dynamics_type = dynamics_model_name.split("-")[0]
 assert dynamics_type in [
     "node",
     "discrete",
-    "dsim",
+    "ar",
 ], f"Unknown dynamics_type: {dynamics_type}"
 
 max_num_epochs = 50
@@ -323,7 +323,7 @@ if __name__ == "__main__":
                 output_dim=n_z,
                 dt=dataset_metadata["dt"],
             )
-        elif dynamics_model_name == "dsim-con-iae-cfa":
+        elif dynamics_model_name == "ar-con-iae-cfa":
             loss_weights["mse_tau_rec"] = 1e1
             # num_mlp_layers = trial.suggest_int("num_mlp_layers", 1, 6)
             # mlp_hidden_dim = trial.suggest_int("mlp_hidden_dim", 4, 96)
@@ -336,14 +336,14 @@ if __name__ == "__main__":
                 num_layers=num_mlp_layers,
                 hidden_dim=mlp_hidden_dim,
             )
-        elif dynamics_model_name in ["dsim-elman-rnn", "dsim-gru-rnn"]:
+        elif dynamics_model_name in ["ar-elman-rnn", "ar-gru-rnn"]:
             dynamics_model = DiscreteRnnDynamics(
                 state_dim=2 * n_z,
                 input_dim=n_tau,
                 output_dim=2 * n_z,
                 rnn_method=dynamics_model_name.split("-")[1],  # "elman" or "gru"
             )
-        elif dynamics_model_name == "dsim-cornn":
+        elif dynamics_model_name == "ar-cornn":
             cornn_gamma = trial.suggest_float("cornn_gamma", 1e-2, 1e2, log=True)
             cornn_epsilon = trial.suggest_float("cornn_epsilon", 1e-2, 1e2, log=True)
             dynamics_model = DiscreteCornn(

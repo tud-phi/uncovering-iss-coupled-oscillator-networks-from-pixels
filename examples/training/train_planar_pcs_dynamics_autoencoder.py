@@ -49,10 +49,10 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
     "node-cornn", "node-con", "node-w-con", "node-con-iae", "node-dcon", "node-lnn", 
     "node-hippo-lss", "node-mamba",
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
-    "dsim-con-iae-cfa", "dsim-elman-rnn", "dsim-gru-rnn", "dsim-cornn"
+    "ar-con-iae-cfa", "ar-elman-rnn", "ar-gru-rnn", "ar-cornn"
 ]
 """
-dynamics_model_name = "dsim-elman-rnn"
+dynamics_model_name = "ar-elman-rnn"
 # size of latent space
 n_z = 8
 # simulation time step
@@ -117,7 +117,7 @@ if long_horizon_dataset:
                 )
                 weight_decay = 5.5340117045438595e-06
                 num_mlp_layers, mlp_hidden_dim = 5, 30
-            case "dsim-con-iae-cfa":
+            case "ar-con-iae-cfa":
                 # optimized for n_z=8
                 base_lr = 0.018088317332901616
                 loss_weights = dict(
@@ -129,7 +129,7 @@ if long_horizon_dataset:
                 )
                 weight_decay = 2.6404635847920316e-05
                 num_mlp_layers, mlp_hidden_dim = 5, 30
-            case "dsim-elman-rnn" | "dsim-gru-rnn" | "dsim-cornn":
+            case "ar-elman-rnn" | "ar-gru-rnn" | "ar-cornn":
                 ## Attention: the following params are not tuned
                 base_lr = 0.009562362872368196
                 loss_weights = dict(
@@ -298,7 +298,7 @@ dynamics_type = dynamics_model_name.split("-")[0]
 assert dynamics_type in [
     "node",
     "discrete",
-    "dsim",
+    "ar",
 ], f"Unknown dynamics_type: {dynamics_type}"
 
 now = datetime.now()
@@ -419,7 +419,7 @@ if __name__ == "__main__":
             output_dim=n_z,
             dt=dataset_metadata["dt"],
         )
-    elif dynamics_model_name == "dsim-con-iae-cfa":
+    elif dynamics_model_name == "ar-con-iae-cfa":
         dynamics_model = DiscreteConIaeCfaDynamics(
             latent_dim=n_z,
             input_dim=n_tau,
@@ -427,14 +427,14 @@ if __name__ == "__main__":
             num_layers=num_mlp_layers,
             hidden_dim=mlp_hidden_dim,
         )
-    elif dynamics_model_name in ["dsim-elman-rnn", "dsim-gru-rnn"]:
+    elif dynamics_model_name in ["ar-elman-rnn", "ar-gru-rnn"]:
         dynamics_model = DiscreteRnnDynamics(
             state_dim=2 * n_z,
             input_dim=n_tau,
             output_dim=2 * n_z,
             rnn_method=dynamics_model_name.split("-")[1],  # "elman" or "gru"
         )
-    elif dynamics_model_name == "dsim-cornn":
+    elif dynamics_model_name == "ar-cornn":
         dynamics_model = DiscreteCornn(
             latent_dim=n_z,
             input_dim=n_tau,

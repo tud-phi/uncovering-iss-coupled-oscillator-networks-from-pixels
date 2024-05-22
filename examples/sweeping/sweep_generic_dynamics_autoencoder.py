@@ -69,7 +69,7 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
     "node-cornn", "node-con", "node-w-con", "node-con-iae",  "node-con-iae-s", "node-dcon", "node-lnn", 
     "node-hippo-lss", "node-mamba",
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
-    "dsim-con-iae-cfa", "dsim-elman-rnn", "dsim-gru-rnn", "dsim-cornn"
+    "ar-con-iae-cfa", "ar-elman-rnn", "ar-gru-rnn", "ar-cornn"
 ]
 """
 dynamics_model_name = "node-con-iae"
@@ -145,7 +145,7 @@ match system_type:
                     num_mlp_layers, mlp_hidden_dim = 2, 12
                 else:
                     num_mlp_layers, mlp_hidden_dim = 5, 30
-            case "dsim-con-iae-cfa":
+            case "ar-con-iae-cfa":
                 # optimized for n_z=12
                 base_lr = 0.01082596684679984
                 loss_weights = dict(
@@ -157,7 +157,7 @@ match system_type:
                 )
                 weight_decay = 4.957164364541807e-05
                 num_mlp_layers, mlp_hidden_dim = 5, 30
-            case "dsim-elman-rnn":
+            case "ar-elman-rnn":
                 # optimized for n_z=12
                 base_lr = 0.010584414607144491
                 loss_weights = dict(
@@ -167,7 +167,7 @@ match system_type:
                     beta=0.0006044356658904357,
                 )
                 weight_decay = 2.8561405134373477e-05
-            case "dsim-gru-rnn":
+            case "ar-gru-rnn":
                 # optimized for n_z=12
                 base_lr = 0.01659248975820467
                 loss_weights = dict(
@@ -177,7 +177,7 @@ match system_type:
                     beta=0.00018196259604448875,
                 )
                 weight_decay = 8.527055579079863e-06
-            case "dsim-cornn":
+            case "ar-cornn":
                 # optimized for n_z=12
                 base_lr = 0.007011746009022523
                 loss_weights = dict(
@@ -254,7 +254,7 @@ match system_type:
                     num_mlp_layers, mlp_hidden_dim = 2, 12
                 else:
                     num_mlp_layers, mlp_hidden_dim = 5, 30
-            case "dsim-con-iae-cfa":
+            case "ar-con-iae-cfa":
                 # optimized for n_z=8
                 base_lr = 0.018088317332901616
                 loss_weights = dict(
@@ -266,7 +266,7 @@ match system_type:
                 )
                 weight_decay = 2.6404635847920316e-05
                 num_mlp_layers, mlp_hidden_dim = 5, 30
-            case "dsim-elman-rnn":
+            case "ar-elman-rnn":
                 # optimized for n_z=8
                 base_lr = 0.007657437611794232
                 loss_weights = dict(
@@ -276,7 +276,7 @@ match system_type:
                     beta=0.00035525861444533717,
                 )
                 weight_decay = 1.7957485073520818e-05
-            case "dsim-gru-rnn":
+            case "ar-gru-rnn":
                 # optimized for n_z=8
                 base_lr = 0.018086259222854423
                 loss_weights = dict(
@@ -343,7 +343,7 @@ match system_type:
                     num_mlp_layers, mlp_hidden_dim = 2, 12
                 else:
                     num_mlp_layers, mlp_hidden_dim = 5, 30
-            case "dsim-con-iae-cfa":
+            case "ar-con-iae-cfa":
                 # optimized for n_z=12
                 base_lr = 0.014307900347859871
                 loss_weights = dict(
@@ -355,7 +355,7 @@ match system_type:
                 )
                 weight_decay = 1.3789165265791588e-05
                 num_mlp_layers, mlp_hidden_dim = 5, 30
-            case "dsim-elman-rnn":
+            case "ar-elman-rnn":
                 # optimized for n_z=12
                 base_lr = 0.002017289539796043
                 loss_weights = dict(
@@ -365,7 +365,7 @@ match system_type:
                     beta=0.0001431412891866957,
                 )
                 weight_decay = 2.3556923826384874e-05
-            case "dsim-gru-rnn":
+            case "ar-gru-rnn":
                 # optimized for n_z=12
                 base_lr = 0.010271074784281832
                 loss_weights = dict(
@@ -375,7 +375,7 @@ match system_type:
                     beta=0.0006241137175631403,
                 )
                 weight_decay = 2.6275213514548362e-05
-            case "dsim-cornn":
+            case "ar-cornn":
                 # (quickly) optimized for n_z=12
                 base_lr = 0.019118172838275722
                 loss_weights = dict(
@@ -405,7 +405,7 @@ dynamics_type = dynamics_model_name.split("-")[0]
 assert dynamics_type in [
     "node",
     "discrete",
-    "dsim",
+    "ar",
 ], f"Unknown dynamics_type: {dynamics_type}"
 
 now = datetime.now()
@@ -579,7 +579,7 @@ if __name__ == "__main__":
                     output_dim=n_z,
                     dt=dataset_metadata["dt"],
                 )
-            elif dynamics_model_name == "dsim-con-iae-cfa":
+            elif dynamics_model_name == "ar-con-iae-cfa":
                 dynamics_model = DiscreteConIaeCfaDynamics(
                     latent_dim=n_z,
                     input_dim=n_tau,
@@ -587,14 +587,14 @@ if __name__ == "__main__":
                     num_layers=num_mlp_layers,
                     hidden_dim=mlp_hidden_dim,
                 )
-            elif dynamics_model_name in ["dsim-elman-rnn", "dsim-gru-rnn"]:
+            elif dynamics_model_name in ["ar-elman-rnn", "ar-gru-rnn"]:
                 dynamics_model = DiscreteRnnDynamics(
                     state_dim=2 * n_z,
                     input_dim=n_tau,
                     output_dim=2 * n_z,
                     rnn_method=dynamics_model_name.split("-")[1],  # "elman" or "gru"
                 )
-            elif dynamics_model_name == "dsim-cornn":
+            elif dynamics_model_name == "ar-cornn":
                 dynamics_model = DiscreteCornn(
                     latent_dim=n_z,
                     input_dim=n_tau,

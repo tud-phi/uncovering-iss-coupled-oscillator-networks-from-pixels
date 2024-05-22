@@ -67,7 +67,7 @@ def task_factory(
         dynamics_type: Dynamics type. One of ["node", "discrete"]
             node: Neural ODE dynamics map a state consisting of latent and their velocity to the state derivative.
             discrete: Discrete forward dynamics map the latents at the num_past_timesteps to the next latent.
-            dsim: Discrete forward dynamics maps autoregressively the latent state (latent position and velocity) to the
+            ar: Discrete forward dynamics maps autoregressively the latent state (latent position and velocity) to the
                 next latent state at time step sim_dt.
         start_time_idx: the index of the time step to start the simulation at. Needs to be >=1 to enable the application
             of finite differences for the latent-space velocity.
@@ -378,7 +378,7 @@ def task_factory(
                 out_axes=0,
             )(z_past_bt, tau_bt_discrete.astype(jnp.float32))
             z_d_dynamic_pred_bt = jnp.zeros_like(z_dynamic_pred_bt)
-        elif dynamics_type == "dsim":
+        elif dynamics_type == "ar":
             # autoregresses the latent space positions and velocities
             # latent and latent velocity at initial time provided by the encoder
             z_init_bt = z_static_pred_bt[:, start_time_idx, ...]

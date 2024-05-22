@@ -38,7 +38,7 @@ class DynamicsAutoencoder(nn.Module):
             z_ts = z_bt[: self.num_past_timesteps]
             tau = jnp.zeros_like(z_ts, shape=(self.dynamics.input_dim,))
             _ = self.dynamics.forward_all_layers(z_ts.flatten(), tau)
-        elif self.dynamics_type == "dsim":
+        elif self.dynamics_type == "ar":
             x_bt = jnp.concatenate([z_bt, jnp.zeros_like(z_bt)], axis=-1)
             tau_bt = jnp.zeros_like(
                 x_bt, shape=(z_bt.shape[0], self.dynamics.input_dim)

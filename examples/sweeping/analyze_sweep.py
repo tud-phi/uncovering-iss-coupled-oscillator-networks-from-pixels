@@ -23,7 +23,7 @@ plt.rcParams.update(
 # Constant strain
 node-con-iae: sweep_id = "2024-05-19_17-07-08"
 node-con-iae-s: sweep_id = "2024-05-19_17-09-42"
-dsim-con-iae-cfa: sweep_id = "2024-05-19_17-08-05"
+ar-con-iae-cfa: sweep_id = "2024-05-19_17-08-05"
 node-general-mlp: sweep_id = "2024-05-19_17-08-51"
 # Planar PCS with two segments
 Short horizon dataset (one seed): 
@@ -35,7 +35,7 @@ node-w-con: sweep_id = "2024-03-12_12-53-29"
 node-con-iae: sweep_id = "2024-03-15_21-44-34"
 node-con-iae-s: sweep_id = "2024-03-17_22-26-44"
 Long horizon dataset (three seeds):
-dsim-con-iae-cfa: "2024-05-08_00-21-02"
+ar-con-iae-cfa: "2024-05-08_00-21-02"
 node-con-iae-s: "2024-05-15_23-41-01"
 # 2-body problem
 node-mechanical-mlp: sweep_id = "2024-03-20_21-13-37"
@@ -43,12 +43,12 @@ node-mechanical-mlp: sweep_id = "2024-03-20_21-13-37"
 
 # sweep settings for planar PCS with two segments
 sweep_ids = [
-    "2024-05-20_19-33-58",  # dsim-elman-rnn
+    "2024-05-20_19-33-58",  # ar-elman-rnn
     "2024-05-20_19-35-36",  # node-mechanical-mlp-s
     "2024-05-19_19-44-28_2024-05-20_11-05-49",  # node-mechanical-mlp
     "2024-05-15_23-41-01",  # node-con-iae-s
     "2024-05-19_19-30-16_2024-05-20_11-04-27_2024-05-21_11-10-16",  # node-con-iae
-    "2024-05-08_00-21-02"  # dsim-con-iae-cfa
+    "2024-05-08_00-21-02"  # ar-con-iae-cfa
 ]
 system_types = ["pcc_ns-2", "pcc_ns-2", "pcc_ns-2", "pcc_ns-2", "pcc_ns-2", "pcc_ns-2"]  #  "cs", "pcc_ns-2" or "nb-2"
 model_names = [

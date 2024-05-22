@@ -52,7 +52,7 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
     "node-cornn", "node-con", "node-w-con", "node-con-iae", "node-dcon", "node-lnn", 
     "node-hippo-lss", "node-mamba",
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
-    "dsim-con-iae-cfa"
+    "ar-con-iae-cfa"
 ]
 """
 dynamics_model_name = "node-mechanical-lss"
@@ -236,7 +236,7 @@ if __name__ == "__main__":
                 hidden_dim=mlp_hidden_dim,
                 nonlinearity=mlp_nonlinearity,
             )
-        elif dynamics_model_name == "dsim-con-iae-cfa":
+        elif dynamics_model_name == "ar-con-iae-cfa":
             loss_weights["mse_tau_rec"] = 1e1
             # num_mlp_layers = trial.suggest_int("num_mlp_layers", 1, 6)
             # mlp_hidden_dim = trial.suggest_int("mlp_hidden_dim", 4, 96)

@@ -62,7 +62,7 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
     "node-cornn", "node-con", "node-w-con", "node-con-iae",  "node-con-iae-s", "node-dcon", "node-lnn", 
     "node-hippo-lss", "node-mamba",
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
-    "dsim-con-iae-cfa"
+    "ar-con-iae-cfa"
 ]
 """
 dynamics_model_name = "node-con-iae-s"
@@ -120,7 +120,7 @@ if long_horizon_dataset:
                     num_mlp_layers, mlp_hidden_dim = 2, 12
                 else:
                     num_mlp_layers, mlp_hidden_dim = 5, 30
-            case "dsim-con-iae-cfa":
+            case "ar-con-iae-cfa":
                 # optimized for n_z=8
                 base_lr = 0.018088317332901616
                 loss_weights = dict(
@@ -279,7 +279,7 @@ dynamics_type = dynamics_model_name.split("-")[0]
 assert dynamics_type in [
     "node",
     "discrete",
-    "dsim",
+    "ar",
 ], f"Unknown dynamics_type: {dynamics_type}"
 
 now = datetime.now()
@@ -445,7 +445,7 @@ if __name__ == "__main__":
                     output_dim=n_z,
                     dt=dataset_metadata["dt"],
                 )
-            elif dynamics_model_name == "dsim-con-iae-cfa":
+            elif dynamics_model_name == "ar-con-iae-cfa":
                 dynamics_model = DiscreteConIaeCfaDynamics(
                     latent_dim=n_z,
                     input_dim=n_tau,
