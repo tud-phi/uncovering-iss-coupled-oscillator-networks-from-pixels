@@ -364,6 +364,17 @@ match system_type:
                     beta=0.0006241137175631403,
                 )
                 weight_decay = 2.6275213514548362e-05
+            case "dsim-cornn":
+                # (quickly) optimized for n_z=12
+                base_lr = 0.019118172838275722
+                loss_weights = dict(
+                    mse_z=0.17870826226404796,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=2.0483346931163813,
+                    beta=0.00010138356977635644,
+                )
+                weight_decay = 1.9895341543311274e-05
+                cornn_gamma, cornn_epsilon = 94.26788377109177, 12.930452341269934
             case _:
                 raise NotImplementedError(
                     f"{system_type} with dynamics_model_name '{dynamics_model_name}' not implemented yet."
