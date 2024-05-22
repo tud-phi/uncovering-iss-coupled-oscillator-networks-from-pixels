@@ -56,7 +56,7 @@ model_names = [
     "MECH-NODE-S",
     "MECH-NODE",
     "CON-S",
-    "CON",
+    "CON-M",
     "CFA-CON"
 ]
 
