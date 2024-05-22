@@ -467,6 +467,36 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
     plt.savefig(outputs_dir / f"sweep_ssim_rec_dynamic_vs_n_z.pdf")
     plt.show()
 
+    # plot the SSIM of the dynamic reconstruction vs the number of trainable parameters
+    fig, ax = plt.subplots(
+        1,
+        1,
+        figsize=figsize,
+        num=f"SSIM of dynamic reconstruction vs. number of trainable parameters",
+    )
+    handles = []
+    for model_idx, (sweep_results_stats, model_name) in enumerate(zip(sweep_results_stats_ms, model_names)):
+        errorbar_container_ssim_dynamic = ax.errorbar(
+            sweep_results_stats["num_trainable_params"]["dynamics"],
+            sweep_results_stats["test_mean"]["ssim_rec_dynamic"],
+            yerr=sweep_results_stats["test_std"]["ssim_rec_dynamic"],
+            linewidth=lw,
+            color=colors[model_idx],
+            elinewidth=elinewidth,
+            ecolor=ecolor,
+            capsize=capsize,
+            capthick=capthick,
+        )
+        handles.append(errorbar_container_ssim_dynamic.lines[0])
+    ax.set_xlabel("Model parameters")
+    ax.set_ylabel("SSIM")
+    ax.legend(handles=handles, labels=model_names, loc="lower right", fontsize=legend_fontsize)
+    plt.grid(True)
+    plt.box(True)
+    plt.tight_layout()
+    plt.savefig(outputs_dir / f"sweep_ssim_rec_dynamic_vs_num_trainable_params.pdf")
+    plt.show()
+
     # plot the PSNR of the static reconstruction vs the number of latent variables
     fig, ax = plt.subplots(
         1,
@@ -535,6 +565,41 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
     plt.box(True)
     plt.tight_layout()
     plt.savefig(outputs_dir / f"sweep_psnr_rec_dynamic_vs_n_z.pdf")
+    plt.show()
+
+    # plot the PSNR of the dynamic reconstruction vs the number of trainable parameters
+    fig, ax = plt.subplots(
+        1,
+        1,
+        figsize=figsize,
+        num=f"PSNR of dynamic reconstruction vs. number of trainable parameters",
+    )
+    handles = []
+    for model_idx, (sweep_results_stats, model_name) in enumerate(zip(sweep_results_stats_ms, model_names)):
+        psnr_dynamic_mean = jnp.log10(2) - 10*jnp.log10(sweep_results_stats["test_mean"]["rmse_rec_dynamic"]**2)
+        psnr_dynamic_std = 10*(
+                jnp.log10((sweep_results_stats["test_mean"]["rmse_rec_dynamic"]+sweep_results_stats["test_std"]["rmse_rec_dynamic"])**2)
+                - jnp.log10(sweep_results_stats["test_mean"]["rmse_rec_dynamic"]**2)
+        )
+        errorbar_container_psnr_dynamic = ax.errorbar(
+            sweep_results_stats["num_trainable_params"]["dynamics"],
+            psnr_dynamic_mean,
+            yerr=psnr_dynamic_std,
+            linewidth=lw,
+            color=colors[model_idx],
+            elinewidth=elinewidth,
+            ecolor=ecolor,
+            capsize=capsize,
+            capthick=capthick,
+        )
+        handles.append(errorbar_container_psnr_dynamic.lines[0])
+    ax.set_xlabel("Model parameters")
+    ax.set_ylabel("PSNR")
+    ax.legend(handles=handles, labels=model_names, loc="lower right", fontsize=legend_fontsize)
+    plt.grid(True)
+    plt.box(True)
+    plt.tight_layout()
+    plt.savefig(outputs_dir / f"sweep_psnr_rec_dynamic_vs_num_trainable_params.pdf")
     plt.show()
 
     # plot the latent dimension vs the number of trainable parameters
