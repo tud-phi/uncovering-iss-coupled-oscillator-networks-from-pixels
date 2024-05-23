@@ -1,4 +1,4 @@
-# Leveraging Input-to-State Stable Coupled Oscillator Networks for Learning Control-oriented Latent Dynamics from Pixels
+# Input-to-State Stable Coupled Oscillator Networks for Closed-form Model-based Control in Latent Space
 
 ## Installation
 
