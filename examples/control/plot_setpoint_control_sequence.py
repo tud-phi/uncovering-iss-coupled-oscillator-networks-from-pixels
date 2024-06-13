@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pathlib import Path
 
+from src.control.utils import compute_settling_time_on_setpoint_trajectory
 
 seed = 0
 system_type = "pcc_ns-2"
@@ -54,6 +55,15 @@ if __name__ == "__main__":
     rmse_z = np.sqrt(np.mean((sim_ts["z_des_ts"] - sim_ts["xi_ts"][:, :2]) ** 2))
     print(f"RMSE in q: {rmse_q:.4f} rad/m")
     print(f"RMSE in z: {rmse_z:.4f} m")
+    # compute the settling time
+    settling_time_q = compute_settling_time_on_setpoint_trajectory(
+        sim_ts["ts"], sim_ts["q_des_ts"], sim_ts["x_ts"][:, :2], threshold=0.20
+    )
+    settling_time_z = compute_settling_time_on_setpoint_trajectory(
+        sim_ts["ts"], sim_ts["z_des_ts"], sim_ts["xi_ts"][:, :2], threshold=0.20
+    )
+    print(f"Settling time in q: {settling_time_q:.3f} s")
+    print(f"Settling time in z: {settling_time_z:.3f} s")
 
     # plot the configuration trajectory
     fig, ax = plt.subplots(1, 1, figsize=figsize)
