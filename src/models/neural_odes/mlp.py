@@ -1,8 +1,8 @@
 __all__ = ["MlpOde"]
 from flax import linen as nn  # Linen API
-from jax import Array
+from jax import Array, jacfwd
 import jax.numpy as jnp
-from typing import Callable
+from typing import Callable, Dict, Tuple, Union
 
 from .neural_ode_base import NeuralOdeBase
 
@@ -39,3 +39,46 @@ class MlpOde(NeuralOdeBase):
             x_d = nn.Dense(features=2 * self.latent_dim)(tmp)
 
         return x_d
+
+    def setpoint_regulation_fn(
+        self,
+        x: Array,
+        control_state: Dict[str, Array],
+        dt: Union[float, Array],
+        z_des: Array,
+        kp: Union[float, Array] = 0.0,
+        ki: Union[float, Array] = 0.0,
+        kd: Union[float, Array] = 0.0,
+        gamma: Union[float, Array] = 1.0,
+    ) -> Tuple[Array, Dict[str, Array], Dict[str, Array]]:
+        z = x[..., : self.latent_dim]
+        z_d = x[..., self.latent_dim:]
+
+        # compute error in the latent space
+        error_z = z_des - z
+
+        # compute the feedback term
+        u_fb = kp * error_z + ki * control_state["e_int"] - kd * z_d
+        u = u_fb
+
+        # decode the control input into the input space
+        # linearize the system w.r.t. the actuation
+        tau_eq = jnp.zeros((self.input_dim,))
+        B = jacfwd(lambda x, tau: self.__call__(x, tau)[self.latent_dim:], argnums=1)(x, tau_eq)
+        tau = B.T @ u
+        """
+        primals, f_vjp = nn.vjp(lambda mdl, tau: self.__call__(x, tau)[self.latent_dim:], self, tau_eq)
+        tau = f_vjp(u)
+        """
+
+        # update the integral error
+        control_state["e_int"] += jnp.tanh(gamma * error_z) * dt
+
+        control_info = dict(
+            tau=tau,
+            tau_z=u,
+            tau_z_fb=u_fb,
+            e_int=control_state["e_int"],
+        )
+
+        return tau, control_state, control_info

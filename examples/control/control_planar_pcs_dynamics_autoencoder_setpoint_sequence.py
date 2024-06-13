@@ -29,6 +29,7 @@ from src.models.autoencoders import Autoencoder, VAE
 from src.models.neural_odes import (
     ConOde,
     ConIaeOde,
+    MlpOde,
 )
 from src.models.dynamics_autoencoder import DynamicsAutoencoder
 from src.rendering import preprocess_rendering, render_planar_pcs
@@ -83,6 +84,11 @@ match dynamics_model_name:
             kp, ki, kd = 1.0e0, 3e0, 0e0
             # kp, ki, kd = 0.1e0, 3e0, 0e0
             psatid_gamma = 1.0
+    case "node-mechanical-mlp":
+        kp, ki, kd = 1e0, 1e0, 0e0
+        psatid_gamma = 1.0
+    case _:
+        raise ValueError(f"Unknown dynamics_model_name: {dynamics_model_name}")
 
 batch_size = 10
 norm_layer = nn.LayerNorm
@@ -94,6 +100,9 @@ match dynamics_model_name:
     case "node-con-iae-s":
         experiment_id = f"2024-03-17_22-26-44/n_z_{n_z}_seed_{seed}"
         num_mlp_layers, mlp_hidden_dim = 2, 12
+    case "node-mechanical-mlp":
+        experiment_id = f"2024-05-21_07-45-14/n_z_{n_z}_seed_{seed}"
+        num_mlp_layers, mlp_hidden_dim = 5, 30
     case _:
         raise ValueError(
             f"No experiment_id for dynamics_model_name={dynamics_model_name}"
@@ -190,6 +199,14 @@ if __name__ == "__main__":
             hidden_dim=mlp_hidden_dim,
             apply_feedforward_term=apply_feedforward_term,
             apply_feedback_term=apply_feedback_term,
+        )
+    elif dynamics_model_name in ["node-mechanical-mlp", "node-mechanical-mlp-s"]:
+        dynamics_model = MlpOde(
+            latent_dim=n_z,
+            input_dim=n_tau,
+            num_layers=num_mlp_layers,
+            hidden_dim=mlp_hidden_dim,
+            mechanical_system=True,
         )
     else:
         raise ValueError(f"Unknown dynamics_model_name: {dynamics_model_name}")
