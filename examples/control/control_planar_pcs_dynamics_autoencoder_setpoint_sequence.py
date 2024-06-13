@@ -85,7 +85,7 @@ match dynamics_model_name:
             # kp, ki, kd = 0.1e0, 3e0, 0e0
             psatid_gamma = 1.0
     case "node-mechanical-mlp":
-        kp, ki, kd = 1e0, 1e0, 0e0
+        kp, ki, kd = 1e-2, 2e-2, 5e-5
         psatid_gamma = 1.0
     case _:
         raise ValueError(f"Unknown dynamics_model_name: {dynamics_model_name}")

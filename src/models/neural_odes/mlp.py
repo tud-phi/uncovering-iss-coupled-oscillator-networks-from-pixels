@@ -77,6 +77,7 @@ class MlpOde(NeuralOdeBase):
         control_info = dict(
             tau=tau,
             tau_z=u,
+            tau_z_ff=jnp.zeros_like(u),
             tau_z_fb=u_fb,
             e_int=control_state["e_int"],
         )
