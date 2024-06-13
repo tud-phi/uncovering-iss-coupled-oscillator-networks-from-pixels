@@ -15,36 +15,6 @@ def compute_settling_time_on_setpoint_trajectory(ts: Array, ref_ts: Array, traj_
     """
     error = jnp.abs(ref_ts - traj_ts)
 
-    """
-    ref_value = ref_ts[0]
-    step_size = jnp.abs(error[0])
-    total_settling_time = 0.0
-    time_since_step = 0.0
-    settled = False
-    num_steps = 1
-    t_prior = ts[0]
-    for time_idx in range(ts.shape[0]):
-        t = ts[time_idx]
-
-        if jnp.any(step_size == 0.0):
-            settled = True
-            continue
-
-        if jnp.any(ref_value != ref_ts[time_idx]):
-            step_size = jnp.abs(ref_ts[time_idx] - ref_value)
-            time_since_step = 0.0
-            settled = False
-            num_steps += 1
-
-        if settled is False:
-            time_since_step += (t - t_prior)
-            if jnp.all(error[time_idx] / step_size <= threshold):
-                total_settling_time += time_since_step
-                settled = True
-
-        ref_value = ref_ts[time_idx]
-        t_prior = t
-    """
     ref_value = ref_ts[0]
     step_size = jnp.abs(error[0])
     step_size_stps = [step_size]
@@ -79,8 +49,6 @@ def compute_settling_time_on_setpoint_trajectory(ts: Array, ref_ts: Array, traj_
             settling_time = ts[step_selector][-1] - ts[step_selector][0]
         total_settling_time += settling_time
         print(f"Step {step_idx}, settling time: {settling_time}, last norm_error: {norm_error[-1]}")
-
-    print("total_settling_time: ", total_settling_time)
 
     mean_settling_time = total_settling_time / step_time_stps.shape[0]
 
