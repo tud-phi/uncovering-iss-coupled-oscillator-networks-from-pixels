@@ -248,6 +248,9 @@ if __name__ == "__main__":
     )
     nn_model_bound = nn_model.bind({"params": state.params})
     dynamics_model_bound = dynamics_model.bind({"params": state.params["dynamics"]})
+    energy_fn = getattr(dynamics_model_bound, "energy_fn", None)
+    potential_energy_fn: callable = getattr(dynamics_model_bound, "potential_energy_fn", None)
+    kinetic_energy_fn: callable = getattr(dynamics_model_bound, "kinetic_energy_fn", None)
 
     def encode_fn(img: Array) -> Array:
         return partial(
@@ -287,10 +290,10 @@ if __name__ == "__main__":
                 )
                 xi_grid = jnp.concatenate([z_grid, jnp.zeros_like(z_grid)], axis=-1)
                 U_grid = jax.vmap(
-                    partial(dynamics_model_bound.potential_energy_fn, coordinate="z"),
+                    partial(potential_energy_fn, coordinate="z"),
                 )(xi_grid.reshape(-1, xi_grid.shape[-1])).reshape(xi_grid.shape[:2])
                 tau_pot_grid = -jax.vmap(
-                    grad(partial(dynamics_model_bound.potential_energy_fn, coordinate="z")),
+                    grad(partial(potential_energy_fn, coordinate="z")),
                 )(xi_grid.reshape(-1, xi_grid.shape[-1]))[..., :n_z].reshape(
                     *xi_grid.shape[:2], -1
                 )
@@ -331,10 +334,10 @@ if __name__ == "__main__":
                 zw_grid = jnp.stack([zw1_grid, zw2_grid], axis=-1)
                 xi_grid = jnp.concatenate([zw_grid, jnp.zeros_like(zw_grid)], axis=-1)
                 U_grid = jax.vmap(
-                    partial(dynamics_model_bound.potential_energy_fn, coordinate="zw"),
+                    partial(potential_energy_fn, coordinate="zw"),
                 )(xi_grid.reshape(-1, xi_grid.shape[-1])).reshape(xi_grid.shape[:2])
                 tau_pot_grid = -jax.vmap(
-                    grad(partial(dynamics_model_bound.potential_energy_fn, coordinate="zw")),
+                    grad(partial(potential_energy_fn, coordinate="zw")),
                 )(xi_grid.reshape(-1, xi_grid.shape[-1]))[..., :n_z].reshape(
                     *xi_grid.shape[:2], -1
                 )
@@ -378,10 +381,10 @@ if __name__ == "__main__":
                     [zeta_grid, jnp.zeros_like(zeta_grid)], axis=-1
                 )
                 U_grid = jax.vmap(
-                    partial(dynamics_model_bound.potential_energy_fn, coordinate="zeta"),
+                    partial(potential_energy_fn, coordinate="zeta"),
                 )(xi_grid.reshape(-1, xi_grid.shape[-1])).reshape(xi_grid.shape[:2])
                 tau_pot_grid = -jax.vmap(
-                    grad(partial(dynamics_model_bound.potential_energy_fn, coordinate="zeta")),
+                    grad(partial(potential_energy_fn, coordinate="zeta")),
                 )(xi_grid.reshape(-1, xi_grid.shape[-1]))[..., :n_z].reshape(
                     *xi_grid.shape[:2], -1
                 )
@@ -418,14 +421,12 @@ if __name__ == "__main__":
                     num="Potential energy landscape in z-coordinates",
                 )
                 xi_grid = jnp.concatenate([z_grid, jnp.zeros_like(z_grid)], axis=-1)
-                U_grid = jax.vmap(
-                    partial(dynamics_model_bound.potential_energy_fn),
-                )(xi_grid.reshape(-1, xi_grid.shape[-1])).reshape(xi_grid.shape[:2])
-                tau_pot_grid = -jax.vmap(
-                    grad(partial(dynamics_model_bound.potential_energy_fn)),
-                )(xi_grid.reshape(-1, xi_grid.shape[-1]))[..., :n_z].reshape(
-                    *xi_grid.shape[:2], -1
-                )
+                U_grid = jax.vmap(potential_energy_fn)(
+                    xi_grid.reshape(-1, xi_grid.shape[-1])
+                ).reshape(xi_grid.shape[:2])
+                tau_pot_grid = -jax.vmap(grad(potential_energy_fn))(
+                    xi_grid.reshape(-1, xi_grid.shape[-1])
+                )[..., :n_z].reshape(*xi_grid.shape[:2], -1)
                 # contour plot of the potential energy
                 cs = ax.contourf(z1_grid, z2_grid, U_grid, levels=100)
                 # quiver plot of the potential energy gradient
@@ -449,7 +450,7 @@ if __name__ == "__main__":
                 plt.savefig(ckpt_dir / "potential_energy_landscape_z.pdf")
                 plt.show()
 
-    if n_q == 2:
+    if callable(potential_energy_fn) and n_q == 2:
         # plot the learned potential energy landscape in the configuration space
         q1_range = jnp.linspace(q0_min[0], q0_max[0], 25)
         q2_range = jnp.linspace(q0_min[1], q0_max[1], 25)
@@ -471,9 +472,9 @@ if __name__ == "__main__":
                         z = nn_model_bound.encode(img[None, ...])[0, ...]
                         zeta = terms["J_h"] @ terms["J_w"] @ z
                         xi = jnp.concatenate([zeta, jnp.zeros((n_z,))])
-                        U = dynamics_model_bound.potential_energy_fn(xi, coordinate="zeta")
+                        U = potential_energy_fn(xi, coordinate="zeta")
                         tau_pot = -grad(
-                            partial(dynamics_model_bound.potential_energy_fn, coordinate="zeta")
+                            partial(potential_energy_fn, coordinate="zeta")
                         )(xi)[..., :n_tau]
                         U_grid = U_grid.at[i, j].set(U)
                         tau_pot_grid = tau_pot_grid.at[i, j, :].set(tau_pot)
@@ -487,8 +488,8 @@ if __name__ == "__main__":
                         )
                         z = nn_model_bound.encode(img[None, ...])[0, ...]
                         xi = jnp.concatenate([z, jnp.zeros((n_z,))])
-                        U = dynamics_model_bound.potential_energy_fn(xi)
-                        tau_pot = -grad(dynamics_model_bound.potential_energy_fn)(xi)[..., :n_tau]
+                        U = potential_energy_fn(xi)
+                        tau_pot = -grad(potential_energy_fn)(xi)[..., :n_tau]
                         U_grid = U_grid.at[i, j].set(U)
                         tau_pot_grid = tau_pot_grid.at[i, j, :].set(tau_pot)
             case _:
@@ -603,6 +604,19 @@ if __name__ == "__main__":
         _time_idx = (t / control_dt).astype(int)
         _z_des = lax.dynamic_slice(z_des_ts, (_time_idx, 0), (1, n_z)).squeeze(0)
 
+        tau, control_state, control_info = dynamics_model.apply(
+            {"params": state.params["dynamics"]},
+            x,
+            control_state,
+            method=dynamics_model.setpoint_regulation_fn,
+            dt=control_dt,
+            z_des=_z_des,
+            kp=kp,
+            ki=ki,
+            kd=kd,
+            gamma=psatid_gamma,
+        )
+        """
         tau, control_state, control_info = dynamics_model_bound.setpoint_regulation_fn(
             x,
             control_state,
@@ -613,6 +627,8 @@ if __name__ == "__main__":
             kd=kd,
             gamma=psatid_gamma,
         )
+        """
+
         return tau, control_state, control_info
 
     # render and encode all the target images
@@ -699,9 +715,6 @@ if __name__ == "__main__":
     sim_ts["img_des_ts"] = img_des_ts
     sim_ts["z_des_ts"] = z_des_ts
 
-    energy_fn = getattr(dynamics_model_bound, "energy_fn", None)
-    potential_energy_fn: callable = getattr(dynamics_model_bound, "potential_energy_fn", None)
-    kinetic_energy_fn: callable = getattr(dynamics_model_bound, "kinetic_energy_fn", None)
     if callable(energy_fn):
         if type(dynamics_model) is ConOde:
             energy_fn = partial(
