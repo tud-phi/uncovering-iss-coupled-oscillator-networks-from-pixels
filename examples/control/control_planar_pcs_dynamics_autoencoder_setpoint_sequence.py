@@ -53,7 +53,7 @@ tf.random.set_seed(seed=seed)
 system_type = "pcc_ns-2"
 long_horizon_dataset = True
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
-dynamics_model_name = "node-con-iae"
+dynamics_model_name = "node-con-iae"  # "node-con-iae", "node-con-iae-s", "node-mechanical-mlp"
 # latent space shape
 n_z = 2
 # number of configuration space dimensions

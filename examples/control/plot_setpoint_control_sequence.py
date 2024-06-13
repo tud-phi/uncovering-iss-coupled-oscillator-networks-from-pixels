@@ -10,7 +10,7 @@ from pathlib import Path
 seed = 0
 system_type = "pcc_ns-2"
 # set the dynamics_model_name
-dynamics_model_name = "node-con-iae"
+dynamics_model_name = "node-con-iae"  # "node-con-iae", "node-con-iae-s", "node-mechanical-mlp"
 n_z = 2
 
 if __name__ == "__main__":
@@ -35,6 +35,8 @@ if __name__ == "__main__":
             experiment_id = f"2024-05-20_13-14-46/n_z_{n_z}_seed_{seed}"
         case "node-con-iae-s":
             experiment_id = f"2024-03-17_22-26-44/n_z_{n_z}_seed_{seed}"
+        case "node-mechanical-mlp":
+            experiment_id = f"2024-05-21_07-45-14/n_z_{n_z}_seed_{seed}"
         case _:
             raise ValueError(
                 f"No experiment_id for dynamics_model_name={dynamics_model_name}"
@@ -131,26 +133,27 @@ if __name__ == "__main__":
     plt.savefig(str(ckpt_dir / f"setpoint_control_sequence_u.eps"))
     plt.show()
 
-    # plot the potential and kinetic energy trajectory
-    fig, ax = plt.subplots(1, 1, figsize=figsize)
-    # plot the desired potential energy
-    ax.plot(
-        sim_ts["ts"],
-        sim_ts["U_des_ts"],
-        color=colors[0],
-        linestyle=":",
-        dashes=dots,
-        linewidth=linewidth_dotted,
-        label=r"$\mathcal{U}^\mathrm{d}$",
-    )
-    # plot the potential energy
-    ax.plot(sim_ts["ts"], sim_ts["U_ts"], color=colors[0], linewidth=linewidth_solid, label=r"$\mathcal{U}$")
-    plt.xlabel(r"Time $t$ [s]")
-    plt.ylabel(r"Energy")
-    plt.grid(True)
-    plt.box(True)
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(str(ckpt_dir / f"setpoint_control_sequence_U.pdf"))
-    plt.savefig(str(ckpt_dir / f"setpoint_control_sequence_U.eps"))
-    plt.show()
+    if "U_des_ts" in sim_ts:
+        # plot the potential and kinetic energy trajectory
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+        # plot the desired potential energy
+        ax.plot(
+            sim_ts["ts"],
+            sim_ts["U_des_ts"],
+            color=colors[0],
+            linestyle=":",
+            dashes=dots,
+            linewidth=linewidth_dotted,
+            label=r"$\mathcal{U}^\mathrm{d}$",
+        )
+        # plot the potential energy
+        ax.plot(sim_ts["ts"], sim_ts["U_ts"], color=colors[0], linewidth=linewidth_solid, label=r"$\mathcal{U}$")
+        plt.xlabel(r"Time $t$ [s]")
+        plt.ylabel(r"Energy")
+        plt.grid(True)
+        plt.box(True)
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(str(ckpt_dir / f"setpoint_control_sequence_U.pdf"))
+        plt.savefig(str(ckpt_dir / f"setpoint_control_sequence_U.eps"))
+        plt.show()
