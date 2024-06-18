@@ -126,7 +126,7 @@ def generate_sweep_stats(sweep_results, verbose: bool = False) -> Dict:
                 sweep_results_stats["train_std"][key] = sweep_results_stats["train_std"][key].at[i].set(jnp.std(filtered_train_results[key]))
 
         filtered_test_results = {}
-        for key, value in  sweep_results["test"].items():
+        for key, value in sweep_results["test"].items():
             if value is not None:
                 filtered_test_results[key] = value[selector]
                 sweep_results_stats["test_mean"][key] = sweep_results_stats["test_mean"][key].at[i].set(jnp.mean(filtered_test_results[key]))
