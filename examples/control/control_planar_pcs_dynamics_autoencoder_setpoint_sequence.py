@@ -81,7 +81,7 @@ match dynamics_model_name:
             kp, ki, kd = 1e0, 1e0, 0e0
             psatid_gamma = 1.0
         else:
-            kp, ki, kd = 1.0e0, 3e0, 0e0
+            kp, ki, kd = 5e-2, 2.0e0, 1e-2
             # kp, ki, kd = 0.1e0, 3e0, 0e0
             psatid_gamma = 1.0
     case "node-mechanical-mlp":
@@ -231,7 +231,7 @@ if __name__ == "__main__":
 
     # define settings for the closed-loop simulation
     control_dt = 1e-2  # control and time step of 1e-2 s
-    sim_dt = 1e-3 * control_dt  # simulation time step of 1e-5 s
+    sim_dt = 5e-4 * control_dt  # simulation time step of 1e-5 s
     ts = jnp.linspace(0.0, sim_duration, num=int(sim_duration / control_dt))
     ode_rollout_fn = partial(
         rollout_ode,
