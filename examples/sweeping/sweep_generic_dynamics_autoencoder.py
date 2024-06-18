@@ -74,7 +74,7 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 """
 dynamics_model_name = "node-con-iae"
 # simulation time step
-if system_type in ["cc", "cs",  "pcc_ns-2", "pcc_ns-3", "pcc_ns-4"]:
+if system_type in ["cc", "cs", "pcc_ns-2", "pcc_ns-3", "pcc_ns-4"]:
     sim_dt = 1e-2
 elif system_type in ["single_pendulum", "double_pendulum"]:
     sim_dt = 2.5e-2
