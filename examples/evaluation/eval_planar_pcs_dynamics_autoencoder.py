@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import numpy as onp
 from pathlib import Path
 import tensorflow as tf
+from timeit import timeit
 
 from src.models.autoencoders import Autoencoder, VAE
 from src.models.discrete_forward_dynamics import (
@@ -371,6 +372,28 @@ if __name__ == "__main__":
         f"ssim_rec_static={test_metrics['ssim_rec_static']:.4f}, "
         f"ssim_rec_dynamic={test_metrics['ssim_rec_dynamic']:.4f}"
     )
+
+    # record inference time (with batch size 1)
+    inference_forward_fn = jax.jit(partial(task_callables.forward_fn, nn_params=state.params))
+    sample_batch = next(test_ds.as_numpy_iterator())
+    # print("Sample batch\n")
+    # for k, v in sample_batch.items():
+    #     print(k, v.shape)
+    # reduce the batch size to 1
+    for k, v in sample_batch.items():
+        if isinstance(v, tuple):
+            sample_batch[k] = (v[0], v[1][:1])
+        else:
+            sample_batch[k] = v[:1]
+    # jit the inference function
+    sample_pred = inference_forward_fn(sample_batch)
+    # print("Sample pred\n")
+    # for k, v in sample_pred.items():
+    #     print(k, v.shape)
+    # time inference
+    num_inference_repeats = 1000
+    mean_inference_time = timeit(lambda: inference_forward_fn(sample_batch), number=num_inference_repeats) / num_inference_repeats
+    print("Mean inference time: ", mean_inference_time * 1e3, "ms")
 
     # define settings for the rollout
     rollout_duration = 3.0  # s
