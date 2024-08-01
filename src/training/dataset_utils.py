@@ -17,7 +17,7 @@ def load_dataset(
     val_perc: int = 20,
     test_perc: int = 20,
     num_threads: Optional[int] = None,
-    prefetch: int = 2,
+    prefetch: Optional[int] = 2,
     normalize: bool = True,
     grayscale: bool = False,
 ) -> Tuple[Dict[str, tf.data.Dataset], tfds.core.DatasetInfo, Dict]:
@@ -104,9 +104,11 @@ def load_dataset(
             )
 
         # group into batches of batch_size and skip incomplete batch, prefetch the next sample to improve latency
-        datasets[split_name] = ds.batch(batch_size, drop_remainder=True).prefetch(
-            prefetch
-        )
+        datasets[split_name] = ds.batch(batch_size, drop_remainder=True)
+        if prefetch is not None:
+            datasets[split_name] = datasets[split_name].prefetch(
+                prefetch
+            )
 
     # randomly shuffle the training dataset
     datasets["train"] = datasets["train"].shuffle(
