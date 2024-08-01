@@ -91,18 +91,21 @@ if long_horizon_dataset:
     match dynamics_model_name:
         case "node-general-mlp" | "node-general-mlp-s":
             if dynamics_model_name == "node-general-mlp-s":
+                raise NotImplementedError
                 num_mlp_layers, mlp_hidden_dim = 2, 12
             else:
+                experiment_id = f"2024-05-20_19-11-26/n_z_8_seed_{seed}"
                 num_mlp_layers, mlp_hidden_dim = 5, 30
             mlp_nonlinearity_name = "tanh"
         case "node-mechanical-mlp" | "node-mechanical-mlp-s":
             if dynamics_model_name == "node-mechanical-mlp-s":
+                experiment_id = f"2024-05-20_23-27-42/n_z_8_seed_{seed}"
                 num_mlp_layers, mlp_hidden_dim = 2, 12
             else:
+                experiment_id = f"2024-05-20_17-05-46/n_z_8_seed_{seed}"
                 num_mlp_layers, mlp_hidden_dim = 5, 30
             mlp_nonlinearity_name = "tanh"
         case "node-mechanical-mlp":
-            n_z = 8
             experiment_id = "2024-03-08_10-42-05"
             num_mlp_layers, mlp_hidden_dim = 5, 21
             mlp_nonlinearity_name = "tanh"
@@ -118,7 +121,6 @@ if long_horizon_dataset:
             experiment_id = f"2024-03-17_22-26-44/n_z_{n_z}_seed_{seed}"
             num_mlp_layers, mlp_hidden_dim = 2, 12
         case "ar-con-iae-cfa":
-            n_z = 8
             experiment_id = "2024-05-07_20-07-24"
             num_mlp_layers, mlp_hidden_dim = 5, 30
             sim_dt = 1e-2
