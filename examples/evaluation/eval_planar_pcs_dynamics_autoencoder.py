@@ -18,6 +18,7 @@ from timeit import timeit
 from src.models.autoencoders import Autoencoder, VAE
 from src.models.discrete_forward_dynamics import (
     DiscreteConIaeCfaDynamics,
+    DiscreteCornn,
     DiscreteLssDynamics,
     DiscreteMambaDynamics,
     DiscreteMlpDynamics,
@@ -61,14 +62,20 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
     "node-cornn", "node-con", "node-w-con", "node-con-iae", "node-con-iae-s", "node-dcon", "node-lnn", 
     "node-hippo-lss", "node-mamba",
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
-    "ar-con-iae-cfa"
+    "ar-con-iae-cfa", "ar-elman-rnn", "ar-gru-rnn", "ar-cornn"
 ]
 """
 dynamics_model_name = "node-con-iae"
 # latent space shape
 n_z = 8
 # simulation time step
-sim_dt = None
+# sim_dt = None
+if system_type in ["cc", "cs", "pcc_ns-2", "pcc_ns-3", "pcc_ns-4"]:
+    sim_dt = 1e-2
+elif system_type in ["single_pendulum", "double_pendulum"]:
+    sim_dt = 2.5e-2
+else:
+    raise ValueError(f"Unknown system_type: {system_type}")
 
 batch_size = 10
 loss_weights = dict(mse_q=1.0, mse_rec_static=1.0, mse_rec_dynamic=1.0)
@@ -82,6 +89,18 @@ lnn_learn_dissipation = True
 diag_shift, diag_eps = 1e-6, 2e-6
 if long_horizon_dataset:
     match dynamics_model_name:
+        case "node-general-mlp" | "node-general-mlp-s":
+            if dynamics_model_name == "node-general-mlp-s":
+                num_mlp_layers, mlp_hidden_dim = 2, 12
+            else:
+                num_mlp_layers, mlp_hidden_dim = 5, 30
+            mlp_nonlinearity_name = "tanh"
+        case "node-mechanical-mlp" | "node-mechanical-mlp-s":
+            if dynamics_model_name == "node-mechanical-mlp-s":
+                num_mlp_layers, mlp_hidden_dim = 2, 12
+            else:
+                num_mlp_layers, mlp_hidden_dim = 5, 30
+            mlp_nonlinearity_name = "tanh"
         case "node-mechanical-mlp":
             n_z = 8
             experiment_id = "2024-03-08_10-42-05"
@@ -103,6 +122,10 @@ if long_horizon_dataset:
             experiment_id = "2024-05-07_20-07-24"
             num_mlp_layers, mlp_hidden_dim = 5, 30
             sim_dt = 1e-2
+        case "ar-elman-rnn":
+            experiment_id = f"2024-05-20_15-42-23/n_z_{n_z}_seed_{seed}"
+        case "ar-gru-rnn":
+            experiment_id = f"2024-05-20_16-52-35/n_z_{n_z}_seed_{seed}"
         case _:
             raise ValueError(
                 f"No experiment_id for dynamics_model_name={dynamics_model_name}"
@@ -309,6 +332,21 @@ if __name__ == "__main__":
             dt=sim_dt,
             num_layers=num_mlp_layers,
             hidden_dim=mlp_hidden_dim,
+        )
+    elif dynamics_model_name in ["ar-elman-rnn", "ar-gru-rnn"]:
+        dynamics_model = DiscreteRnnDynamics(
+            state_dim=2 * n_z,
+            input_dim=n_tau,
+            output_dim=2 * n_z,
+            rnn_method=dynamics_model_name.split("-")[1],  # "elman" or "gru"
+        )
+    elif dynamics_model_name == "ar-cornn":
+        dynamics_model = DiscreteCornn(
+            latent_dim=n_z,
+            input_dim=n_tau,
+            dt=sim_dt,
+            gamma=cornn_gamma,
+            epsilon=cornn_epsilon,
         )
     else:
         raise ValueError(f"Unknown dynamics_model_name: {dynamics_model_name}")
