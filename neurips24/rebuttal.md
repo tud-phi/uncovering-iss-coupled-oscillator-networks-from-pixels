@@ -21,6 +21,29 @@ very insightful comments that they have provided. In the following, we will resp
 
 > <cite>R1</cite>: Can you add the inference time for the different methods in Table 1? If that’s not possible, could you give some general comments on the inference time of CONs?
 
+We thank the reviewer for their question about the inference time of the various methods. 
+We note that the number of training steps per second of all methods included in Table 1 was already reported in the original submission in Table 4 of Appendix D.
+
+For this rebuttal, we performed additional evaluations of the inference time (i.e., without computation of loss function and gradient descent) of the various models.
+We considered the same setting as in Table 4 of Appendix D: latent dimension $n_z = 8$, input images (from the PCC-NS-2 dataset) of size $32 \times 32$ px, rollout of the dynamics for 101 time steps (equivalent to 2.02 seconds), encoding the input image at each time step, and decoding the latent state at each time step.
+In an actual deployment scenario, we would likely perform a single prediction at a time. Therefore, we set the batch size to 1.
+We executed the rollout 5000 times for each method on an Nvidia RTX 3090, measured the inference time and averaged the results.
+The results can be found in the table below. We plan to add this column to Table 4 in Appendix D of the final paper.
+
+| Method        | Inference time [ms] |
+|---------------|---------------------|
+| RNN           | 02.6                |
+| GRU           | 03.2                |
+| coRNN         | 02.7                |
+| NODE          | 50.2                |
+| MECH-NODE     | 50.3                |
+| CON-S (our)   | 49.9                |
+| CON-M (our)   | 60.1                |
+| CFA-CON (our) | 13.6                |
+
+It is interesting note that the main speedup by CFA-CON is achieved during training, where we see almost 2x as many steps per second. During rollout, CFA-CON is roughly 50% slower than CON-M.
+We attribute this difference to the small batch size, execution on the CPU, and no need for backpropagation through the ODE integrator during inference vs. training.
+
 ### Oscillations of the controller with FF term. 
 
 > <cite>R1</cite>: Figure 3 visualizes that the controller with feed-forward part leads to heavy oscillations in the systems. Is that due to a poorly tuned controller or do you see the reason in the CON model?
