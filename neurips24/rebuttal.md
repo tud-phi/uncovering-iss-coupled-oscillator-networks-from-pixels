@@ -13,6 +13,9 @@ very insightful comments that they have provided. In the following, we will resp
 
 > <cite>R1</cite>: The statement in Line 266 “PID controller has several well-known drawbacks, such […] steady-state errors (in case the integral gain is chosen to be zero)” is misleading as in this case we would say it’s a PD controller.
 
+We thank the Reviewer for their comment and for pointing out the mistake. We agree that this sentence is indeed badly written and confusing.
+In the final version of the paper, we will remove the subsentence "_steady-state errors (in case the integral gain is chosen to be zero)_".
+
 ### Performance and Limitations of CON
 
 > <cite>R1</cite>: The main contribution seems to be the new network structure that allows to exploit the potential energy for energy shaping methods. The VAE and controller are existing methods. Thus, a more detailed elaboration on the performance and limitation of CONs would be beneficial as it is evaluated for soft robotics data sets only.
