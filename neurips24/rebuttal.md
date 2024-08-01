@@ -37,7 +37,7 @@ The results can be found in the table below. We plan to add this column to Table
 | coRNN         | 02.7                |
 | NODE          | 50.2                |
 | MECH-NODE     | 50.3                |
-| CON-S (our)   | 49.9                |
+| CON-S (our)   | 50.2                |
 | CON-M (our)   | 60.1                |
 | CFA-CON (our) | 13.6                |
 
