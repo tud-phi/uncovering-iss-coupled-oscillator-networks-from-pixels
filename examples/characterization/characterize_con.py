@@ -63,7 +63,7 @@ def simulate_ode(ode_fn: Callable, ts: Array, y0: Array, sim_dt: Array, tau: Opt
     return sim_ts
 
 
-def simulate_instable_con():
+def simulate_unstable_con():
     K = jnp.array([[-1.0]])
     D = jnp.array([[0.4]])
     W = jnp.array([[3.0]])
@@ -152,12 +152,12 @@ def simulate_instable_con():
     ax.set_ylim(ylim[1])
     plt.box(True)
     plt.tight_layout()
-    plt.savefig(outputs_dir / "instable_con_phase_portrait.pdf")
+    plt.savefig(outputs_dir / "unstable_con_phase_portrait.pdf")
     plt.show()
 
 
 def main():
-    simulate_instable_con()
+    simulate_unstable_con()
 
 
 if __name__ == "__main__":
