@@ -29,7 +29,7 @@ outputs_dir = Path(__file__).resolve().parent / "outputs"
 outputs_dir.mkdir(exist_ok=True)
 
 
-def con_ode_factory(K: Array, D: Array, W: Array, b: Array) -> Callable:
+def con_ode_factory(K: Array, D: Array, W: Array, b: Array) -> Tuple[Callable, Callable]:
 
     def con_ode_fn(t: Array, y: Array, tau: Array) -> Array:
         x, x_d = jnp.split(y, 2)
@@ -37,7 +37,14 @@ def con_ode_factory(K: Array, D: Array, W: Array, b: Array) -> Callable:
         y_d = jnp.concatenate([x_d, x_dd])
         return y_d
 
-    return con_ode_fn
+    def con_energy_fn(y: Array) -> Array:
+        x, x_d = jnp.split(y, 2, axis=-1)
+        U = 0.5 * jnp.sum(x.T @ K @ x) + jnp.sum(W**(-1) @ jnp.log(jnp.cosh(W @ x + b)))
+        # U = jnp.sum(W**(-1) @ jnp.log(jnp.cosh(W @ x + b)))
+        T = 0.5 * jnp.sum(x_d.T @ x_d)
+        return T + U
+
+    return con_ode_fn, con_energy_fn
 
 
 def simulate_ode(ode_fn: Callable, ts: Array, y0: Array, sim_dt: Array, tau: Optional[Array] = None, solver = Tsit5()) -> Dict[str, Array]:
@@ -69,7 +76,7 @@ def simulate_unstable_con():
     W = jnp.array([[3.0]])
     b = jnp.array([0.0])
 
-    ode_fn = con_ode_factory(K, D, W, b)
+    ode_fn, energy_fn = con_ode_factory(K, D, W, b)
     ts = jnp.linspace(0.0, 4.0, 1000)
     sim_dt = jnp.array(1e-4)
     y0s = jnp.array([
@@ -93,14 +100,8 @@ def simulate_unstable_con():
     ax.set_xlabel(r"$t$ [s]")
     ax.set_ylabel(r"$x$")
     plt.tight_layout()
-    plt.savefig(outputs_dir / "instable_con_time_series.pdf")
+    plt.savefig(outputs_dir / "unstable_con_time_series.pdf")
     plt.show()
-
-    def total_energy_fn(y: Array) -> Array:
-        x, x_d = jnp.split(y, 2, axis=-1)
-        U = 0.5 * jnp.sum(x.T @ K @ x)
-        T = 0.5 * jnp.sum(x_d.T @ D @ x_d)
-        return T + U
 
     # create grid
     y_eqs = jnp.array([
@@ -115,7 +116,7 @@ def simulate_unstable_con():
     y_grid = jnp.stack([x_grid, x_d_grid], axis=-1)
 
     # evaluate total energy on grid
-    E_grid = jax.vmap(jax.vmap(total_energy_fn))(y_grid)
+    E_grid = jax.vmap(jax.vmap(energy_fn))(y_grid)
 
     # evaluate the ODE on the grid
     y_d_grid = jax.vmap(
