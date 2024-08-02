@@ -19,8 +19,9 @@ plt.rcParams.update(
         "font.serif": ["Computer Modern Romand"],
     }
 )
-figsize = (4.5, 2.8)
+figsize = (4.0, 2.8)
 colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+lw = 2.0
 
 
 # output directory
@@ -85,7 +86,7 @@ def simulate_instable_con():
     # ax.plot(sim_ts["ts"], sim_ts["y_ts"][:, 1], color=colors[1], label=r"$x_d$")
     for i in range(y0s.shape[0]):
         sim_ts = simulate_ode(ode_fn, ts, y0s[i], sim_dt=sim_dt)
-        ax.plot(sim_ts["ts"], sim_ts["y_ts"][:, 0], color=colors[i], label=r"$x(0)=" + str(y0s[i, 0]) + "$")
+        ax.plot(sim_ts["ts"], sim_ts["y_ts"][:, 0], linewidth=lw, color=colors[i], label=r"$x(0)=" + str(y0s[i, 0]) + "$")
     plt.box(True)
     plt.grid(True)
     ax.legend(loc="upper center", ncol=2)
@@ -130,7 +131,7 @@ def simulate_instable_con():
 
     fig, ax = plt.subplots(figsize=figsize)
     cs = ax.contourf(x_pts, x_d_pts, E_grid, levels=100)
-    lw = 2 * speed / speed.max()
+    stream_lw = 2 * speed / speed.max()
     ax.streamplot(
         onp.array(x_pts),
         onp.array(x_d_pts),
@@ -139,7 +140,7 @@ def simulate_instable_con():
         density=0.7,
         minlength=0.2,
         maxlength=100.0,
-        linewidth=onp.array(lw),
+        linewidth=onp.array(stream_lw),
         color="k",
     )
     if y_eqs is not None:
