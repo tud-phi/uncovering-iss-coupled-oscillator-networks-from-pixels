@@ -59,12 +59,9 @@ Importantly, we kept the gains of the feedback controller the same for both the 
 Actually, a higher proportional term is beneficial for the response time (and with that the performance) of the _P-satI-D_,
 while it leads to overshooting and oscillations in the _P-satI-D + FF_ case.
 We stress that this is not an inherent problem of the feedback controller, but can be mitigated through a different tuning of the feedback gains.
-For this rebuttal, we have simulated a _P-satI-D + FF_ controller with $K_\mathrm{p} = 0$, $K_\mathrm{i} = 2$, and $K_\mathrm{d} = 0.15$, which
+For this rebuttal, we have simulated a _P-satI-D + FF_ controller with $K_\mathrm{p} = 0$, $K_\mathrm{i} = 2$, and $K_\mathrm{d} = 0.1$, which
 means that we set the proportional term to zero and increased the damping factor.
 The results, that are included in the PDF of the global response, show that the oscillations and the overshooting are both significantly reduced.
-As we estimate the velocity of the system based on executing finite differences in image-space, applying larger damping terms is actually quite challenging
-and leads to some noise in this case. Again, this is not a limitation of the FF term, but instead a challenge common
-to all methods conducting control on (low-resolution) image observations.
 We also note that the issues raised by the Reveiwer would not be present for a system with higher damping.
 
 
