@@ -51,9 +51,22 @@ We attribute this difference to the small batch size, execution on the CPU, and 
 
 > <cite>R1</cite>: Figure 3 visualizes that the controller with feed-forward part leads to heavy oscillations in the systems. Is that due to a poorly tuned controller or do you see the reason in the CON model?
 
-We thank the Reviewer for their question. When tuning the gains PID-like controllers, there naturally always exists a trade-off between transient behaviour (e.g., oscillations and overshooting) and response time.
-In this case, we chose gains that minimized the response time, but still allow for stable behaviour. 
-Importantly, we kept the gains for the _P-satI-D_ and 
+We thank the Reviewer for their question and raising the topic. 
+When tuning the gains PID-like controllers, there naturally always exists a trade-off between transient behaviour (e.g., oscillations and overshooting) and response time.
+In this case, we chose gains that minimized the response time, but still allow for stable behaviour.
+The oscillations are caused by a combination of (a) the underdamped nature of the system and (b) the magnitude of the proportional term.
+Importantly, we kept the gains of the feedback controller the same for both the _P-satI-D_ and _P-satI-D + FF_ case.
+Actually, a higher proportional term is beneficial for the response time (and with that the performance) of the _P-satI-D_,
+while it leads to overshooting and oscillations in the _P-satI-D + FF_ case.
+We stress that this is not an inherent problem of the feedback controller, but can be mitigated through a different tuning of the feedback gains.
+For this rebuttal, we have simulated a _P-satI-D + FF_ controller with $K_\mathrm{p} = 0$, $K_\mathrm{i} = 2$, and $K_\mathrm{d} = 0.15$, which
+means that we set the proportional term to zero and increased the damping factor.
+The results, that are included in the PDF of the global response, show that the oscillations and the overshooting are both significantly reduced.
+As we estimate the velocity of the system based on executing finite differences in image-space, applying larger damping terms is actually quite challenging
+and leads to some noise in this case. Again, this is not a limitation of the FF term, but instead a challenge common
+to all methods conducting control on (low-resolution) image observations.
+We also note that the issues raised by the Reveiwer would not be present for a system with higher damping.
+
 
 ## Response to Reviewer W9L3 (R2)
 
