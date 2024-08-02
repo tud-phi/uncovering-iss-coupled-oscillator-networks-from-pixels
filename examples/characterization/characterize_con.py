@@ -7,8 +7,25 @@ jax.config.update("jax_platforms", "cpu")  # set default device to 'cpu'
 from jax import Array, grad, jit, random
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
+import numpy as onp
 from pathlib import Path
 from typing import Callable, Dict, Optional, Tuple, Union
+
+
+plt.rcParams.update(
+    {
+        "text.usetex": True,
+        "font.family": "serif",
+        "font.serif": ["Computer Modern Romand"],
+    }
+)
+figsize = (4.5, 2.8)
+colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
+
+
+# output directory
+outputs_dir = Path(__file__).resolve().parent / "outputs"
+outputs_dir.mkdir(exist_ok=True)
 
 
 def con_ode_factory(K: Array, D: Array, W: Array, b: Array) -> Callable:
@@ -35,6 +52,7 @@ def simulate_ode(ode_fn: Callable, ts: Array, y0: Array, sim_dt: Array, tau: Opt
         y0=y0,
         args=tau,
         saveat=SaveAt(ts=ts),
+        max_steps=None,
     )
     sim_ts = dict(
         ts=ts,
@@ -43,16 +61,102 @@ def simulate_ode(ode_fn: Callable, ts: Array, y0: Array, sim_dt: Array, tau: Opt
 
     return sim_ts
 
-def simulate_multistable_con():
-    ode_fn = con_ode_factory(K, D, W, b)
-    ts = jnp.linspace(0.0, 10.0, 1000)
-    y0 
 
-    sim_ts = simulate_ode(ode_fn, ts, )
+def simulate_instable_con():
+    K = jnp.array([[-1.0]])
+    D = jnp.array([[0.4]])
+    W = jnp.array([[3.0]])
+    b = jnp.array([0.0])
+
+    ode_fn = con_ode_factory(K, D, W, b)
+    ts = jnp.linspace(0.0, 4.0, 1000)
+    sim_dt = jnp.array(1e-4)
+    y0s = jnp.array([
+        [-1.2, 0.0],
+        [-1.0, 0.0],
+        [-0.4, 0.0],
+        [0.4, 0.0],
+        [1.0, 0.0],
+        [1.2, 0.0],
+    ])
+
+    # plot the trajectory
+    fig, ax = plt.subplots(figsize=figsize)
+    # ax.plot(sim_ts["ts"], sim_ts["y_ts"][:, 1], color=colors[1], label=r"$x_d$")
+    for i in range(y0s.shape[0]):
+        sim_ts = simulate_ode(ode_fn, ts, y0s[i], sim_dt=sim_dt)
+        ax.plot(sim_ts["ts"], sim_ts["y_ts"][:, 0], color=colors[i], label=r"$x(0)=" + str(y0s[i, 0]) + "$")
+    plt.box(True)
+    plt.grid(True)
+    ax.legend(loc="upper center", ncol=2)
+    ax.set_xlabel(r"$t$ [s]")
+    ax.set_ylabel(r"$x$")
+    plt.tight_layout()
+    plt.savefig(outputs_dir / "instable_con_time_series.pdf")
+    plt.show()
+
+    def total_energy_fn(y: Array) -> Array:
+        x, x_d = jnp.split(y, 2, axis=-1)
+        U = 0.5 * jnp.sum(x.T @ K @ x)
+        T = 0.5 * jnp.sum(x_d.T @ D @ x_d)
+        return T + U
+
+    # create grid
+    y_eqs = jnp.array([
+        [-1.0, 0.0],
+        [0.0, 0.0],
+        [1.0, 0.0],
+    ])
+    ylim = jnp.array([[-3.0, 3.0], [-1.2, 1.2]])
+    x_pts = jnp.linspace(ylim[0, 0], ylim[0, 1], 1000)
+    x_d_pts = jnp.linspace(ylim[1, 0], ylim[1, 1], 1000)
+    x_grid, x_d_grid = jnp.meshgrid(x_pts, x_d_pts)
+    y_grid = jnp.stack([x_grid, x_d_grid], axis=-1)
+
+    # evaluate total energy on grid
+    E_grid = jax.vmap(jax.vmap(total_energy_fn))(y_grid)
+
+    # evaluate the ODE on the grid
+    y_d_grid = jax.vmap(
+        jax.vmap(
+            partial(
+                ode_fn,
+                jnp.array(0.0),
+                tau=jnp.array([0.0]),
+            )
+        )
+    )(y_grid)
+    speed = jnp.sqrt(jnp.sum(y_d_grid ** 2, axis=-1))
+
+    fig, ax = plt.subplots(figsize=figsize)
+    cs = ax.contourf(x_pts, x_d_pts, E_grid, levels=100)
+    lw = 2 * speed / speed.max()
+    ax.streamplot(
+        onp.array(x_pts),
+        onp.array(x_d_pts),
+        onp.array(y_d_grid[:, :, 0]),
+        onp.array(y_d_grid[:, :, 1]),
+        density=0.7,
+        minlength=0.2,
+        maxlength=100.0,
+        linewidth=onp.array(lw),
+        color="k",
+    )
+    if y_eqs is not None:
+        plt.plot(y_eqs[:, 0], y_eqs[:, 1], linestyle="None", marker="x", color="orange")
+    plt.colorbar(cs, label="Total energy ($T + U$)")
+    ax.set_xlabel(r"$x$")
+    ax.set_ylabel(r"$\dot{x}$")
+    ax.set_xlim(ylim[0])
+    ax.set_ylim(ylim[1])
+    plt.box(True)
+    plt.tight_layout()
+    plt.savefig(outputs_dir / "instable_con_phase_portrait.pdf")
+    plt.show()
 
 
 def main():
-    simulate_multistable_con()
+    simulate_instable_con()
 
 
 if __name__ == "__main__":
