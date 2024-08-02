@@ -9,6 +9,10 @@ very insightful comments that they have provided. In the following, we will resp
 
 > <cite>R1</cite>: Theorem 1 seems to be trivial as it elaborates on the (nonlinear) coupling of passive systems (damped mass-spring systems) which is always passive since it does not “produce” any energy and thus, is inherently stable. (Same for Theorem 2). In this sense, the theoretical contribution seems limited. Is there anything I missed?
 
+We thank the Reviewer for their question. In our opinion, these theoretical (global) stability results are not trivial for the following reasons:
+
+1. Already small modifications to the assumptions stated in Theorem 1 and 2 would lead to multistability and, with that, lead to the loss of all global stability guarantees. As an illustrative example, we consider CON as stated in Eq. (2) in the scalar case with $K=1$ and $D=0.4$ (i.e., a typical harmonic oscillator). However, conflicting with the assumptions in Theorem 1, we select $W=-5$. Now, ddepending on the choice of $b$, this scalar system either has 1, 2 or 3 equilibria (see PDF in global response). If the system has more than 2 equilibria, the global stability guarantees are lost. This motivates why we have to carefully choose the nonlinear coupling between the (passive) harmonic oscillators.
+
 ### PID vs. PD
 
 > <cite>R1</cite>: The statement in Line 266 “PID controller has several well-known drawbacks, such […] steady-state errors (in case the integral gain is chosen to be zero)” is misleading as in this case we would say it’s a PD controller.
@@ -59,8 +63,7 @@ Importantly, we kept the gains of the feedback controller the same for both the 
 Actually, a higher proportional term is beneficial for the response time (and with that the performance) of the _P-satI-D_,
 while it leads to overshooting and oscillations in the _P-satI-D + FF_ case.
 We stress that this is not an inherent problem of the feedback controller, but can be mitigated through a different tuning of the feedback gains.
-For this rebuttal, we have simulated a _P-satI-D + FF_ controller with $K_\mathrm{p} = 0$, $K_\mathrm{i} = 2$, and $K_\mathrm{d} = 0.1$, which
-means that we set the proportional term to zero and increased the damping factor.
+For this rebuttal, we have simulated a _P-satI-D + FF_ controller with $K_\mathrm{p} = 0$, $K_\mathrm{i} = 2$, and $K_\mathrm{d} = 0.1$, which means that we set the proportional term to zero and increased the damping factor.
 The results, that are included in the PDF of the global response, show that the oscillations and the overshooting are both significantly reduced.
 We also note that the issues raised by the Reveiwer would not be present for a system with higher damping.
 
