@@ -9,9 +9,31 @@ very insightful comments that they have provided. In the following, we will resp
 
 > <cite>R1</cite>: Theorem 1 seems to be trivial as it elaborates on the (nonlinear) coupling of passive systems (damped mass-spring systems) which is always passive since it does not “produce” any energy and thus, is inherently stable. (Same for Theorem 2). In this sense, the theoretical contribution seems limited. Is there anything I missed?
 
-We thank the Reviewer for their question. In our opinion, these theoretical (global) stability results are not trivial for the following reasons:
+We thank the Reviewer for their question and allowing us to further elaborate on this topic. We differ with the Reviewer on the following points:
 
-1. Already small modifications to the assumptions stated in Theorem 1 and 2 would lead to multistability and, with that, lead to the loss of all global stability guarantees. As an illustrative example, we consider CON as stated in Eq. (2) in the scalar case with $K=1$ and $D=0.4$ (i.e., a typical harmonic oscillator). However, conflicting with the assumptions in Theorem 1, we select $W=-5$. Now, ddepending on the choice of $b$, this scalar system either has 1, 2 or 3 equilibria (see PDF in global response). If the system has more than 2 equilibria, the global stability guarantees are lost. This motivates why we have to carefully choose the nonlinear coupling between the (passive) harmonic oscillators.
+#### (A): Passivity -> Stability?
+Passivity, even in the scalar case, does not imply (global) stability. We illustrate this with two simple examples, that deviate slightly from the assumptions in Theorem 1 and 2.
+
+1. We consider a passive CON as stated in Eq. (2) in the scalar case with $K=1$ and $D=0.4$ (i.e., a typical harmonic oscillator). However, conflicting with the assumptions in Theorem 1, we select $W=-5$. Now, depending on the choice of $b$, this scalar system either has 1, 2 or 3 equilibria (see Fig. R1 in global response). If the system has more than one attractor, all global stability guarantees are lost. 
+2. We study a scalar CON with $K=-1$, positive damping $D=0.4$, and $W = 3$, $b=0$ (i.e., a harmonic oscillator with negative stiffness) with the EOM
+$$ \ddot{x} + K \, x + D \, \dot{x} = \tau $$. After defining the output $o = \dot{x}$, we prove passivity according to Definition 6.3 (Khalil, 2001) using the storage function $V(x) = K \, x^2 + \dot{x}^2$:
+$$ \dot{V}(x, \tau) = \tau \, \dot{x} - D \, \dot{x}^2 \leq \tau \, o. $$
+Fig. R2 demonstrates how this passive system is globally unstable and only exhibits an unstable equilibrium at the origin.
+
+Therefore, we conclude the passivity is not sufficient to prove global asympototic stability.
+
+#### (B): Stable harmonic oscillators -> Stable Networks?
+
+Even if the individual systems (i.e., the harmonic oscillators) are stable, care needs to be taken when coupling them to not create an unstable network.
+We illustrate this with the following example: consider a CON of dimensionality two with $K = \begin{bmatrix}
+    1.0 & -1.4\\
+    -1.4 & 1.0
+\end{bmatrix}$, $D = \mathrm{diag}(0.4, 0.4)$ $W = \mathrm{diag}(3, 3)$, 
+It can be easily shown that the oscillators individually with the EoM
+$$\ddot{x}_i + k \, x_i + d \, \dot{x}_i + \tanh(w \, x_i)= 0,$$
+where $k=1$, $d=0.4$, and $w=3$ are globally asymptotically stable. However, the linear stiffness matrix is negative definite,
+and therefore, the system is not globally asymptotically stable. This is illustrated in Fig. R3 of the global response.
+
 
 ### PID vs. PD
 
@@ -64,7 +86,7 @@ Actually, a higher proportional term is beneficial for the response time (and wi
 while it leads to overshooting and oscillations in the _P-satI-D + FF_ case.
 We stress that this is not an inherent problem of the feedback controller, but can be mitigated through a different tuning of the feedback gains.
 For this rebuttal, we have simulated a _P-satI-D + FF_ controller with $K_\mathrm{p} = 0$, $K_\mathrm{i} = 2$, and $K_\mathrm{d} = 0.1$, which means that we set the proportional term to zero and increased the damping factor.
-The results, that are included in the PDF of the global response, show that the oscillations and the overshooting are both significantly reduced.
+The results, that are included as Fig. R4 in the PDF of the global response, show that the oscillations and the overshooting are both significantly reduced.
 We also note that the issues raised by the Reveiwer would not be present for a system with higher damping.
 
 
