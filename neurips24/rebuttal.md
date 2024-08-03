@@ -25,9 +25,9 @@ Therefore, we conclude that passivity is not sufficient to prove global asymptot
 #### (B): Stable harmonic oscillators -> Stable Networks?
 
 Even if the individual systems (i.e., the harmonic oscillators) are stable, care needs to be taken when coupling them not to create an unstable network.
-We illustrate this with the following example: consider a CON of dimensionality two with $K = [[1.0, -1.4],[-1.4 1.0]]$, $D = \mathrm{diag}(0.4, 0.4)$ $W = \mathrm{diag}(3, 3)$, 
+We illustrate this with the following example: consider a CON of dimensionality two with $K = [[1.0, -1.4],[-1.4, 1.0]]$, $D = \mathrm{diag}(0.4, 0.4)$ $W = \mathrm{diag}(3, 3)$, 
 It can be easily shown that the oscillators individually with the EoM
-$\ddot{x}_i + k x_i + d \dot{x}_i + \tanh(w \, x_i)= 0,$
+$\ddot{x}_i + k x_i + d \dot{x}_i + \tanh(w x_i)= 0,$
 where $k=1$, $d=0.4$, and $w=3$ are globally asymptotically stable. However, the linear stiffness matrix is negative definite,
 and therefore, the system is not globally asymptotically stable. This is illustrated in Fig. R3 of the global response.
 
