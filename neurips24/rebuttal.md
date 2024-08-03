@@ -43,6 +43,8 @@ In the final version of the paper, we will remove the subsentence "_steady-state
 
 > <cite>R1</cite>: The main contribution seems to be the new network structure that allows to exploit the potential energy for energy shaping methods. The VAE and controller are existing methods. Thus, a more detailed elaboration on the performance and limitation of CONs would be beneficial as it is evaluated for soft robotics data sets only.
 
+Furthermore, we would like to stress that we also regard the closed-form approximation of the CON dynamics as an important contribution.
+
 ### Inference time of CON
 
 > <cite>R1</cite>: Can you add the inference time for the different methods in Table 1? If that’s not possible, could you give some general comments on the inference time of CONs?
