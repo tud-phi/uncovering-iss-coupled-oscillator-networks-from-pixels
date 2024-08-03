@@ -74,19 +74,16 @@ def simulate_ode(ode_fn: Callable, ts: Array, y0: Array, sim_dt: Array, tau: Opt
 def simulate_unstable_con():
     K = jnp.array([[-1.0]])
     D = jnp.array([[0.4]])
-    W = jnp.array([[3.0]])
+    W = jnp.array([[0.0]])
     b = jnp.array([0.0])
 
     ode_fn, energy_fn = con_ode_factory(K, D, W, b)
     ts = jnp.linspace(0.0, 4.0, 1000)
     sim_dt = jnp.array(1e-4)
     y0s = jnp.array([
-        [-1.2, 0.0],
         [-1.0, 0.0],
-        [-0.4, 0.0],
-        [0.4, 0.0],
+        [0.0, 0.0],
         [1.0, 0.0],
-        [1.2, 0.0],
     ])
 
     # plot the trajectory
@@ -106,9 +103,7 @@ def simulate_unstable_con():
 
     # create grid
     y_eqs = jnp.array([
-        [-1.0, 0.0],
         [0.0, 0.0],
-        [1.0, 0.0],
     ])
     ylim = jnp.array([[-3.0, 3.0], [-1.2, 1.2]])
     x_pts = jnp.linspace(ylim[0, 0], ylim[0, 1], 1000)
