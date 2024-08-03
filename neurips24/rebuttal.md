@@ -81,3 +81,13 @@ In the following, we will respond to the questions raised by the reviewer, which
 
 > <cite>R2</cite>: Have you considered non-physical systems?
 
+We thank the Reviewer for their interest in this topic. While we do think that the CON / CFA-CON models could be potentially useful
+in other applications where strong stability guarantees are required, we strive to focus in this paper on learning
+the dynamics of physical/mechanical systems as we can here leverage (a) the shared stability characteristics between
+the original and the latent space systems, and (b) exploit the mechanical structure of the CON model for control.
+To make this focus more clear, we will in the final paper modify the sentence starting on line 69 to (with changes marked in *italic*):
+
+> We resolve all the above-mentioned challenges by proposing Coupled Oscillator Networks (CONs), a
+new formulation of a coupled oscillator network that is inherently Input-to-State Stability (ISS) stable, *for learning the dynamics of physical systems,*
+and subsequently exploiting its structure for model-based control in latent space.
+
