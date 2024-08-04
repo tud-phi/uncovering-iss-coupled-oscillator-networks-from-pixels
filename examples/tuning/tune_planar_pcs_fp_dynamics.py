@@ -88,6 +88,7 @@ if __name__ == "__main__":
             f"planar_pcs/{system_type}_64x64px",
             seed=seed,
             batch_size=batch_size,
+            num_epochs=max_num_epochs,
             normalize=True,
             grayscale=True,
         )

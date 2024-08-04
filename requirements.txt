@@ -27,3 +27,4 @@ tensorflow-datasets
 tqdm
 
 git+https://github.com/mstoelzle/ciclo
+git+https://github.com/mstoelzle/dm_hamiltonian_dynamics_suite

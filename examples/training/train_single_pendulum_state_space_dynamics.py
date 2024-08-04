@@ -65,6 +65,7 @@ if __name__ == "__main__":
         "pendulum/single_pendulum_32x32px",
         seed=seed,
         batch_size=batch_size,
+        num_epochs=num_epochs,
         normalize=True,
         grayscale=True,
     )

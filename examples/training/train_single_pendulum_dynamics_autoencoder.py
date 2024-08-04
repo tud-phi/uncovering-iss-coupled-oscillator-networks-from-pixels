@@ -259,6 +259,7 @@ if __name__ == "__main__":
         dataset_name,
         seed=seed,
         batch_size=batch_size,
+        num_epochs=num_epochs,
         normalize=True,
         grayscale=True,
     )

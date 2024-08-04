@@ -60,13 +60,16 @@ n_z_range = onp.arange(1, 32, step=2)
 # set the range of random seeds
 seed_range = onp.array([0, 1, 2])
 
-# set the system type in ["single_pendulum", "cc", "cs", "pcc_ns-2"]
+# set the system type in [
+# "cc", "cs", "pcc_ns-2",
+# "mass_spring_friction", "pendulum_friction", "double_pendulum_friction",
+# "single_pendulum"]
 system_type = "pcc_ns-2"
 long_horizon_dataset = True
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 """ dynamics_model_name in [
-    "node-general-mlp", "node-mechanical-mlp", "node-mechanical-mlp-s", 
-    "node-cornn", "node-con", "node-w-con", "node-con-iae",  "node-con-iae-s", "node-dcon", "node-lnn", 
+    "node-general-mlp", "node-mechanical-mlp", "node-mechanical-mlp-s",
+    "node-cornn", "node-con", "node-w-con", "node-con-iae",  "node-con-iae-s", "node-dcon", "node-lnn",
     "node-hippo-lss", "node-mamba",
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
     "ar-con-iae-cfa", "ar-elman-rnn", "ar-gru-rnn", "ar-cornn"
@@ -76,7 +79,13 @@ dynamics_model_name = "node-con-iae"
 # simulation time step
 if system_type in ["cc", "cs", "pcc_ns-2", "pcc_ns-3", "pcc_ns-4"]:
     sim_dt = 1e-2
-elif system_type in ["single_pendulum", "double_pendulum"]:
+elif system_type in [
+    "single_pendulum",
+    "double_pendulum",
+    "mass_spring_friction",
+    "pendulum_friction",
+    "double_pendulum_friction",
+]:
     sim_dt = 2.5e-2
 else:
     raise ValueError(f"Unknown system_type: {system_type}")
@@ -390,15 +399,101 @@ match system_type:
                 raise NotImplementedError(
                     f"{system_type} with dynamics_model_name '{dynamics_model_name}' not implemented yet."
                 )
-
-# identify the number of segments
-if system_type in ["single_pendulum", "cs", "cc"]:
-    num_segments = 1
-elif system_type.split("_")[0] == "pcc":
-    num_segments = int(system_type.split("-")[-1])
-else:
-    raise ValueError(f"Unknown system_type: {system_type}")
-print(f"Number of segments: {num_segments}")
+    case "mass_spring_friction":
+        batch_size = 30
+        num_epochs = 30
+        match dynamics_model_name:
+            case "node-general-mlp" | "node-general-mlp-s":
+                raise NotImplementedError
+                # optimized for "node-general-mlp at n_z=8
+                base_lr = 0.014939778657771675
+                loss_weights = dict(
+                    mse_z=0.11585323330519746,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=1.0855655639592068,
+                    beta=0.00010190409372368565,
+                )
+                weight_decay = 6.3092347119914266e-6
+                if dynamics_model_name == "node-general-mlp-s":
+                    num_mlp_layers, mlp_hidden_dim = 2, 12
+                else:
+                    num_mlp_layers, mlp_hidden_dim = 5, 30
+                mlp_nonlinearity_name = "tanh"
+            case "node-mechanical-mlp" | "node-mechanical-mlp-s":
+                raise NotImplementedError
+                # optimized for n_z=8
+                base_lr = 0.007137268676917664
+                loss_weights = dict(
+                    mse_z=0.17701201082200202,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=50.808302047597074,
+                    beta=0.002678889167847793,
+                )
+                weight_decay = 4.5818408762378344e-05
+                """
+                originally tuned for
+                num_mlp_layers, mlp_hidden_dim = 5, 21
+                mlp_nonlinearity_name = "tanh"
+                """
+                if dynamics_model_name == "node-mechanical-mlp-s":
+                    num_mlp_layers, mlp_hidden_dim = 2, 12
+                else:
+                    num_mlp_layers, mlp_hidden_dim = 5, 30
+                mlp_nonlinearity_name = "tanh"
+            case "node-con-iae" | "node-con-iae-s":
+                # optimized for n_z=8
+                base_lr = 0.018486990918444367
+                loss_weights = dict(
+                    mse_z=0.3733687489479885,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=83.7248326772002,
+                    beta=0.00020068384639167935,
+                    mse_tau_rec=5e1,
+                )
+                weight_decay = 5.5340117045438595e-06
+                if dynamics_model_name == "node-con-iae-s":
+                    num_mlp_layers, mlp_hidden_dim = 2, 12
+                else:
+                    num_mlp_layers, mlp_hidden_dim = 5, 30
+            case "ar-con-iae-cfa":
+                raise NotImplementedError
+                # optimized for n_z=8
+                base_lr = 0.018088317332901616
+                loss_weights = dict(
+                    mse_z=0.10824911140537369,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=80.45564515992584,
+                    beta=0.00010659152931072577,
+                    mse_tau_rec=1e1,
+                )
+                weight_decay = 2.6404635847920316e-05
+                num_mlp_layers, mlp_hidden_dim = 5, 30
+            case "ar-elman-rnn":
+                raise NotImplementedError
+                # optimized for n_z=8
+                base_lr = 0.007657437611794232
+                loss_weights = dict(
+                    mse_z=0.1842314509146704,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=81.49655648203793,
+                    beta=0.00035525861444533717,
+                )
+                weight_decay = 1.7957485073520818e-05
+            case "ar-gru-rnn":
+                raise NotImplementedError
+                # optimized for n_z=8
+                base_lr = 0.018086259222854423
+                loss_weights = dict(
+                    mse_z=0.4869102462993362,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=4.076717892106955,
+                    beta=0.00015467929625107515,
+                )
+                weight_decay = 2.655293203579677e-05
+            case _:
+                raise NotImplementedError(
+                    f"{system_type} with dynamics_model_name '{dynamics_model_name}' not implemented yet."
+                )
 
 # identify the dynamics_type
 dynamics_type = dynamics_model_name.split("-")[0]
@@ -458,20 +553,28 @@ if __name__ == "__main__":
                 dataset_type = "planar_pcs"
             elif system_type in ["single_pendulum", "double_pendulum"]:
                 dataset_type = "pendulum"
+            elif system_type in ["mass_spring_friction", "pendulum_friction", "double_pendulum_friction"]:
+                dataset_type = "toy_physics"
             else:
                 raise ValueError(f"Unknown system_type: {system_type}")
 
             dataset_name_postfix = ""
-            if long_horizon_dataset:
-                dataset_name_postfix = f"_h-101"
+            if dataset_type == "toy_physics":
+                dataset_name_postfix += f"_dt_0_05"
+            else:
+                dataset_name_postfix += f"_32x32px"
+            if long_horizon_dataset and dataset_type != "toy_physics":
+                dataset_name_postfix += f"_h-101"
 
-            dataset_name = f"{dataset_type}/{system_type}_32x32px{dataset_name_postfix}"
+            dataset_name = f"{dataset_type}/{system_type}{dataset_name_postfix}"
             datasets, dataset_info, dataset_metadata = load_dataset(
                 dataset_name,
                 seed=seed,
                 batch_size=batch_size,
+                num_epochs=num_epochs,
                 normalize=True,
                 grayscale=True,
+                dataset_type="dm_hamiltonian_dynamics_suite" if dataset_type == "toy_physics" else "jsrm",
             )
             train_ds, val_ds, test_ds = (
                 datasets["train"],
@@ -480,7 +583,7 @@ if __name__ == "__main__":
             )
 
             # extract the robot parameters from the dataset
-            robot_params = dataset_metadata["system_params"]
+            robot_params = dataset_metadata.get("system_params", {})
             # size of torques
             n_tau = train_ds.element_spec["tau"].shape[
                 -1
