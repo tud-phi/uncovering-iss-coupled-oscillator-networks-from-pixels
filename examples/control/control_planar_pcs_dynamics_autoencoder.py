@@ -202,8 +202,10 @@ if __name__ == "__main__":
     q0_min, q0_max = dataset_metadata["x0_min"][:n_q], dataset_metadata["x0_max"][:n_q]
 
     # get the dynamics function
-    strain_basis, forward_kinematics_fn, dynamical_matrices_fn, auxiliary_fns = planar_pcs.factory(
-        sym_exp_filepath, strain_selector=dataset_metadata["strain_selector"]
+    strain_basis, forward_kinematics_fn, dynamical_matrices_fn, auxiliary_fns = (
+        planar_pcs.factory(
+            sym_exp_filepath, strain_selector=dataset_metadata["strain_selector"]
+        )
     )
     ode_fn = ode_with_forcing_factory(dynamical_matrices_fn, robot_params)
 
@@ -322,7 +324,7 @@ if __name__ == "__main__":
             {"params": state.params},
             method=nn_model.decode,
         )(z[None, ...])[0, ...]
-    
+
     # get an estimate of the maximum latent
     img_q0_max = rendering_fn(q0_max)
     img_q0_max = jnp.array(

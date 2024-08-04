@@ -1,4 +1,5 @@
 import jax
+
 jax.config.update("jax_enable_x64", True)  # double precision
 jax.config.update("jax_platform_name", "cpu")  # use CPU
 
@@ -13,7 +14,9 @@ from src.control.utils import compute_settling_time_on_setpoint_trajectory
 seed = 0
 system_type = "pcc_ns-2"
 # set the dynamics_model_name
-dynamics_model_name = "node-con-iae"  # "node-con-iae", "node-con-iae-s", "node-mechanical-mlp"
+dynamics_model_name = (
+    "node-con-iae"  # "node-con-iae", "node-con-iae-s", "node-mechanical-mlp"
+)
 n_z = 2
 
 if __name__ == "__main__":
@@ -47,7 +50,7 @@ if __name__ == "__main__":
             raise ValueError(
                 f"No experiment_id for dynamics_model_name={dynamics_model_name}"
             )
-        
+
     ckpt_dir = (
         Path("logs").resolve() / f"{system_type}_dynamics_autoencoder" / experiment_id
     )
@@ -68,7 +71,7 @@ if __name__ == "__main__":
         q_lines = []
         q_des_lines = []
         for i in range(n_q):
-            (line, ) = ax.plot(
+            (line,) = ax.plot(
                 [],
                 [],
                 color=colors[i],
@@ -78,7 +81,7 @@ if __name__ == "__main__":
                 label=r"$q^\mathrm{d}_" + str(i) + "$",
             )
             q_des_lines.append(line)
-            (line, ) = ax.plot(
+            (line,) = ax.plot(
                 [],
                 [],
                 color=colors[i],
@@ -136,4 +139,3 @@ if __name__ == "__main__":
         pbar.close()
 
     animate_configuration_trajectory()
-

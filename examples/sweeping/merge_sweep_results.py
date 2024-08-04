@@ -30,6 +30,7 @@ def load_sweep_results(sweep_folder: Path) -> Dict:
 
     return sweep_results
 
+
 def tree_concatenate(trees):
     """Takes a list of trees and concatenates every corresponding leaf.
     For example, given two trees ((a, b), c) and ((a', b'), c'), returns
@@ -56,7 +57,9 @@ if __name__ == "__main__":
         if merged_sweep_results is None:
             merged_sweep_results = sweep_results
         else:
-            merged_sweep_results = tree_concatenate([merged_sweep_results, sweep_results])
+            merged_sweep_results = tree_concatenate(
+                [merged_sweep_results, sweep_results]
+            )
 
     print("Merged test results:\n")
     for key, value in merged_sweep_results["test"].items():

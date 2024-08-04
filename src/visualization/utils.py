@@ -43,7 +43,7 @@ def denormalize_img(img: Array, apply_threshold: bool = False) -> Array:
         img: The normalized image as float in the range [-1, 1].
         apply_threshold: Whether to apply a threshold to the image.
     Returns:
-        img: The denormalized image as integer in the range [0, 255].    
+        img: The denormalized image as integer in the range [0, 255].
     """
     img = (img + 1) * 127.5
     img = jnp.clip(img, 0, 255)

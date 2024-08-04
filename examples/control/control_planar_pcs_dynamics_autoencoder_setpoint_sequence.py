@@ -53,7 +53,9 @@ tf.random.set_seed(seed=seed)
 system_type = "pcc_ns-2"
 long_horizon_dataset = True
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
-dynamics_model_name = "node-con-iae"  # "node-con-iae", "node-con-iae-s", "node-mechanical-mlp"
+dynamics_model_name = (
+    "node-con-iae"  # "node-con-iae", "node-con-iae-s", "node-mechanical-mlp"
+)
 # latent space shape
 n_z = 2
 # number of configuration space dimensions
@@ -147,7 +149,13 @@ for k in range(n_z // len(plt_colors_cycle) + 1):
 if __name__ == "__main__":
     # generate a random setpoint sequence
     rng_setpoint = random.PRNGKey(seed=1)
-    q_des_ps = 5.0 * jnp.pi * random.uniform(rng_setpoint, shape=(num_setpoints, n_q), minval=-1.0, maxval=1.0)
+    q_des_ps = (
+        5.0
+        * jnp.pi
+        * random.uniform(
+            rng_setpoint, shape=(num_setpoints, n_q), minval=-1.0, maxval=1.0
+        )
+    )
 
     dataset_name = f"planar_pcs/{system_type}_32x32px_h-101"
     datasets, dataset_info, dataset_metadata = load_dataset(
@@ -172,8 +180,10 @@ if __name__ == "__main__":
     q0_min, q0_max = dataset_metadata["x0_min"][:n_q], dataset_metadata["x0_max"][:n_q]
 
     # get the dynamics function
-    strain_basis, forward_kinematics_fn, dynamical_matrices_fn, auxiliary_fns = planar_pcs.factory(
-        sym_exp_filepath, strain_selector=dataset_metadata["strain_selector"]
+    strain_basis, forward_kinematics_fn, dynamical_matrices_fn, auxiliary_fns = (
+        planar_pcs.factory(
+            sym_exp_filepath, strain_selector=dataset_metadata["strain_selector"]
+        )
     )
     ode_fn = ode_with_forcing_factory(dynamical_matrices_fn, robot_params)
 
@@ -272,8 +282,12 @@ if __name__ == "__main__":
     nn_model_bound = nn_model.bind({"params": state.params})
     dynamics_model_bound = dynamics_model.bind({"params": state.params["dynamics"]})
     energy_fn = getattr(dynamics_model_bound, "energy_fn", None)
-    potential_energy_fn: callable = getattr(dynamics_model_bound, "potential_energy_fn", None)
-    kinetic_energy_fn: callable = getattr(dynamics_model_bound, "kinetic_energy_fn", None)
+    potential_energy_fn: callable = getattr(
+        dynamics_model_bound, "potential_energy_fn", None
+    )
+    kinetic_energy_fn: callable = getattr(
+        dynamics_model_bound, "kinetic_energy_fn", None
+    )
 
     def encode_fn(img: Array) -> Array:
         return partial(
@@ -288,7 +302,7 @@ if __name__ == "__main__":
             {"params": state.params},
             method=nn_model.decode,
         )(z[None, ...])[0, ...]
-    
+
     # get an estimate of the maximum latent
     img_q0_max = rendering_fn(q0_max)
     img_q0_max = jnp.array(
@@ -300,7 +314,7 @@ if __name__ == "__main__":
     z2_range = jnp.linspace(-z0_max[1], z0_max[1], 100)
     z1_grid, z2_grid = jnp.meshgrid(z1_range, z2_range)
     z_grid = jnp.stack([z1_grid, z2_grid], axis=-1)
-    
+
     if n_z == 2:
         match dynamics_model_name:
             case "node-con" | "node-w-con":
@@ -571,7 +585,9 @@ if __name__ == "__main__":
         # compute the ground-truth potential energy landscape in the configuration space
         U_grid = jnp.zeros(q_grid.shape[:2])
         tau_pot_grid = jnp.zeros(q_grid.shape[:2] + (n_tau,))
-        robot_potential_energy_fn = jit(partial(auxiliary_fns["potential_energy_fn"], robot_params))
+        robot_potential_energy_fn = jit(
+            partial(auxiliary_fns["potential_energy_fn"], robot_params)
+        )
         for i in range(q_grid.shape[0]):
             for j in range(q_grid.shape[1]):
                 q = q_grid[i, j]
@@ -756,16 +772,16 @@ if __name__ == "__main__":
         sim_ts["V_ts"] = jax.vmap(energy_fn)(xi_ts)  # total energy
         sim_ts["T_ts"] = jax.vmap(kinetic_energy_fn)(xi_ts)  # kinetic energy
         sim_ts["U_ts"] = jax.vmap(potential_energy_fn)(xi_ts)  # potential energy
-        sim_ts["U_des_ts"] = jax.vmap(potential_energy_fn)(z_des_ts)  # desired potential energy
+        sim_ts["U_des_ts"] = jax.vmap(potential_energy_fn)(
+            z_des_ts
+        )  # desired potential energy
 
     # save the simulation results
     onp.savez(ckpt_dir / "setpoint_sequence_controlled_rollout.npz", **sim_ts)
 
     # denormalize the images
     img_ts = jax.vmap(partial(denormalize_img, apply_threshold=True))(img_ts)
-    img_des_ts = jax.vmap(partial(denormalize_img, apply_threshold=True))(
-        img_des_ts
-    )
+    img_des_ts = jax.vmap(partial(denormalize_img, apply_threshold=True))(img_des_ts)
 
     # animate the rollout
     print("Animate the rollout...")

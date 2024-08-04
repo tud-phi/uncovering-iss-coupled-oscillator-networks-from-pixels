@@ -224,8 +224,10 @@ if __name__ == "__main__":
     img_shape = train_ds.element_spec["rendering_ts"].shape[-3:]  # image shape
 
     # get the dynamics function
-    strain_basis, forward_kinematics_fn, dynamical_matrices_fn, auxiliary_fns = planar_pcs.factory(
-        sym_exp_filepath, strain_selector=dataset_metadata["strain_selector"]
+    strain_basis, forward_kinematics_fn, dynamical_matrices_fn, auxiliary_fns = (
+        planar_pcs.factory(
+            sym_exp_filepath, strain_selector=dataset_metadata["strain_selector"]
+        )
     )
     ode_fn = ode_with_forcing_factory(dynamical_matrices_fn, robot_params)
 
@@ -414,7 +416,9 @@ if __name__ == "__main__":
     )
 
     # record inference time (with batch size 1)
-    inference_forward_fn = jax.jit(partial(task_callables.forward_fn, nn_params=state.params))
+    inference_forward_fn = jax.jit(
+        partial(task_callables.forward_fn, nn_params=state.params)
+    )
     sample_batch = next(test_ds.as_numpy_iterator())
     # print("Sample batch\n")
     # for k, v in sample_batch.items():
@@ -432,7 +436,10 @@ if __name__ == "__main__":
     #     print(k, v.shape)
     # time inference
     num_inference_repeats = 1000
-    mean_inference_time = timeit(lambda: inference_forward_fn(sample_batch), number=num_inference_repeats) / num_inference_repeats
+    mean_inference_time = (
+        timeit(lambda: inference_forward_fn(sample_batch), number=num_inference_repeats)
+        / num_inference_repeats
+    )
     print("Mean inference time: ", mean_inference_time * 1e3, "ms")
 
     # define settings for the rollout
@@ -511,7 +518,7 @@ if __name__ == "__main__":
         filepath=ckpt_dir / "rollout.mp4",
         step_skip=1,
         show=True,
-        label_target="Ground-truth"
+        label_target="Ground-truth",
     )
     animate_image_cv2(
         onp.array(ts_rollout[start_time_idx:]),

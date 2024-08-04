@@ -452,7 +452,9 @@ def task_factory(
             )(x_init_bt.astype(jnp.float64), tau_bt_sim.astype(jnp.float64))
 
             # extract only the sampling steps (i.e., remove the remaining simulation steps)
-            x_dynamic_pred_bt = x_dynamic_pred_sim_bt[:, ::sample_sim_skip_step, ...].astype(jnp.float32)
+            x_dynamic_pred_bt = x_dynamic_pred_sim_bt[
+                :, ::sample_sim_skip_step, ...
+            ].astype(jnp.float32)
 
             z_dynamic_pred_bt = x_dynamic_pred_bt[..., :n_z].astype(jnp.float32)
             z_d_dynamic_pred_bt = x_dynamic_pred_bt[..., n_z:].astype(jnp.float32)
@@ -605,13 +607,16 @@ def task_factory(
 
         if compute_psnr:
             batch_loss_dict["psnr_rec_static"] = peak_signal_to_noise_ratio(
-                preds["img_static_ts"], batch["rendering_ts"],
-                data_min=-1.0, data_max=1.0
+                preds["img_static_ts"],
+                batch["rendering_ts"],
+                data_min=-1.0,
+                data_max=1.0,
             )
             batch_loss_dict["psnr_rec_dynamic"] = peak_signal_to_noise_ratio(
                 preds["img_dynamic_ts"],
                 batch["rendering_ts"][:, start_time_idx:],
-                data_min=-1.0, data_max=1.0
+                data_min=-1.0,
+                data_max=1.0,
             )
 
         if compute_ssim:

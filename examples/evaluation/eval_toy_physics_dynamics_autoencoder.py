@@ -114,7 +114,7 @@ if __name__ == "__main__":
         batch_size=batch_size,
         normalize=True,
         grayscale=True,
-        dataset_type="dm_hamiltonian_dynamics_suite"
+        dataset_type="dm_hamiltonian_dynamics_suite",
     )
     train_ds, val_ds, test_ds = datasets["train"], datasets["val"], datasets["test"]
 
@@ -124,7 +124,6 @@ if __name__ == "__main__":
     n_tau = train_ds.element_spec["tau"].shape[-1]  # dimension of the control input
     # image shape
     img_shape = train_ds.element_spec["rendering_ts"].shape[-3:]  # image shape
-
 
     # initialize the neural networks
     if ae_type == "beta_vae":
@@ -299,9 +298,10 @@ if __name__ == "__main__":
         f"ssim_rec_dynamic={test_metrics['ssim_rec_dynamic']:.4f}"
     )
 
-
     num_rollouts = 10
-    inference_forward_fn = jax.jit(partial(task_callables.forward_fn, nn_params=state.params))
+    inference_forward_fn = jax.jit(
+        partial(task_callables.forward_fn, nn_params=state.params)
+    )
     for batch_idx, batch in enumerate(test_ds.as_numpy_iterator()):
         pred = inference_forward_fn(batch)
 
@@ -318,7 +318,7 @@ if __name__ == "__main__":
             filepath=ckpt_dir / f"rollout_{batch_idx}.mp4",
             step_skip=1,
             show=False,
-            label_target="Ground-truth"
+            label_target="Ground-truth",
         )
         # animate_image_cv2(
         #     onp.array(ts),

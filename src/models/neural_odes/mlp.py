@@ -52,7 +52,7 @@ class MlpOde(NeuralOdeBase):
         gamma: Union[float, Array] = 1.0,
     ) -> Tuple[Array, Dict[str, Array], Dict[str, Array]]:
         z = x[..., : self.latent_dim]
-        z_d = x[..., self.latent_dim:]
+        z_d = x[..., self.latent_dim :]
 
         # compute error in the latent space
         error_z = z_des - z
@@ -64,7 +64,9 @@ class MlpOde(NeuralOdeBase):
         # decode the control input into the input space
         # linearize the system w.r.t. the actuation
         tau_eq = jnp.zeros((self.input_dim,))
-        B = jacfwd(lambda x, tau: self.__call__(x, tau)[self.latent_dim:], argnums=1)(x, tau_eq)
+        B = jacfwd(lambda x, tau: self.__call__(x, tau)[self.latent_dim :], argnums=1)(
+            x, tau_eq
+        )
         tau = B.T @ u
         """
         primals, f_vjp = nn.vjp(lambda mdl, tau: self.__call__(x, tau)[self.latent_dim:], self, tau_eq)

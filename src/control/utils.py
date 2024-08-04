@@ -2,7 +2,9 @@ from jax import Array
 import jax.numpy as jnp
 
 
-def compute_settling_time_on_setpoint_trajectory(ts: Array, ref_ts: Array, traj_ts: Array, threshold: float = 0.02):
+def compute_settling_time_on_setpoint_trajectory(
+    ts: Array, ref_ts: Array, traj_ts: Array, threshold: float = 0.02
+):
     """
     Compute the settling time on a setpoint trajectory.
     Arguments:
@@ -35,7 +37,9 @@ def compute_settling_time_on_setpoint_trajectory(ts: Array, ref_ts: Array, traj_
     total_settling_time = 0.0
     for step_idx in range(len(step_size_stps)):
         if step_idx < len(step_size_stps) - 1:
-            step_selector = (ts >= step_time_stps[step_idx]) & (ts < step_time_stps[step_idx + 1])
+            step_selector = (ts >= step_time_stps[step_idx]) & (
+                ts < step_time_stps[step_idx + 1]
+            )
         else:
             step_selector = ts >= step_time_stps[step_idx]
 
@@ -44,11 +48,16 @@ def compute_settling_time_on_setpoint_trajectory(ts: Array, ref_ts: Array, traj_
         settled = jnp.cumprod(settled[::-1])[::-1]
 
         if jnp.sum(settled) > 0.0:
-            settling_time = ts[step_selector][jnp.argmax(settled, keepdims=True)[0]] - ts[step_selector][0]
+            settling_time = (
+                ts[step_selector][jnp.argmax(settled, keepdims=True)[0]]
+                - ts[step_selector][0]
+            )
         else:
             settling_time = ts[step_selector][-1] - ts[step_selector][0]
         total_settling_time += settling_time
-        print(f"Step {step_idx}, settling time: {settling_time}, last norm_error: {norm_error[-1]}")
+        print(
+            f"Step {step_idx}, settling time: {settling_time}, last norm_error: {norm_error[-1]}"
+        )
 
     mean_settling_time = total_settling_time / step_time_stps.shape[0]
 

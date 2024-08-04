@@ -284,7 +284,7 @@ class ConOde(NeuralOdeBase):
                 raise ValueError(f"Coordinate {coordinate} not supported.")
 
         return terms
-    
+
     def kinetic_energy_fn(self, x: Array, coordinate: str = "z") -> Array:
         """
         Compute the kinetic energy of the system.
@@ -304,7 +304,7 @@ class ConOde(NeuralOdeBase):
         T = (0.5 * z_d[None, :] @ B @ z_d[:, None]).squeeze()
 
         return T
-    
+
     def potential_energy_fn(self, x: Array, coordinate: str = "z") -> Array:
         """
         Compute the potential energy of the system.

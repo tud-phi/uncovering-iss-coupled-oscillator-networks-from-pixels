@@ -106,7 +106,17 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             img_size=(32, 32),
             origin_uv=(16, 4),
             num_segments=3,
-            strain_selector=(True, False, False, True, False, False, True, False, False),
+            strain_selector=(
+                True,
+                False,
+                False,
+                True,
+                False,
+                False,
+                True,
+                False,
+                False,
+            ),
             q0_max=(5 * jnp.pi, 5 * jnp.pi, 5 * jnp.pi),
             q_d0_max=(5 * jnp.pi, 5 * jnp.pi, 5 * jnp.pi),
             num_simulations=14000,
@@ -139,7 +149,20 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             img_size=(32, 32),
             origin_uv=(16, 4),
             num_segments=4,
-            strain_selector=(True, False, False, True, False, False, True, False, False, True, False, False),
+            strain_selector=(
+                True,
+                False,
+                False,
+                True,
+                False,
+                False,
+                True,
+                False,
+                False,
+                True,
+                False,
+                False,
+            ),
             q0_max=(5 * jnp.pi, 5 * jnp.pi, 5 * jnp.pi, 5 * jnp.pi),
             q_d0_max=(5 * jnp.pi, 5 * jnp.pi, 5 * jnp.pi, 5 * jnp.pi),
             num_simulations=14000,
@@ -254,8 +277,8 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
         }
 
         # initialize the system
-        strain_basis, forward_kinematics_fn, dynamical_matrices_fn, auxiliary_fns = planar_pcs.factory(
-            sym_exp_filepath, strain_selector
+        strain_basis, forward_kinematics_fn, dynamical_matrices_fn, auxiliary_fns = (
+            planar_pcs.factory(sym_exp_filepath, strain_selector)
         )
 
         n_q = self.builder_config.state_dim // 2  # number of configuration variables

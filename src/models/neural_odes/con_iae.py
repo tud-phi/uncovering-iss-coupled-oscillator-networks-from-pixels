@@ -145,7 +145,7 @@ class ConIaeOde(NeuralOdeBase):
         u = self.encode_input(tau)
         tau_hat = self.decode_input(u)
         return tau_hat
-    
+
     def kinetic_energy_fn(self, x: Array) -> Array:
         """
         Compute the kinetic energy of the system.
@@ -162,7 +162,7 @@ class ConIaeOde(NeuralOdeBase):
         T = (0.5 * zw_d[None, :] @ B @ zw_d[:, None]).squeeze()
 
         return T
-    
+
     def potential_energy_fn(self, x: Array) -> Array:
         """
         Compute the potential energy of the system.

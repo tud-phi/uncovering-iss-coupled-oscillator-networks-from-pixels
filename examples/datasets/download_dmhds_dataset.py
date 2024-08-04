@@ -13,7 +13,7 @@ import jax
 
 jax.config.update("jax_enable_x64", True)
 tf.random.set_seed(seed=0)
-rc('animation', html='jshtml')
+rc("animation", html="jshtml")
 
 from dm_hamiltonian_dynamics_suite import load_datasets
 from dm_hamiltonian_dynamics_suite import datasets
@@ -153,7 +153,7 @@ def visualize_dataset(
         threads=None,
         prefetch=False,
         shuffle=False,
-        cache=False
+        cache=False,
     )
 
     print("Loaded dataset:\n", ds)

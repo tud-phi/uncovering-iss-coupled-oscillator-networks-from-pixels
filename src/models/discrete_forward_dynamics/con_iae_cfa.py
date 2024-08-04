@@ -126,7 +126,9 @@ class DiscreteConIaeCfaDynamics(DiscreteForwardDynamicsBase):
         )
 
         f = u - Gamma_coup @ z - E_coup @ z_d - jnp.tanh(self.W @ z + self.bias)
-        x_next = closed_form_approximation_step_fn(t0=jnp.array(0.0), t1=jnp.array(self.dt), y0=x, f=f)
+        x_next = closed_form_approximation_step_fn(
+            t0=jnp.array(0.0), t1=jnp.array(self.dt), y0=x, f=f
+        )
 
         return x_next
 
@@ -185,7 +187,7 @@ class DiscreteConIaeCfaDynamics(DiscreteForwardDynamicsBase):
         u = self.encode_input(tau)
         tau_hat = self.decode_input(u)
         return tau_hat
-    
+
     def kinetic_energy_fn(self, x: Array) -> Array:
         """
         Compute the kinetic energy of the system.
@@ -197,7 +199,7 @@ class DiscreteConIaeCfaDynamics(DiscreteForwardDynamicsBase):
         z_d = x[..., self.latent_dim :]
         T = 0.5 * jnp.sum(z_d**2)
         return T
-    
+
     def potential_energy_fn(self, x: Array) -> Array:
         """
         Compute the potential energy of the system.

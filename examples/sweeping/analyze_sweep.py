@@ -48,17 +48,17 @@ sweep_ids = [
     "2024-05-19_19-44-28_2024-05-20_11-05-49",  # node-mechanical-mlp
     "2024-05-15_23-41-01",  # node-con-iae-s
     "2024-05-19_19-30-16_2024-05-20_11-04-27_2024-05-21_11-10-16",  # node-con-iae
-    "2024-05-08_00-21-02"  # ar-con-iae-cfa
+    "2024-05-08_00-21-02",  # ar-con-iae-cfa
 ]
-system_types = ["pcc_ns-2", "pcc_ns-2", "pcc_ns-2", "pcc_ns-2", "pcc_ns-2", "pcc_ns-2"]  #  "cs", "pcc_ns-2" or "nb-2"
-model_names = [
-    "RNN",
-    "MECH-NODE-S",
-    "MECH-NODE",
-    "CON-S",
-    "CON-M",
-    "CFA-CON"
-]
+system_types = [
+    "pcc_ns-2",
+    "pcc_ns-2",
+    "pcc_ns-2",
+    "pcc_ns-2",
+    "pcc_ns-2",
+    "pcc_ns-2",
+]  #  "cs", "pcc_ns-2" or "nb-2"
+model_names = ["RNN", "MECH-NODE-S", "MECH-NODE", "CON-S", "CON-M", "CFA-CON"]
 
 # analysis settings
 plot_sweep = True
@@ -97,51 +97,97 @@ def generate_sweep_stats(sweep_results, verbose: bool = False) -> Dict:
     for key, value in sweep_results["test"].items():
         if value is not None:
             test_results[key] = jnp.array(value)
-    
+
     sweep_results_stats = {
         "n_z": n_z_range,
-        "num_trainable_params": {key: jnp.zeros_like(value, shape=(num_n_z, )) for key, value in sweep_results["num_trainable_params"].items()},
-        "train_mean": {key: jnp.zeros_like(value, shape=(num_n_z, )) for key, value in train_results.items()},
-        "train_std": {key: jnp.zeros_like(value, shape=(num_n_z, )) for key, value in train_results.items()},
-        "test_mean": {key: jnp.zeros_like(value, shape=(num_n_z, )) for key, value in test_results.items()},
-        "test_std": {key: jnp.zeros_like(value, shape=(num_n_z, )) for key, value in test_results.items()},
+        "num_trainable_params": {
+            key: jnp.zeros_like(value, shape=(num_n_z,))
+            for key, value in sweep_results["num_trainable_params"].items()
+        },
+        "train_mean": {
+            key: jnp.zeros_like(value, shape=(num_n_z,))
+            for key, value in train_results.items()
+        },
+        "train_std": {
+            key: jnp.zeros_like(value, shape=(num_n_z,))
+            for key, value in train_results.items()
+        },
+        "test_mean": {
+            key: jnp.zeros_like(value, shape=(num_n_z,))
+            for key, value in test_results.items()
+        },
+        "test_std": {
+            key: jnp.zeros_like(value, shape=(num_n_z,))
+            for key, value in test_results.items()
+        },
     }
     for i, n_z in enumerate(n_z_range):
         # filter for current n_z
         selector = sweep_results["n_z"] == n_z
 
         filtered_seeds = sweep_results["seed"][selector]
-        filtered_num_trainable_params = {key: value[selector] for key, value in sweep_results["num_trainable_params"].items()}
+        filtered_num_trainable_params = {
+            key: value[selector]
+            for key, value in sweep_results["num_trainable_params"].items()
+        }
         for key, value in filtered_num_trainable_params.items():
-            sweep_results_stats["num_trainable_params"][key] = sweep_results_stats["num_trainable_params"][key].at[i].set(jnp.mean(value).astype(jnp.int32))
+            sweep_results_stats["num_trainable_params"][key] = (
+                sweep_results_stats["num_trainable_params"][key]
+                .at[i]
+                .set(jnp.mean(value).astype(jnp.int32))
+            )
 
         if verbose:
-            print(f"Number of trainable parameters for n_z={n_z}:", {key: jnp.mean(value).astype(jnp.int32).item() for key, value in filtered_num_trainable_params.items()})
+            print(
+                f"Number of trainable parameters for n_z={n_z}:",
+                {
+                    key: jnp.mean(value).astype(jnp.int32).item()
+                    for key, value in filtered_num_trainable_params.items()
+                },
+            )
 
         filtered_train_results = {}
-        for key, value in  sweep_results["train"].items():
+        for key, value in sweep_results["train"].items():
             if value is not None:
                 filtered_train_results[key] = value[selector]
-                sweep_results_stats["train_mean"][key] = sweep_results_stats["train_mean"][key].at[i].set(jnp.mean(filtered_train_results[key]))
-                sweep_results_stats["train_std"][key] = sweep_results_stats["train_std"][key].at[i].set(jnp.std(filtered_train_results[key]))
+                sweep_results_stats["train_mean"][key] = (
+                    sweep_results_stats["train_mean"][key]
+                    .at[i]
+                    .set(jnp.mean(filtered_train_results[key]))
+                )
+                sweep_results_stats["train_std"][key] = (
+                    sweep_results_stats["train_std"][key]
+                    .at[i]
+                    .set(jnp.std(filtered_train_results[key]))
+                )
 
         filtered_test_results = {}
         for key, value in sweep_results["test"].items():
             if value is not None:
                 filtered_test_results[key] = value[selector]
-                sweep_results_stats["test_mean"][key] = sweep_results_stats["test_mean"][key].at[i].set(jnp.mean(filtered_test_results[key]))
-                sweep_results_stats["test_std"][key] = sweep_results_stats["test_std"][key].at[i].set(jnp.std(filtered_test_results[key]))
+                sweep_results_stats["test_mean"][key] = (
+                    sweep_results_stats["test_mean"][key]
+                    .at[i]
+                    .set(jnp.mean(filtered_test_results[key]))
+                )
+                sweep_results_stats["test_std"][key] = (
+                    sweep_results_stats["test_std"][key]
+                    .at[i]
+                    .set(jnp.std(filtered_test_results[key]))
+                )
 
             if verbose:
                 print(
                     f"Test results for n_z={n_z} {key}: "
-                    f"{jnp.mean(filtered_test_results[key]).item():4f} \u00B1 {jnp.std(filtered_test_results[key]).item():4f}"
+                    f"{jnp.mean(filtered_test_results[key]).item():4f} \u00b1 {jnp.std(filtered_test_results[key]).item():4f}"
                 )
 
     return sweep_results_stats
 
 
-def analyze_single_sweep(sweep_id: str, system_type: str, verbose: bool = True, plot_sweep: bool = True):
+def analyze_single_sweep(
+    sweep_id: str, system_type: str, verbose: bool = True, plot_sweep: bool = True
+):
     sweep_results, sweep_folder = load_sweep_results(sweep_id, system_type)
     sweep_results_stats = generate_sweep_stats(sweep_results, verbose=verbose)
 
@@ -161,17 +207,17 @@ def analyze_single_sweep(sweep_id: str, system_type: str, verbose: bool = True, 
             ecolor=ecolor,
             capsize=capsize,
             capthick=capthick,
-            label="RMSE rec static"
+            label="RMSE rec static",
         )
         ax.errorbar(
-            sweep_results_stats["n_z"], 
-            sweep_results_stats["test_mean"]["rmse_rec_dynamic"], 
+            sweep_results_stats["n_z"],
+            sweep_results_stats["test_mean"]["rmse_rec_dynamic"],
             yerr=sweep_results_stats["test_std"]["rmse_rec_dynamic"],
             elinewidth=elinewidth,
             ecolor=ecolor,
             capsize=capsize,
             capthick=capthick,
-            label="RMSE rec dynamic"
+            label="RMSE rec dynamic",
         )
         ax.set_xlabel("$n_z$")
         ax.set_ylabel("RMSE")
@@ -196,17 +242,17 @@ def analyze_single_sweep(sweep_id: str, system_type: str, verbose: bool = True, 
             ecolor=ecolor,
             capsize=capsize,
             capthick=capthick,
-            label="SSIM rec static"
+            label="SSIM rec static",
         )
         ax.errorbar(
-            sweep_results_stats["n_z"], 
-            sweep_results_stats["test_mean"]["ssim_rec_dynamic"], 
+            sweep_results_stats["n_z"],
+            sweep_results_stats["test_mean"]["ssim_rec_dynamic"],
             yerr=sweep_results_stats["test_std"]["ssim_rec_dynamic"],
             elinewidth=elinewidth,
             ecolor=ecolor,
             capsize=capsize,
             capthick=capthick,
-            label="SSIM rec dynamic"
+            label="SSIM rec dynamic",
         )
         ax.set_xlabel("$n_z$")
         ax.set_ylabel("SSIM")
@@ -272,10 +318,15 @@ def analyze_single_sweep(sweep_id: str, system_type: str, verbose: bool = True, 
         plt.show()
 
 
-def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_names: List[str], verbose: bool = False):
+def plot_model_comparison(
+    sweep_ids: List[str],
+    system_types: List[str],
+    model_names: List[str],
+    verbose: bool = False,
+):
     outputs_dir = Path(__file__).resolve().parent / "outputs"
     outputs_dir.mkdir(exist_ok=True)
-    
+
     # load sweep results and generate stats
     sweep_results_ms = []
     sweep_results_stats_ms = []
@@ -294,10 +345,12 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
         num=f"RMSE of static reconstruction vs. number of latent variables",
     )
     handles = []
-    for model_idx, (sweep_results_stats, model_name) in enumerate(zip(sweep_results_stats_ms, model_names)):
+    for model_idx, (sweep_results_stats, model_name) in enumerate(
+        zip(sweep_results_stats_ms, model_names)
+    ):
         errorbar_container_rmse_static = ax.errorbar(
-            sweep_results_stats["n_z"], 
-            sweep_results_stats["test_mean"]["rmse_rec_static"], 
+            sweep_results_stats["n_z"],
+            sweep_results_stats["test_mean"]["rmse_rec_static"],
             yerr=sweep_results_stats["test_std"]["rmse_rec_static"],
             linewidth=lw,
             color=colors[model_idx],
@@ -309,13 +362,14 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
         handles.append(errorbar_container_rmse_static.lines[0])
     ax.set_xlabel("$n_z$")
     ax.set_ylabel("RMSE")
-    ax.legend(handles=handles, labels=model_names, loc=legend_loc, fontsize=legend_fontsize)
+    ax.legend(
+        handles=handles, labels=model_names, loc=legend_loc, fontsize=legend_fontsize
+    )
     plt.grid(True)
     plt.box(True)
     plt.tight_layout()
     plt.savefig(outputs_dir / f"sweep_rmse_rec_static_vs_n_z.pdf")
     plt.show()
-
 
     # plot the RMSE of the dynamic reconstruction vs the number of latent variables
     fig, ax = plt.subplots(
@@ -325,10 +379,12 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
         num=f"RMSE of dynamic reconstruction vs. number of latent variables",
     )
     handles = []
-    for model_idx, (sweep_results_stats, model_name) in enumerate(zip(sweep_results_stats_ms, model_names)):
+    for model_idx, (sweep_results_stats, model_name) in enumerate(
+        zip(sweep_results_stats_ms, model_names)
+    ):
         errorbar_container_rmse_dynamic = ax.errorbar(
-            sweep_results_stats["n_z"], 
-            sweep_results_stats["test_mean"]["rmse_rec_dynamic"], 
+            sweep_results_stats["n_z"],
+            sweep_results_stats["test_mean"]["rmse_rec_dynamic"],
             yerr=sweep_results_stats["test_std"]["rmse_rec_dynamic"],
             linewidth=lw,
             color=colors[model_idx],
@@ -340,7 +396,9 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
         handles.append(errorbar_container_rmse_dynamic.lines[0])
     ax.set_xlabel("$n_z$")
     ax.set_ylabel("RMSE")
-    ax.legend(handles=handles, labels=model_names, loc=legend_loc, fontsize=legend_fontsize)
+    ax.legend(
+        handles=handles, labels=model_names, loc=legend_loc, fontsize=legend_fontsize
+    )
     plt.grid(True)
     plt.box(True)
     plt.tight_layout()
@@ -355,10 +413,12 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
         num=f"RMSE of static reconstruction vs. number of trainable parameters",
     )
     handles = []
-    for model_idx, (sweep_results_stats, model_name) in enumerate(zip(sweep_results_stats_ms, model_names)):
+    for model_idx, (sweep_results_stats, model_name) in enumerate(
+        zip(sweep_results_stats_ms, model_names)
+    ):
         errorbar_container_rmse_static = ax.errorbar(
-            sweep_results_stats["num_trainable_params"]["dynamics"], 
-            sweep_results_stats["test_mean"]["rmse_rec_static"], 
+            sweep_results_stats["num_trainable_params"]["dynamics"],
+            sweep_results_stats["test_mean"]["rmse_rec_static"],
             yerr=sweep_results_stats["test_std"]["rmse_rec_static"],
             linewidth=lw,
             color=colors[model_idx],
@@ -370,7 +430,9 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
         handles.append(errorbar_container_rmse_static.lines[0])
     ax.set_xlabel("Model parameters")
     ax.set_ylabel("RMSE")
-    ax.legend(handles=handles, labels=model_names, loc=legend_loc, fontsize=legend_fontsize)
+    ax.legend(
+        handles=handles, labels=model_names, loc=legend_loc, fontsize=legend_fontsize
+    )
     plt.grid(True)
     plt.box(True)
     plt.tight_layout()
@@ -385,10 +447,12 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
         num=f"RMSE of dynamic reconstruction vs. number of trainable parameters",
     )
     handles = []
-    for model_idx, (sweep_results_stats, model_name) in enumerate(zip(sweep_results_stats_ms, model_names)):
+    for model_idx, (sweep_results_stats, model_name) in enumerate(
+        zip(sweep_results_stats_ms, model_names)
+    ):
         errorbar_container_rmse_dynamic = ax.errorbar(
-            sweep_results_stats["num_trainable_params"]["dynamics"], 
-            sweep_results_stats["test_mean"]["rmse_rec_dynamic"], 
+            sweep_results_stats["num_trainable_params"]["dynamics"],
+            sweep_results_stats["test_mean"]["rmse_rec_dynamic"],
             yerr=sweep_results_stats["test_std"]["rmse_rec_dynamic"],
             linewidth=lw,
             color=colors[model_idx],
@@ -400,7 +464,9 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
         handles.append(errorbar_container_rmse_dynamic.lines[0])
     ax.set_xlabel("Model parameters")
     ax.set_ylabel("RMSE")
-    ax.legend(handles=handles, labels=model_names, loc=legend_loc, fontsize=legend_fontsize)
+    ax.legend(
+        handles=handles, labels=model_names, loc=legend_loc, fontsize=legend_fontsize
+    )
     plt.grid(True)
     plt.box(True)
     plt.tight_layout()
@@ -415,10 +481,12 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
         num=f"SSIM of static reconstruction vs. number of latent variables",
     )
     handles = []
-    for model_idx, (sweep_results_stats, model_name) in enumerate(zip(sweep_results_stats_ms, model_names)):
+    for model_idx, (sweep_results_stats, model_name) in enumerate(
+        zip(sweep_results_stats_ms, model_names)
+    ):
         errorbar_container_ssim_static = ax.errorbar(
-            sweep_results_stats["n_z"], 
-            sweep_results_stats["test_mean"]["ssim_rec_static"], 
+            sweep_results_stats["n_z"],
+            sweep_results_stats["test_mean"]["ssim_rec_static"],
             yerr=sweep_results_stats["test_std"]["ssim_rec_static"],
             linewidth=lw,
             color=colors[model_idx],
@@ -430,7 +498,9 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
         handles.append(errorbar_container_ssim_static.lines[0])
     ax.set_xlabel("$n_z$")
     ax.set_ylabel("SSIM")
-    ax.legend(handles=handles, labels=model_names, loc="lower right", fontsize=legend_fontsize)
+    ax.legend(
+        handles=handles, labels=model_names, loc="lower right", fontsize=legend_fontsize
+    )
     plt.grid(True)
     plt.box(True)
     plt.tight_layout()
@@ -445,10 +515,12 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
         num=f"SSIM of dynamic reconstruction vs. number of latent variables",
     )
     handles = []
-    for model_idx, (sweep_results_stats, model_name) in enumerate(zip(sweep_results_stats_ms, model_names)):
+    for model_idx, (sweep_results_stats, model_name) in enumerate(
+        zip(sweep_results_stats_ms, model_names)
+    ):
         errorbar_container_ssim_dynamic = ax.errorbar(
-            sweep_results_stats["n_z"], 
-            sweep_results_stats["test_mean"]["ssim_rec_dynamic"], 
+            sweep_results_stats["n_z"],
+            sweep_results_stats["test_mean"]["ssim_rec_dynamic"],
             yerr=sweep_results_stats["test_std"]["ssim_rec_dynamic"],
             linewidth=lw,
             color=colors[model_idx],
@@ -460,7 +532,9 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
         handles.append(errorbar_container_ssim_dynamic.lines[0])
     ax.set_xlabel("$n_z$")
     ax.set_ylabel("SSIM")
-    ax.legend(handles=handles, labels=model_names, loc="lower right", fontsize=legend_fontsize)
+    ax.legend(
+        handles=handles, labels=model_names, loc="lower right", fontsize=legend_fontsize
+    )
     plt.grid(True)
     plt.box(True)
     plt.tight_layout()
@@ -475,7 +549,9 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
         num=f"SSIM of dynamic reconstruction vs. number of trainable parameters",
     )
     handles = []
-    for model_idx, (sweep_results_stats, model_name) in enumerate(zip(sweep_results_stats_ms, model_names)):
+    for model_idx, (sweep_results_stats, model_name) in enumerate(
+        zip(sweep_results_stats_ms, model_names)
+    ):
         errorbar_container_ssim_dynamic = ax.errorbar(
             sweep_results_stats["num_trainable_params"]["dynamics"],
             sweep_results_stats["test_mean"]["ssim_rec_dynamic"],
@@ -490,7 +566,9 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
         handles.append(errorbar_container_ssim_dynamic.lines[0])
     ax.set_xlabel("Model parameters")
     ax.set_ylabel("SSIM")
-    ax.legend(handles=handles, labels=model_names, loc="lower right", fontsize=legend_fontsize)
+    ax.legend(
+        handles=handles, labels=model_names, loc="lower right", fontsize=legend_fontsize
+    )
     plt.grid(True)
     plt.box(True)
     plt.tight_layout()
@@ -505,11 +583,21 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
         num=f"PSNR of static reconstruction vs. number of latent variables",
     )
     handles = []
-    for model_idx, (sweep_results_stats, model_name) in enumerate(zip(sweep_results_stats_ms, model_names)):
-        psnr_static_mean = jnp.log10(2) - 10*jnp.log10(sweep_results_stats["test_mean"]["rmse_rec_static"]**2)
-        psnr_static_std = 10*(
-                jnp.log10((sweep_results_stats["test_mean"]["rmse_rec_static"]+sweep_results_stats["test_std"]["rmse_rec_static"])**2)
-                - jnp.log10(sweep_results_stats["test_mean"]["rmse_rec_static"]**2)
+    for model_idx, (sweep_results_stats, model_name) in enumerate(
+        zip(sweep_results_stats_ms, model_names)
+    ):
+        psnr_static_mean = jnp.log10(2) - 10 * jnp.log10(
+            sweep_results_stats["test_mean"]["rmse_rec_static"] ** 2
+        )
+        psnr_static_std = 10 * (
+            jnp.log10(
+                (
+                    sweep_results_stats["test_mean"]["rmse_rec_static"]
+                    + sweep_results_stats["test_std"]["rmse_rec_static"]
+                )
+                ** 2
+            )
+            - jnp.log10(sweep_results_stats["test_mean"]["rmse_rec_static"] ** 2)
         )
         errorbar_container_psnr_static = ax.errorbar(
             sweep_results_stats["n_z"],
@@ -525,7 +613,9 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
         handles.append(errorbar_container_psnr_static.lines[0])
     ax.set_xlabel("$n_z$")
     ax.set_ylabel("PSNR")
-    ax.legend(handles=handles, labels=model_names, loc="lower right", fontsize=legend_fontsize)
+    ax.legend(
+        handles=handles, labels=model_names, loc="lower right", fontsize=legend_fontsize
+    )
     plt.grid(True)
     plt.box(True)
     plt.tight_layout()
@@ -540,11 +630,21 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
         num=f"PSNR of dynamic reconstruction vs. number of latent variables",
     )
     handles = []
-    for model_idx, (sweep_results_stats, model_name) in enumerate(zip(sweep_results_stats_ms, model_names)):
-        psnr_dynamic_mean = jnp.log10(2) - 10*jnp.log10(sweep_results_stats["test_mean"]["rmse_rec_dynamic"]**2)
-        psnr_dynamic_std = 10*(
-                jnp.log10((sweep_results_stats["test_mean"]["rmse_rec_dynamic"]+sweep_results_stats["test_std"]["rmse_rec_dynamic"])**2)
-                - jnp.log10(sweep_results_stats["test_mean"]["rmse_rec_dynamic"]**2)
+    for model_idx, (sweep_results_stats, model_name) in enumerate(
+        zip(sweep_results_stats_ms, model_names)
+    ):
+        psnr_dynamic_mean = jnp.log10(2) - 10 * jnp.log10(
+            sweep_results_stats["test_mean"]["rmse_rec_dynamic"] ** 2
+        )
+        psnr_dynamic_std = 10 * (
+            jnp.log10(
+                (
+                    sweep_results_stats["test_mean"]["rmse_rec_dynamic"]
+                    + sweep_results_stats["test_std"]["rmse_rec_dynamic"]
+                )
+                ** 2
+            )
+            - jnp.log10(sweep_results_stats["test_mean"]["rmse_rec_dynamic"] ** 2)
         )
         errorbar_container_psnr_dynamic = ax.errorbar(
             sweep_results_stats["n_z"],
@@ -560,7 +660,9 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
         handles.append(errorbar_container_psnr_dynamic.lines[0])
     ax.set_xlabel("$n_z$")
     ax.set_ylabel("PSNR")
-    ax.legend(handles=handles, labels=model_names, loc="lower right", fontsize=legend_fontsize)
+    ax.legend(
+        handles=handles, labels=model_names, loc="lower right", fontsize=legend_fontsize
+    )
     plt.grid(True)
     plt.box(True)
     plt.tight_layout()
@@ -575,11 +677,21 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
         num=f"PSNR of dynamic reconstruction vs. number of trainable parameters",
     )
     handles = []
-    for model_idx, (sweep_results_stats, model_name) in enumerate(zip(sweep_results_stats_ms, model_names)):
-        psnr_dynamic_mean = jnp.log10(2) - 10*jnp.log10(sweep_results_stats["test_mean"]["rmse_rec_dynamic"]**2)
-        psnr_dynamic_std = 10*(
-                jnp.log10((sweep_results_stats["test_mean"]["rmse_rec_dynamic"]+sweep_results_stats["test_std"]["rmse_rec_dynamic"])**2)
-                - jnp.log10(sweep_results_stats["test_mean"]["rmse_rec_dynamic"]**2)
+    for model_idx, (sweep_results_stats, model_name) in enumerate(
+        zip(sweep_results_stats_ms, model_names)
+    ):
+        psnr_dynamic_mean = jnp.log10(2) - 10 * jnp.log10(
+            sweep_results_stats["test_mean"]["rmse_rec_dynamic"] ** 2
+        )
+        psnr_dynamic_std = 10 * (
+            jnp.log10(
+                (
+                    sweep_results_stats["test_mean"]["rmse_rec_dynamic"]
+                    + sweep_results_stats["test_std"]["rmse_rec_dynamic"]
+                )
+                ** 2
+            )
+            - jnp.log10(sweep_results_stats["test_mean"]["rmse_rec_dynamic"] ** 2)
         )
         errorbar_container_psnr_dynamic = ax.errorbar(
             sweep_results_stats["num_trainable_params"]["dynamics"],
@@ -595,7 +707,9 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
         handles.append(errorbar_container_psnr_dynamic.lines[0])
     ax.set_xlabel("Model parameters")
     ax.set_ylabel("PSNR")
-    ax.legend(handles=handles, labels=model_names, loc="lower right", fontsize=legend_fontsize)
+    ax.legend(
+        handles=handles, labels=model_names, loc="lower right", fontsize=legend_fontsize
+    )
     plt.grid(True)
     plt.box(True)
     plt.tight_layout()
@@ -610,7 +724,9 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
         num=f"Number of trainable parameters vs. number of latent variables",
     )
     handles = []
-    for model_idx, (sweep_results_stats, model_name) in enumerate(zip(sweep_results_stats_ms, model_names)):
+    for model_idx, (sweep_results_stats, model_name) in enumerate(
+        zip(sweep_results_stats_ms, model_names)
+    ):
         ax.plot(
             sweep_results_stats["n_z"],
             sweep_results_stats["num_trainable_params"]["dynamics"],
@@ -628,15 +744,17 @@ def plot_model_comparison(sweep_ids: List[str], system_types: List[str], model_n
     plt.show()
 
 
-
-
-
 def main():
     if len(sweep_ids) == 1:
         print(f"Analyzing sweep with ID: {sweep_ids[0]}")
         sweep_id = sweep_ids[0]
         system_type = system_types[0]
-        analyze_single_sweep(sweep_id=sweep_id, system_type=system_type, verbose=verbose, plot_sweep=plot_sweep)
+        analyze_single_sweep(
+            sweep_id=sweep_id,
+            system_type=system_type,
+            verbose=verbose,
+            plot_sweep=plot_sweep,
+        )
     elif len(sweep_ids) > 1:
         plot_model_comparison(sweep_ids, system_types, model_names, verbose=verbose)
     else:

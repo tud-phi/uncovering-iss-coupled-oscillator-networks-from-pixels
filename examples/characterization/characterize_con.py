@@ -29,8 +29,9 @@ outputs_dir = Path(__file__).resolve().parent / "outputs"
 outputs_dir.mkdir(exist_ok=True)
 
 
-def con_ode_factory(K: Array, D: Array, W: Array, b: Array) -> Tuple[Callable, Callable]:
-
+def con_ode_factory(
+    K: Array, D: Array, W: Array, b: Array
+) -> Tuple[Callable, Callable]:
     def con_ode_fn(t: Array, y: Array, tau: Array) -> Array:
         x, x_d = jnp.split(y, 2)
         x_dd = tau - K @ x - D @ x_d - jnp.tanh(W @ x + b)
@@ -48,7 +49,14 @@ def con_ode_factory(K: Array, D: Array, W: Array, b: Array) -> Tuple[Callable, C
     return con_ode_fn, con_energy_fn
 
 
-def simulate_ode(ode_fn: Callable, ts: Array, y0: Array, sim_dt: Array, tau: Optional[Array] = None, solver = Tsit5()) -> Dict[str, Array]:
+def simulate_ode(
+    ode_fn: Callable,
+    ts: Array,
+    y0: Array,
+    sim_dt: Array,
+    tau: Optional[Array] = None,
+    solver=Tsit5(),
+) -> Dict[str, Array]:
     ode_term = ODETerm(ode_fn)
     if tau is None:
         tau = jnp.zeros((y0.shape[-1] // 2,))
@@ -80,18 +88,26 @@ def simulate_unstable_con():
     ode_fn, energy_fn = con_ode_factory(K, D, W, b)
     ts = jnp.linspace(0.0, 4.0, 1000)
     sim_dt = jnp.array(1e-4)
-    y0s = jnp.array([
-        [-1.0, 0.0],
-        [0.0, 0.0],
-        [1.0, 0.0],
-    ])
+    y0s = jnp.array(
+        [
+            [-1.0, 0.0],
+            [0.0, 0.0],
+            [1.0, 0.0],
+        ]
+    )
 
     # plot the trajectory
     fig, ax = plt.subplots(figsize=figsize)
     # ax.plot(sim_ts["ts"], sim_ts["y_ts"][:, 1], color=colors[1], label=r"$x_d$")
     for i in range(y0s.shape[0]):
         sim_ts = simulate_ode(ode_fn, ts, y0s[i], sim_dt=sim_dt)
-        ax.plot(sim_ts["ts"], sim_ts["y_ts"][:, 0], linewidth=lw, color=colors[i], label=r"$x(0)=" + str(y0s[i, 0]) + "$")
+        ax.plot(
+            sim_ts["ts"],
+            sim_ts["y_ts"][:, 0],
+            linewidth=lw,
+            color=colors[i],
+            label=r"$x(0)=" + str(y0s[i, 0]) + "$",
+        )
     plt.box(True)
     plt.grid(True)
     ax.legend(loc="upper center", ncol=2)
@@ -102,9 +118,11 @@ def simulate_unstable_con():
     plt.show()
 
     # create grid
-    y_eqs = jnp.array([
-        [0.0, 0.0],
-    ])
+    y_eqs = jnp.array(
+        [
+            [0.0, 0.0],
+        ]
+    )
     ylim = jnp.array([[-3.0, 3.0], [-1.2, 1.2]])
     x_pts = jnp.linspace(ylim[0, 0], ylim[0, 1], 1000)
     x_d_pts = jnp.linspace(ylim[1, 0], ylim[1, 1], 1000)
@@ -124,7 +142,7 @@ def simulate_unstable_con():
             )
         )
     )(y_grid)
-    speed = jnp.sqrt(jnp.sum(y_d_grid ** 2, axis=-1))
+    speed = jnp.sqrt(jnp.sum(y_d_grid**2, axis=-1))
 
     fig, ax = plt.subplots(figsize=figsize)
     cs = ax.contourf(x_pts, x_d_pts, E_grid, levels=100)
@@ -157,28 +175,38 @@ def simulate_unstable_coupling():
     K = jnp.array([[1.0, -1.4], [-1.4, 1.0]])
     D = jnp.diag(jnp.array([0.4, 0.4]))
     W = 3.0 * jnp.eye(2)
-    b = jnp.zeros((2, ))
+    b = jnp.zeros((2,))
 
     ode_fn, energy_fn = con_ode_factory(K, D, W, b)
     ts = jnp.linspace(0.0, 7.0, 1000)
     sim_dt = jnp.array(1e-4)
-    y0s = jnp.array([
-        [1.0, 1.5, 0.0, 0.0],
-        [3.5, 3.0, 0.0, 0.0],
-    ])
+    y0s = jnp.array(
+        [
+            [1.0, 1.5, 0.0, 0.0],
+            [3.5, 3.0, 0.0, 0.0],
+        ]
+    )
 
     # plot the trajectory
     fig, ax = plt.subplots(figsize=figsize)
     for i in range(y0s.shape[0]):
         sim_ts = simulate_ode(ode_fn, ts, y0s[i], sim_dt=sim_dt)
-        ax.plot(sim_ts["ts"], sim_ts["y_ts"][:, 0],
-                linewidth=lw, linestyle="--",
-                color=colors[i],
-                label=r"$x_1(0)=" + str(y0s[i, 0:2].tolist()) + "$")
-        ax.plot(sim_ts["ts"], sim_ts["y_ts"][:, 1],
-                linewidth=lw, linestyle=":",
-                color=colors[i],
-                label=r"$x_2(0)=" + str(y0s[i, 0:2].tolist()) + "$")
+        ax.plot(
+            sim_ts["ts"],
+            sim_ts["y_ts"][:, 0],
+            linewidth=lw,
+            linestyle="--",
+            color=colors[i],
+            label=r"$x_1(0)=" + str(y0s[i, 0:2].tolist()) + "$",
+        )
+        ax.plot(
+            sim_ts["ts"],
+            sim_ts["y_ts"][:, 1],
+            linewidth=lw,
+            linestyle=":",
+            color=colors[i],
+            label=r"$x_2(0)=" + str(y0s[i, 0:2].tolist()) + "$",
+        )
     plt.box(True)
     plt.grid(True)
     ax.legend(loc="upper center", ncol=2)
@@ -189,9 +217,11 @@ def simulate_unstable_coupling():
     plt.show()
 
     # create grid
-    x_eqs = jnp.array([
-        [0.0, 0.0],
-    ])
+    x_eqs = jnp.array(
+        [
+            [0.0, 0.0],
+        ]
+    )
     xlim = 6 * jnp.array([[-1.0, 1.0], [-1.0, 1.0]])
     x1_pts = jnp.linspace(xlim[0, 0], xlim[0, 1], 500)
     x2_pts = jnp.linspace(xlim[1, 0], xlim[1, 1], 500)
@@ -208,12 +238,12 @@ def simulate_unstable_coupling():
             partial(
                 ode_fn,
                 jnp.array(0.0),
-                tau=jnp.zeros((2, )),
+                tau=jnp.zeros((2,)),
             )
         )
     )(y_grid)
     x_dd_grid = y_d_grid[..., 2:]
-    speed = jnp.sqrt(jnp.sum(x_dd_grid ** 2, axis=-1))
+    speed = jnp.sqrt(jnp.sum(x_dd_grid**2, axis=-1))
 
     fig, ax = plt.subplots(figsize=figsize)
     cs = ax.contourf(x1_pts, x2_pts, E_grid, levels=100)

@@ -36,7 +36,12 @@ def harmonic_oscillator_closed_form_dynamics(
 
     # cast to complex numbers
     x0, v0 = x0.astype(complex), v0.astype(complex)
-    m, gamma, epsilon, f = m.astype(complex), gamma.astype(complex), epsilon.astype(complex), f.astype(complex)
+    m, gamma, epsilon, f = (
+        m.astype(complex),
+        gamma.astype(complex),
+        epsilon.astype(complex),
+        f.astype(complex),
+    )
 
     # natural frequency
     omega_n = jnp.sqrt(gamma / m)

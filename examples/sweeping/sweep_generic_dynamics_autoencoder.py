@@ -1,6 +1,7 @@
 import os
+
 # restrict to using one GPU
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
 from datetime import datetime
@@ -553,7 +554,11 @@ if __name__ == "__main__":
                 dataset_type = "planar_pcs"
             elif system_type in ["single_pendulum", "double_pendulum"]:
                 dataset_type = "pendulum"
-            elif system_type in ["mass_spring_friction", "pendulum_friction", "double_pendulum_friction"]:
+            elif system_type in [
+                "mass_spring_friction",
+                "pendulum_friction",
+                "double_pendulum_friction",
+            ]:
                 dataset_type = "toy_physics"
             else:
                 raise ValueError(f"Unknown system_type: {system_type}")
@@ -574,7 +579,9 @@ if __name__ == "__main__":
                 num_epochs=num_epochs,
                 normalize=True,
                 grayscale=True,
-                dataset_type="dm_hamiltonian_dynamics_suite" if dataset_type == "toy_physics" else "jsrm",
+                dataset_type="dm_hamiltonian_dynamics_suite"
+                if dataset_type == "toy_physics"
+                else "jsrm",
             )
             train_ds, val_ds, test_ds = (
                 datasets["train"],
@@ -722,18 +729,20 @@ if __name__ == "__main__":
             )
 
             # call the factory function for the dynamics autoencoder task
-            task_callables_train, metrics_collection_cls_train = dynamics_autoencoder.task_factory(
-                system_type,
-                nn_model,
-                ts=dataset_metadata["ts"],
-                sim_dt=sim_dt,
-                loss_weights=loss_weights,
-                ae_type=ae_type,
-                dynamics_type=dynamics_type,
-                start_time_idx=start_time_idx,
-                solver=solver_class(),
-                latent_velocity_source=latent_velocity_source,
-                num_past_timesteps=num_past_timesteps,
+            task_callables_train, metrics_collection_cls_train = (
+                dynamics_autoencoder.task_factory(
+                    system_type,
+                    nn_model,
+                    ts=dataset_metadata["ts"],
+                    sim_dt=sim_dt,
+                    loss_weights=loss_weights,
+                    ae_type=ae_type,
+                    dynamics_type=dynamics_type,
+                    start_time_idx=start_time_idx,
+                    solver=solver_class(),
+                    latent_velocity_source=latent_velocity_source,
+                    num_past_timesteps=num_past_timesteps,
+                )
             )
 
             # run the training loop
@@ -761,24 +770,28 @@ if __name__ == "__main__":
             params_count = count_number_of_trainable_params(state, verbose=False)
 
             # call the factory function for the dynamics autoencoder task
-            task_callables_test, metrics_collection_cls_test = dynamics_autoencoder.task_factory(
-                system_type,
-                nn_model,
-                ts=dataset_metadata["ts"],
-                sim_dt=sim_dt,
-                loss_weights=loss_weights,
-                ae_type=ae_type,
-                dynamics_type=dynamics_type,
-                start_time_idx=start_time_idx,
-                solver=solver_class(),
-                latent_velocity_source=latent_velocity_source,
-                num_past_timesteps=num_past_timesteps,
-                compute_psnr=True,
-                compute_ssim=True,
+            task_callables_test, metrics_collection_cls_test = (
+                dynamics_autoencoder.task_factory(
+                    system_type,
+                    nn_model,
+                    ts=dataset_metadata["ts"],
+                    sim_dt=sim_dt,
+                    loss_weights=loss_weights,
+                    ae_type=ae_type,
+                    dynamics_type=dynamics_type,
+                    start_time_idx=start_time_idx,
+                    solver=solver_class(),
+                    latent_velocity_source=latent_velocity_source,
+                    num_past_timesteps=num_past_timesteps,
+                    compute_psnr=True,
+                    compute_ssim=True,
+                )
             )
 
             # load the neural network dummy input
-            nn_dummy_input = load_dummy_neural_network_input(test_ds, task_callables_test)
+            nn_dummy_input = load_dummy_neural_network_input(
+                test_ds, task_callables_test
+            )
             # load the training state from the checkpoint directory
             state = restore_train_state(
                 rng=rng,

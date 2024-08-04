@@ -1,7 +1,7 @@
 import os
-# restrict to using one GPU
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
+# restrict to using one GPU
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
 from datetime import datetime
@@ -143,7 +143,11 @@ if __name__ == "__main__":
             dataset_type = "planar_pcs"
         elif system_type in ["single_pendulum", "double_pendulum"]:
             dataset_type = "pendulum"
-        elif system_type in ["mass_spring_friction", "pendulum_friction", "double_pendulum_friction"]:
+        elif system_type in [
+            "mass_spring_friction",
+            "pendulum_friction",
+            "double_pendulum_friction",
+        ]:
             dataset_type = "toy_physics"
             batch_size = 30
             num_epochs = 30
@@ -166,7 +170,9 @@ if __name__ == "__main__":
             num_epochs=max_num_epochs,
             normalize=True,
             grayscale=True,
-            dataset_type="dm_hamiltonian_dynamics_suite" if dataset_type == "toy_physics" else "jsrm",
+            dataset_type="dm_hamiltonian_dynamics_suite"
+            if dataset_type == "toy_physics"
+            else "jsrm",
         )
         train_ds, val_ds, test_ds = datasets["train"], datasets["val"], datasets["test"]
 

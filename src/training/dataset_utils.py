@@ -23,7 +23,7 @@ def load_dataset(
     prefetch: Optional[int] = 2,
     normalize: bool = True,
     grayscale: bool = False,
-    dataset_type: str = "jsrm"
+    dataset_type: str = "jsrm",
 ) -> Tuple[Dict[str, tf.data.Dataset], tfds.core.DatasetInfo, Dict]:
     """
     Loads the dataset and splits it into a training, validation and test set.
@@ -89,20 +89,30 @@ def load_dataset(
             num_epochs=1,
             split_name="test",
         )
-        split_sizes = {"train": num_train_samples, "val": num_val_samples, "test": num_test_samples}
+        split_sizes = {
+            "train": num_train_samples,
+            "val": num_val_samples,
+            "test": num_test_samples,
+        }
         dataset_info = {}
     else:
-        (datasets["train"], datasets["val"], datasets["test"]), dataset_info = tfds.load(
-            name,
-            data_dir=data_dir,
-            split=[
-                f"train[:{train_perc}%]",  # use the first part for training
-                f"train[{train_perc}%:{train_perc + val_perc}%]",  # use the second part for validation
-                f"train[{train_perc + val_perc}%:]",  # use the third part for testing
-            ],
-            with_info=True,
+        (datasets["train"], datasets["val"], datasets["test"]), dataset_info = (
+            tfds.load(
+                name,
+                data_dir=data_dir,
+                split=[
+                    f"train[:{train_perc}%]",  # use the first part for training
+                    f"train[{train_perc}%:{train_perc + val_perc}%]",  # use the second part for validation
+                    f"train[{train_perc + val_perc}%:]",  # use the third part for testing
+                ],
+                with_info=True,
+            )
         )
-        split_sizes = {"train": len(datasets["train"]), "val": len(datasets["val"]), "test": len(datasets["test"])}
+        split_sizes = {
+            "train": len(datasets["train"]),
+            "val": len(datasets["val"]),
+            "test": len(datasets["test"]),
+        }
 
         # load metadata
         metadata_path = Path(dataset_info.data_dir) / "metadata.pkl"
@@ -147,7 +157,7 @@ def load_dataset(
             break
     else:
         img_min_val, img_max_val = 0, 255
-    
+
     for split_name in datasets.keys():
         ds = datasets[split_name]
 
@@ -158,14 +168,18 @@ def load_dataset(
                 ds = ds.map(
                     lambda sample: sample
                     | {
-                        "rendering_ts": (sample["rendering_ts"] - img_min_val) / (img_max_val - img_min_val) * 2.0 - 1.0,
+                        "rendering_ts": (sample["rendering_ts"] - img_min_val)
+                        / (img_max_val - img_min_val)
+                        * 2.0
+                        - 1.0,
                     }
                 )
             else:
                 ds = ds.map(
                     lambda sample: sample
                     | {
-                        "rendering_ts": tf.cast(sample["rendering_ts"], tf.float32) / 128.0
+                        "rendering_ts": tf.cast(sample["rendering_ts"], tf.float32)
+                        / 128.0
                         - 1.0,
                     }
                 )
@@ -173,9 +187,7 @@ def load_dataset(
         # group into batches of batch_size and skip incomplete batch, prefetch the next sample to improve latency
         datasets[split_name] = ds.batch(batch_size, drop_remainder=True)
         if prefetch is not None:
-            datasets[split_name] = datasets[split_name].prefetch(
-                prefetch
-            )
+            datasets[split_name] = datasets[split_name].prefetch(prefetch)
 
     # randomly shuffle the training dataset
     datasets["train"] = datasets["train"].shuffle(
@@ -187,7 +199,9 @@ def load_dataset(
     # set the cardinality of the dataset
     if dataset_type == "dm_hamiltonian_dynamics_suite":
         for split_name, ds in datasets.items():
-            cardinality_fn = lambda self: tf.constant(split_sizes[split_name] // batch_size)
+            cardinality_fn = lambda self: tf.constant(
+                split_sizes[split_name] // batch_size
+            )
             ds.cardinality = types.MethodType(cardinality_fn, ds)
 
     return datasets, dataset_info, metadata
@@ -207,12 +221,14 @@ def load_dummy_neural_network_input(
 
 
 def load_dmhds_dataset(
-        dataset_path: Path,
-        metadata: Dict,
-        num_epochs: int = 1,
-        split_name: str = "train",
+    dataset_path: Path,
+    metadata: Dict,
+    num_epochs: int = 1,
+    split_name: str = "train",
 ) -> Tuple[tf.data.Dataset, int]:
-    from dm_hamiltonian_dynamics_suite.load_datasets import load_dataset as dmhds_load_dataset
+    from dm_hamiltonian_dynamics_suite.load_datasets import (
+        load_dataset as dmhds_load_dataset,
+    )
 
     match split_name:
         case "train":
@@ -259,7 +275,7 @@ def load_dmhds_dataset(
             rendering_ts=x["image"],
             x_ts=x["x"],
             x_d_ts=x["dx_dt"],
-            tau=tf.zeros((x["x"].shape[-1], ), dtype=tf.float32),
+            tau=tf.zeros((x["x"].shape[-1],), dtype=tf.float32),
         )
         return y
 

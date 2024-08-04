@@ -7,7 +7,9 @@ import numpy as onp
 from pathlib import Path
 
 from dm_hamiltonian_dynamics_suite.datasets import (
-    MASS_SPRING_FRICTION, PENDULUM_FRICTION, DOUBLE_PENDULUM_FRICTION
+    MASS_SPRING_FRICTION,
+    PENDULUM_FRICTION,
+    DOUBLE_PENDULUM_FRICTION,
 )
 
 # ["toy_physics/mass_spring", "toy_physics/mass_spring_friction", "toy_physics/mass_spring_colors",
@@ -57,7 +59,7 @@ def main():
     )
 
     # write metadata
-    ts = jnp.linspace(0, num_steps * dt, num=num_steps+1)
+    ts = jnp.linspace(0, num_steps * dt, num=num_steps + 1)
     rmax = params["radius_range"].max
     x0_min, x0_max = -rmax * jnp.ones((state_dim,)), rmax * jnp.ones((state_dim,))
     dataset_metadata = dict(
@@ -74,7 +76,7 @@ def main():
         split_sizes=dict(
             train=num_train,
             test=num_test,
-        )
+        ),
     )
 
     with open(str(dataset_dir / "metadata.pkl"), "wb") as f:
