@@ -406,7 +406,7 @@ match system_type:
         match dynamics_model_name:
             case "node-general-mlp" | "node-general-mlp-s":
                 raise NotImplementedError
-                # optimized for "node-general-mlp at n_z=8
+                # optimized for "node-general-mlp at n_z=4
                 base_lr = 0.014939778657771675
                 loss_weights = dict(
                     mse_z=0.11585323330519746,
@@ -422,7 +422,7 @@ match system_type:
                 mlp_nonlinearity_name = "tanh"
             case "node-mechanical-mlp" | "node-mechanical-mlp-s":
                 raise NotImplementedError
-                # optimized for n_z=8
+                # optimized for n_z=4
                 base_lr = 0.007137268676917664
                 loss_weights = dict(
                     mse_z=0.17701201082200202,
@@ -442,23 +442,23 @@ match system_type:
                     num_mlp_layers, mlp_hidden_dim = 5, 30
                 mlp_nonlinearity_name = "tanh"
             case "node-con-iae" | "node-con-iae-s":
-                # optimized for n_z=8
-                base_lr = 0.018486990918444367
+                # optimized for n_z=4
+                base_lr = 0.0056545951636144485
                 loss_weights = dict(
-                    mse_z=0.3733687489479885,
+                    mse_z=0.13320385919138733,
                     mse_rec_static=1.0,
-                    mse_rec_dynamic=83.7248326772002,
-                    beta=0.00020068384639167935,
+                    mse_rec_dynamic=85.20327288600144,
+                    beta=0.0001986520795985124,
                     mse_tau_rec=5e1,
                 )
-                weight_decay = 5.5340117045438595e-06
+                weight_decay = 7.226705864423811e-06
                 if dynamics_model_name == "node-con-iae-s":
                     num_mlp_layers, mlp_hidden_dim = 2, 12
                 else:
                     num_mlp_layers, mlp_hidden_dim = 5, 30
             case "ar-con-iae-cfa":
                 raise NotImplementedError
-                # optimized for n_z=8
+                # optimized for n_z=4
                 base_lr = 0.018088317332901616
                 loss_weights = dict(
                     mse_z=0.10824911140537369,
@@ -471,7 +471,7 @@ match system_type:
                 num_mlp_layers, mlp_hidden_dim = 5, 30
             case "ar-elman-rnn":
                 raise NotImplementedError
-                # optimized for n_z=8
+                # optimized for n_z=4
                 base_lr = 0.007657437611794232
                 loss_weights = dict(
                     mse_z=0.1842314509146704,
@@ -482,7 +482,7 @@ match system_type:
                 weight_decay = 1.7957485073520818e-05
             case "ar-gru-rnn":
                 raise NotImplementedError
-                # optimized for n_z=8
+                # optimized for n_z=4
                 base_lr = 0.018086259222854423
                 loss_weights = dict(
                     mse_z=0.4869102462993362,
