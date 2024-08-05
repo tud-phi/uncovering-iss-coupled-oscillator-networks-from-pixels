@@ -3,6 +3,7 @@
 import dataclasses
 from jax import Array
 import jax.numpy as jnp
+import numpy as onp
 from pathlib import Path
 import tensorflow_datasets as tfds
 from typing import List, Optional, Tuple
@@ -178,21 +179,21 @@ class PlanarPcs(tfds.core.GeneratorBasedBuilder):
             features=tfds.features.FeaturesDict(
                 {
                     # These are the features of your dataset like images, labels ...
-                    "id": tfds.features.Scalar(dtype=jnp.int32),
+                    "id": tfds.features.Scalar(dtype=onp.int32),
                     "t_ts": tfds.features.Tensor(
                         shape=(self.builder_config.horizon_dim,),
-                        dtype=jnp.float64,
+                        dtype=onp.float64,
                     ),
                     "x_ts": tfds.features.Tensor(
                         shape=(
                             self.builder_config.horizon_dim,
                             self.builder_config.state_dim,
                         ),
-                        dtype=jnp.float64,
+                        dtype=onp.float64,
                     ),
                     "tau": tfds.features.Tensor(
                         shape=(self.builder_config.state_dim // 2,),
-                        dtype=jnp.float64,
+                        dtype=onp.float64,
                     ),
                     "rendering_ts": tfds.features.Sequence(
                         tfds.features.Image(

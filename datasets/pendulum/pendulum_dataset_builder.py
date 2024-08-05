@@ -3,6 +3,7 @@
 import dataclasses
 import jax.numpy as jnp
 from natsort import natsorted
+import numpy as onp
 from pathlib import Path
 import shutil
 import tensorflow_datasets as tfds
@@ -84,18 +85,18 @@ class Pendulum(tfds.core.GeneratorBasedBuilder):
                     "id": tfds.features.Scalar(dtype=jnp.int32),
                     "t_ts": tfds.features.Tensor(
                         shape=(self.builder_config.horizon_dim,),
-                        dtype=jnp.float64,
+                        dtype=onp.float64,
                     ),
                     "x_ts": tfds.features.Tensor(
                         shape=(
                             self.builder_config.horizon_dim,
                             self.builder_config.state_dim,
                         ),
-                        dtype=jnp.float64,
+                        dtype=onp.float64,
                     ),
                     "tau": tfds.features.Tensor(
                         shape=(self.builder_config.state_dim // 2,),
-                        dtype=jnp.float64,
+                        dtype=onp.float64,
                     ),
                     "rendering_ts": tfds.features.Sequence(
                         tfds.features.Image(
