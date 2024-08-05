@@ -139,6 +139,7 @@ if __name__ == "__main__":
             mmd = trial.suggest_float("mmd", 1e-4, 1e1, log=True)
             loss_weights["mmd"] = mmd
 
+        grayscale = True
         if system_type in ["cc", "cs", "pcc_ns-2", "pcc_ns-3", "pcc_ns-4"]:
             dataset_type = "planar_pcs"
         elif system_type in ["single_pendulum", "double_pendulum"]:
@@ -146,11 +147,15 @@ if __name__ == "__main__":
         elif system_type in [
             "mass_spring_friction",
             "pendulum_friction",
-            "double_pendulum_friction",
         ]:
             dataset_type = "toy_physics"
             batch_size = 30
-            num_epochs = 30
+            max_num_epochs = 50
+        elif system_type == "double_pendulum_friction":
+            dataset_type = "toy_physics"
+            grayscale = False
+            batch_size = 10
+            max_num_epochs = 100
         else:
             raise ValueError(f"Unknown system_type: {system_type}")
 
@@ -169,7 +174,7 @@ if __name__ == "__main__":
             batch_size=batch_size,
             num_epochs=max_num_epochs,
             normalize=True,
-            grayscale=True,
+            grayscale=grayscale,
             dataset_type="dm_hamiltonian_dynamics_suite"
             if dataset_type == "toy_physics"
             else "jsrm",
