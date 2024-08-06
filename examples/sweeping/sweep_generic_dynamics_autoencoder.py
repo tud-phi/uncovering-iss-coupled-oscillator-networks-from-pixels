@@ -600,7 +600,7 @@ match system_type:
         match dynamics_model_name:
             case "node-general-mlp" | "node-general-mlp-s":
                 raise NotImplementedError
-                # optimized for "node-general-mlp at n_z=4
+                # optimized for "node-general-mlp at n_z=12
                 base_lr = 0.008339693008588403
                 loss_weights = dict(
                     mse_z=0.24775689453393362,
@@ -616,7 +616,7 @@ match system_type:
                 mlp_nonlinearity_name = "tanh"
             case "node-mechanical-mlp" | "node-mechanical-mlp-s":
                 raise NotImplementedError
-                # optimized for n_z=4
+                # optimized for n_z=12
                 base_lr = 0.006361540670994402
                 loss_weights = dict(
                     mse_z=0.26781601891445145,
@@ -631,39 +631,35 @@ match system_type:
                     num_mlp_layers, mlp_hidden_dim = 5, 30
                 mlp_nonlinearity_name = "tanh"
             case "node-con-iae" | "node-con-iae-s":
-                raise NotImplementedError
-                # optimized for n_z=4
-                base_lr = 0.0056545951636144485
+                # optimized for n_z=12
+                base_lr = 0.004371111690634623
                 loss_weights = dict(
-                    # mse_z=0.13320385919138733,
-                    mse_z=0.0,
+                    mse_z=0.10002120482256567,
                     mse_rec_static=1.0,
-                    # mse_rec_dynamic=85.20327288600144,
-                    mse_rec_dynamic=0.0,
-                    beta=0.0001986520795985124,
+                    mse_rec_dynamic=51.70644278103679,
+                    beta=0.00027963911733805484,
                     mse_tau_rec=5e1,
                 )
-                weight_decay = 7.226705864423811e-06
+                weight_decay = 2.1177073207071563e-05
                 if dynamics_model_name == "node-con-iae-s":
                     num_mlp_layers, mlp_hidden_dim = 2, 12
                 else:
                     num_mlp_layers, mlp_hidden_dim = 5, 30
             case "ar-con-iae-cfa":
-                raise NotImplementedError
-                # optimized for n_z=4
-                base_lr = 0.008149533701551434
+                # optimized for n_z=12
+                base_lr = 0.0072470536816657384
                 loss_weights = dict(
-                    mse_z=0.2441078460028391,
+                    mse_z=0.11961092952593712,
                     mse_rec_static=1.0,
-                    mse_rec_dynamic=53.342183614739334,
-                    beta=0.00021457243252725872,
+                    mse_rec_dynamic=70.78205762849846,
+                    beta=0.0002645522976826533,
                     mse_tau_rec=1e1,
                 )
-                weight_decay = 4.642297296907424e-05
+                weight_decay = 1.609243419193349e-05
                 num_mlp_layers, mlp_hidden_dim = 5, 30
             case "ar-elman-rnn":
                 raise NotImplementedError
-                # optimized for n_z=4
+                # optimized for n_z=12
                 base_lr = 0.006923530586011298
                 loss_weights = dict(
                     mse_z=0.20223686992178358,
@@ -674,7 +670,7 @@ match system_type:
                 weight_decay = 4.59867549628406e-05
             case "ar-gru-rnn":
                 raise NotImplementedError
-                # optimized for n_z=4
+                # optimized for n_z=12
                 base_lr = 0.019842372307125208
                 loss_weights = dict(
                     mse_z=0.16620611214172962,
@@ -684,17 +680,16 @@ match system_type:
                 )
                 weight_decay = 2.0100052551831417e-05
             case "ar-cornn":
-                raise NotImplementedError
-                # optimized for n_z=4
-                base_lr = 0.013708056733757825
+                # optimized for n_z=12
+                base_lr = 0.010072831724792584
                 loss_weights = dict(
-                    mse_z=0.10764849491271784,
+                    mse_z=0.10054968603804583,
                     mse_rec_static=1.0,
-                    mse_rec_dynamic=41.87535961465608,
-                    beta=0.00011207010422006182,
+                    mse_rec_dynamic=8.295226425347138,
+                    beta=0.00018624281835822343,
                 )
-                weight_decay = 5.5064434667621325e-06
-                cornn_gamma, cornn_epsilon = 1.237065995901295, 0.02054193941627336
+                weight_decay = 1.3424702241051468e-05
+                cornn_gamma, cornn_epsilon = 1.8202725088035752, 0.12389358153779872
             case _:
                 raise NotImplementedError(
                     f"{system_type} with dynamics_model_name '{dynamics_model_name}' not implemented yet."
