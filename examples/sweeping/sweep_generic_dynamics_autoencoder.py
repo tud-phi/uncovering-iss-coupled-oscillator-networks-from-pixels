@@ -573,14 +573,14 @@ match system_type:
                 weight_decay = 1.5545057591638582e-05
             case "ar-gru-rnn":
                 # optimized for n_z=4
-                base_lr = 0.0018763341236812678
+                base_lr = 0.018759092183177933
                 loss_weights = dict(
-                    mse_z=0.11008600010756936,
+                    mse_z=0.36189940167672224,
                     mse_rec_static=1.0,
-                    mse_rec_dynamic=63.41034369539617,
-                    beta=0.00010155994014321249,
+                    mse_rec_dynamic=8.37449686843681,
+                    beta=0.00013130293256147146,
                 )
-                weight_decay = 1.5545057591638582e-05
+                weight_decay = 3.016471182021465e-05
             case "ar-cornn":
                 # optimized for n_z=4
                 base_lr = 0.009092269329911869
