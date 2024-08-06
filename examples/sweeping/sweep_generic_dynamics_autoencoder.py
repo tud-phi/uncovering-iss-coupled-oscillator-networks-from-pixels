@@ -599,32 +599,30 @@ match system_type:
         grayscale = False
         match dynamics_model_name:
             case "node-general-mlp" | "node-general-mlp-s":
-                raise NotImplementedError
                 # optimized for "node-general-mlp at n_z=12
-                base_lr = 0.008339693008588403
+                base_lr = 0.003789514088335835
                 loss_weights = dict(
-                    mse_z=0.24775689453393362,
+                    mse_z=0.10354674975294657,
                     mse_rec_static=1.0,
-                    mse_rec_dynamic=1.6087813703182756,
-                    beta=0.00029500997565894957,
+                    mse_rec_dynamic=37.43925221480726,
+                    beta=0.0004462734231619719,
                 )
-                weight_decay = 1.540880150677294e-05
+                weight_decay = 8.042584606568567e-06
                 if dynamics_model_name == "node-general-mlp-s":
                     num_mlp_layers, mlp_hidden_dim = 2, 12
                 else:
                     num_mlp_layers, mlp_hidden_dim = 5, 30
                 mlp_nonlinearity_name = "tanh"
             case "node-mechanical-mlp" | "node-mechanical-mlp-s":
-                raise NotImplementedError
                 # optimized for n_z=12
-                base_lr = 0.006361540670994402
+                base_lr = 0.006923530586011298
                 loss_weights = dict(
-                    mse_z=0.26781601891445145,
+                    mse_z=0.20223686992178358,
                     mse_rec_static=1.0,
-                    mse_rec_dynamic=17.134364197119655,
-                    beta=0.0004806404295331634,
+                    mse_rec_dynamic=60.74996073425695,
+                    beta=0.0002417917724332947,
                 )
-                weight_decay = 4.3925638476059976e-05
+                weight_decay = 4.59867549628406e-05
                 if dynamics_model_name == "node-mechanical-mlp-s":
                     num_mlp_layers, mlp_hidden_dim = 2, 12
                 else:
@@ -658,16 +656,15 @@ match system_type:
                 weight_decay = 1.609243419193349e-05
                 num_mlp_layers, mlp_hidden_dim = 5, 30
             case "ar-elman-rnn":
-                raise NotImplementedError
                 # optimized for n_z=12
-                base_lr = 0.006923530586011298
+                base_lr = 0.005176340429875837
                 loss_weights = dict(
-                    mse_z=0.20223686992178358,
+                    mse_z=0.31615198615315904,
                     mse_rec_static=1.0,
-                    mse_rec_dynamic=60.74996073425695,
-                    beta=0.0002417917724332947,
+                    mse_rec_dynamic=16.051911333587626,
+                    beta=0.00026524963767594775,
                 )
-                weight_decay = 4.59867549628406e-05
+                weight_decay = 1.7532877050933287e-05
             case "ar-gru-rnn":
                 # optimized for n_z=12
                 base_lr = 0.018759092183177933
