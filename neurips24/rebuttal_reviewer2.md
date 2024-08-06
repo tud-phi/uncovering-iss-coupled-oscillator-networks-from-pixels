@@ -5,11 +5,11 @@ In the following, we will respond to the questions raised by the reviewer, which
 
 ## Application of CON to non-soft robots
 
-> <cite>R2</cite>: Have you tried the method on other (non-soft) robots?
+> R2: Have you tried the method on other (non-soft) robots?
 
 We thank the Reviewer for inquiring about results on non-soft robots. We provide additional results on various mechanical/robotic systems in the global rebuttal.
 
-> <cite>R2</cite>: Do you have any intuition on how your method would perform on environments with many contact forces?
+> R2: Do you have any intuition on how your method would perform on environments with many contact forces?
 
 First, we want to stress that we have not conducted any experiments with contact-rich systems yet and reserve this interesting challenge for future work.
 We hypothesize that the highly discontinuous dynamics of contact-rich systems could present a challenge for the method in its present form.
@@ -18,7 +18,7 @@ Furthermore, contact-rich systems often have multiple equilibria, which would be
 
 ## Application of CON to non-physical systems
 
-> <cite>R2</cite>: Have you considered non-physical systems?
+> R2: Have you considered non-physical systems?
 
 We thank the Reviewer for their interest in this topic. While we do think that the CON / CFA-CON models could be potentially useful in other applications where strong stability guarantees are required, we strive to focus in this paper on learning the dynamics of physical/mechanical systems as we can here leverage (a) the shared stability characteristics between the original and the latent space systems, and (b) exploit the mechanical structure of the CON model for control.
 To make this focus clear, we will, in the final paper, modify the sentence starting on line 69 to (with changes marked in **bold**):

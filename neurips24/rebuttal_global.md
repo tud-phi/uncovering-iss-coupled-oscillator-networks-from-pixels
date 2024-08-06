@@ -2,9 +2,9 @@
 
 ## Performance of CON on non-soft-robotic datasets (R1 & R2)
 
-> <cite>R1</cite>: Thus, a more detailed elaboration on the performance and limitations of CONs would be beneficial as it is evaluated for soft robotics data sets only.
+> R1: Thus, a more detailed elaboration on the performance and limitations of CONs would be beneficial as it is evaluated for soft robotics data sets only.
 
-> <cite>R2</cite>: Have you tried the method on other (non-soft) robots?
+> R2: Have you tried the method on other (non-soft) robots?
 
 We thank both reviewers for their interest in the performance of CON on non-soft-robotic datasets.
 For this rebuttal, we compared the performance of CON against the baseline method on three additional mechanical, non-soft-robotic datasets: a mass-spring with friction (_M-SP+F_) (i.e., a damped harmonic oscillator), a single pendulum with friction (_S-P+F_), and a double pendulum with friction (_D-P+F_). These datasets are based on an interesting publication by Botev et al. (2021) [26], which appeared in the _NeurIPS 2021 Track on Datasets and Benchmarks_ and benchmarks various models for learning latent space dynamics.
@@ -15,7 +15,7 @@ Finally, most of the time, the CON & CFA-CON networks outperform the other basel
 
 ## Inference time of CON (R1)
 
-> <cite>R1</cite>: Can you add the inference time for the different methods in Table 1? If that’s not possible, could you give some general comments on the inference time of CONs?
+> R1: Can you add the inference time for the different methods in Table 1? If that’s not possible, could you give some general comments on the inference time of CONs?
 
 We thank the reviewer for their question about the inference time of the various methods. We note that the number of training steps per second of all methods included in Table 1 was already reported in the original submission in Table 4 of Appendix D.
 
@@ -23,7 +23,7 @@ For this rebuttal, we performed additional evaluations of the inference time (i.
 
 ## Oscillations of the controller with FF term. (R1)
 
-> <cite>R1</cite>: Figure 3 visualizes that the controller with a feed-forward part leads to heavy oscillations in the systems. Is that due to a poorly tuned controller or do you see the reason in the CON model?
+> R1: Figure 3 visualizes that the controller with a feed-forward part leads to heavy oscillations in the systems. Is that due to a poorly tuned controller or do you see the reason in the CON model?
 
 We thank the Reviewer for their question and for raising the topic. When tuning the gains PID-like controllers, a trade-off naturally exists between transient behavior (e.g., oscillations and overshooting) and response time.
 In this case, we chose gains that minimized the response time but allowed for stable behavior. The oscillations are caused by a combination of (a) the underdamped nature of the system and (b) the magnitude of the proportional term.

@@ -33,18 +33,18 @@ However, the linear stiffness matrix is negative definite, and therefore, the sy
 
 ## PID vs. PD
 
-> <cite>R1</cite>: The statement in Line 266 “PID controller has several well-known drawbacks, such […] steady-state errors (in case the integral gain is chosen to be zero)” is misleading as in this case we would say it’s a PD controller.
+> R1: The statement in Line 266 “PID controller has several well-known drawbacks, such […] steady-state errors (in case the integral gain is chosen to be zero)” is misleading as in this case we would say it’s a PD controller.
 
 We thank the Reviewer for their comment and for pointing out the mistake. We agree that this sentence is indeed badly written and confusing. In the final version of the paper, we will remove the subsentence "_steady-state errors (in case the integral gain is chosen to be zero)_".
 
 ## Performance and Limitations of CON
 
-> <cite>R1</cite>: The main contribution seems to be the new network structure that allows to exploit the potential energy for energy shaping methods. The VAE and controller are existing methods.
+> R1: The main contribution seems to be the new network structure that allows to exploit the potential energy for energy shaping methods. The VAE and controller are existing methods.
 
 We thank the Reviewer for their comment. We want to stress that the proposed network imposes a beneficial inductive bias for conserving global stability and ISS. Therefore, we consider the two proofs (i.e., GAS and ISS) important contributions of the paper.
 Furthermore, we also regard the closed-form approximation of the CON dynamics as an important tool for deploying oscillator networks in practice.
 
-> <cite>R1</cite>: Thus, a more detailed elaboration on the performance and limitation of CONs would be beneficial as it is evaluated for soft robotics data sets only.
+> R1: Thus, a more detailed elaboration on the performance and limitation of CONs would be beneficial as it is evaluated for soft robotics data sets only.
 
 For this rebuttal, we have performed additional experiments involving non-soft-robotic datasets. They demonstrate that the CON network can also learn the latent dynamics of other mechanical systems, such as a mass spring, a pendulum, and a double pendulum with friction, effectively and with SOA performance. We refer to the global rebuttal for more details.
 
