@@ -1,6 +1,6 @@
 # Response to Reviewer Ys99 (R1)
 
-We thank the Reviewer very much for the kind words, for their interest in our research activities, and for the very insightful comments that they have provided. In the following, we will respond to the weaknesses and questions raised by the Reviewer.
+We thank the Reviewer very much for the kind words, for their interest in our research activities, and for the very insightful comments that they have provided.
 Because of space constraints, we respond to the request for inference times and questions about the oscillations of the controller in the global rebuttal.
 
 ## Is the stability of CON trivial?
