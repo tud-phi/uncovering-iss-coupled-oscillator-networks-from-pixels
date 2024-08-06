@@ -5,7 +5,7 @@ Because of space constraints, we respond to the request for inference times and 
 
 ## Is the stability of CON trivial?
 
-> <cite>R1</cite>: Theorem 1 seems to be trivial as it elaborates on the (nonlinear) coupling of passive systems (damped mass-spring systems), which is always passive since it does not “produce” any energy and thus, is inherently stable. (Same for Theorem 2). In this sense, the theoretical contribution seems limited. Is there anything I missed?
+> R1: Theorem 1 seems to be trivial as it elaborates on the (nonlinear) coupling of passive systems (damped mass-spring systems), which is always passive since it does not “produce” any energy and thus, is inherently stable. (Same for Theorem 2). In this sense, the theoretical contribution seems limited. Is there anything I missed?
 
 We thank the Reviewer for their question and for allowing us to elaborate further on this topic. In short, we differ with the Reviewer's technical arguments, and, consequently, with their conclusions on the triviality of Theorem 1. 
 In essence, we recognize that the Reviewer's arguments are well funded in the context of port-Hamiltonian theory. However, substantial extra properties/assumptions are needed to yield to the Reviewer's conclusion. Thus, the PH way of proving Theorem 1 would be interesting and proper, but it would definitely not result in the trivial proof the Reviewer is hinting at.
