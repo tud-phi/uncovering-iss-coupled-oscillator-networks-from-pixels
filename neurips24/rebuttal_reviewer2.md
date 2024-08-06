@@ -1,16 +1,17 @@
 # Response to Reviewer W9L3 (R2)
 
-We thank the Reviewer for the careful reading and the encouraging comments. 
+We thank the Reviewer for the careful reading and the encouraging comments.
 In the following, we will respond to the questions raised by the reviewer, which also relate to the weaknesses mentioned by the reviewer.
 
 ## Application of CON to non-soft robots
 
-> <cite>R2</cite>: Have you tried the method on other (non-soft) robots? Do you have any intuition on how your method would perform on environments with many contact forces?
+> <cite>R2</cite>: Have you tried the method on other (non-soft) robots?
 
 We thank the Reviewer for inquiring about results on non-soft robots. We provide additional results on various mechanical/robotic systems in the global rebuttal.
 
-Next, we reply the Reviewer's question about how the method would perform on environments with many contact forces.
-First, we want to stress that we have not conducted any experiments with contact-rich systems yet and reserve this interesting challenge for future work. 
+> <cite>R2</cite>: Do you have any intuition on how your method would perform on environments with many contact forces?
+
+First, we want to stress that we have not conducted any experiments with contact-rich systems yet and reserve this interesting challenge for future work.
 We hypothesize that the highly discontinuous dynamics of contact-rich systems could present a challenge for the method in its present form.
 Still, we envision that the method could be augmented to handle such systems. For example, we could add stick-slip friction or similar mechanisms to the CON dynamics to increase their expressiveness while maintaining the physical structure.
 Furthermore, contact-rich systems often have multiple equilibria, which would be a violation of the stability conditions introduced in this work. As touched on in Section 6 of the paper, these strong global stability guarantees would probably need to be relaxed.

@@ -12,6 +12,7 @@ In essence, we recognize that the Reviewer's arguments are well funded in the co
 More precisely, we point out two main points of technical disagreement, which we list below.
 
 ### (A): Passivity does not imply Stability
+
 Passivity, even in the scalar case, does not imply (global) stability. Additional assumptions on the (global) convexity of the energy landscape are needed, which would be hard to impose. As a trivial counterexample, think of a damped mass placed atop an infinite hill. 
 To further illustrate this point, we propose two simple passive-but-not-globally-stable CONs that deviate slightly from the assumptions in Theorem 1 and 2.
 
@@ -29,7 +30,6 @@ We illustrate this with the following example: consider a CON of dimensionality 
 It can be easily shown that the oscillators individually with the EoM $\ddot{x}_i + k x_i + d \dot{x}_i + \tanh(w x_i)= 0,$ where $k=1$, $d=0.4$, and $w=3$ are globally asymptotically stable. 
 
 However, the linear stiffness matrix is negative definite, and therefore, the system is not globally asymptotically stable. This is illustrated in Fig. R3 of the global response.
-
 
 ## PID vs. PD
 
