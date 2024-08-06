@@ -16,8 +16,8 @@ from dm_hamiltonian_dynamics_suite.datasets import (
 # "toy_physics/mass_spring_colors_friction", "toy_physics/mass_spring_long_trajectory",
 # "toy_physics/mass_spring_colors_long_trajectory", "toy_physics/pendulum", "toy_physics/pendulum_friction",
 # "toy_physics/pendulum_colors", "toy_physics/pendulum_colors_friction", "toy_physics/pendulum_long_trajectory",
-# "toy_physics/pendulum_colors_long_trajectory", "toy_physics/double_pendulum", "toy_physics/double_pendulum_friction",
-# "toy_physics/double_pendulum_colors",
+# "toy_physics/pendulum_colors_long_trajectory",
+# "toy_physics/double_pendulum", "toy_physics/double_pendulum_friction", "toy_physics/double_pendulum_colors",
 # "toy_physics/double_pendulum_colors_friction", "toy_physics/two_body", "toy_physics/two_body_colors",
 # "multi_agent/matching_pennies", "multi_agent/matching_pennies_long_trajectory", "multi_agent/rock_paper_scissors",
 # "multi_agent/rock_paper_scissors_long_trajectory", "mujoco_room/circle", "mujoco_room/spiral"]

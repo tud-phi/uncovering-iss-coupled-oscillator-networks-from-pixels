@@ -58,8 +58,8 @@ tf.random.set_seed(seed=seed)
 system_type = "mass_spring_friction"
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 """ dynamics_model_name in [
-    "node-general-mlp", "node-mechanical-mlp", "node-mechanical-mlp-s", 
-    "node-cornn", "node-con", "node-w-con", "node-con-iae", "node-con-iae-s", "node-dcon", "node-lnn", 
+    "node-general-mlp", "node-mechanical-mlp", "node-mechanical-mlp-s",
+    "node-cornn", "node-con", "node-w-con", "node-con-iae", "node-con-iae-s", "node-dcon", "node-lnn",
     "node-hippo-lss", "node-mamba",
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
     "ar-con-iae-cfa", "ar-elman-rnn", "ar-gru-rnn", "ar-cornn"
@@ -82,14 +82,27 @@ num_mlp_layers, mlp_hidden_dim, mlp_nonlinearity_name = 4, 20, "leaky_relu"
 cornn_gamma, cornn_epsilon = 1.0, 1.0
 lnn_learn_dissipation = True
 diag_shift, diag_eps = 1e-6, 2e-6
-match dynamics_model_name:
-    case "node-con-iae":
-        experiment_id = f"2024-08-05_00-30-31/n_z_{n_z}_seed_{seed}"
-        num_mlp_layers, mlp_hidden_dim = 5, 30
-    case _:
-        raise ValueError(
-            f"No experiment_id for dynamics_model_name={dynamics_model_name}"
-        )
+grayscale = True
+match system_type:
+    case "mass_spring_friction":
+        match dynamics_model_name:
+            case "node-con-iae":
+                experiment_id = f"2024-08-05_00-30-31/n_z_{n_z}_seed_{seed}"
+                num_mlp_layers, mlp_hidden_dim = 5, 30
+            case _:
+                raise ValueError(
+                    f"No experiment_id for dynamics_model_name={dynamics_model_name}"
+                )
+    case "double_pendulum_friction":
+        grayscale = False
+        match dynamics_model_name:
+            case "node-con-iae":
+                experiment_id = f"2024-08-05_23-55-21/n_z_{n_z}_seed_{seed}"
+                num_mlp_layers, mlp_hidden_dim = 5, 30
+            case _:
+                raise ValueError(
+                    f"No experiment_id for dynamics_model_name={dynamics_model_name}"
+                )
 
 
 # identify the dynamics_type
@@ -113,7 +126,7 @@ if __name__ == "__main__":
         seed=seed,
         batch_size=batch_size,
         normalize=True,
-        grayscale=True,
+        grayscale=grayscale,
         dataset_type="dm_hamiltonian_dynamics_suite",
     )
     train_ds, val_ds, test_ds = datasets["train"], datasets["val"], datasets["test"]
