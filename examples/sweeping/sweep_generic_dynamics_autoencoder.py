@@ -496,6 +496,104 @@ match system_type:
                 raise NotImplementedError(
                     f"{system_type} with dynamics_model_name '{dynamics_model_name}' not implemented yet."
                 )
+    case "pendulum_friction":
+        batch_size = 30
+        num_epochs = 150
+        match dynamics_model_name:
+            case "node-general-mlp" | "node-general-mlp-s":
+                raise NotImplementedError
+                # optimized for "node-general-mlp at n_z=4
+                base_lr = 0.008339693008588403
+                loss_weights = dict(
+                    mse_z=0.24775689453393362,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=1.6087813703182756,
+                    beta=0.00029500997565894957,
+                )
+                weight_decay = 1.540880150677294e-05
+                if dynamics_model_name == "node-general-mlp-s":
+                    num_mlp_layers, mlp_hidden_dim = 2, 12
+                else:
+                    num_mlp_layers, mlp_hidden_dim = 5, 30
+                mlp_nonlinearity_name = "tanh"
+            case "node-mechanical-mlp" | "node-mechanical-mlp-s":
+                raise NotImplementedError
+                # optimized for n_z=4
+                base_lr = 0.006361540670994402
+                loss_weights = dict(
+                    mse_z=0.26781601891445145,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=17.134364197119655,
+                    beta=0.0004806404295331634,
+                )
+                weight_decay = 4.3925638476059976e-05
+                if dynamics_model_name == "node-mechanical-mlp-s":
+                    num_mlp_layers, mlp_hidden_dim = 2, 12
+                else:
+                    num_mlp_layers, mlp_hidden_dim = 5, 30
+                mlp_nonlinearity_name = "tanh"
+            case "node-con-iae" | "node-con-iae-s":
+                # optimized for n_z=4
+                base_lr = 0.011064147131784937
+                loss_weights = dict(
+                    mse_z=0.32103670208740176,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=96.75643936202472,
+                    beta=0.0003362481655813636,
+                    mse_tau_rec=5e1,
+                )
+                weight_decay = 7.422752602130393e-06
+                if dynamics_model_name == "node-con-iae-s":
+                    num_mlp_layers, mlp_hidden_dim = 2, 12
+                else:
+                    num_mlp_layers, mlp_hidden_dim = 5, 30
+            case "ar-con-iae-cfa":
+                # optimized for n_z=4
+                base_lr = 0.010754656092162381
+                loss_weights = dict(
+                    mse_z=0.2678697703682045,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=94.69625942730633,
+                    beta=0.00058540004856265,
+                    mse_tau_rec=1e1,
+                )
+                weight_decay = 2.271612879994102e-05
+                num_mlp_layers, mlp_hidden_dim = 5, 30
+            case "ar-elman-rnn":
+                # optimized for n_z=4
+                base_lr = 0.0018763341236812678
+                loss_weights = dict(
+                    mse_z=0.11008600010756936,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=63.41034369539617,
+                    beta=0.00010155994014321249,
+                )
+                weight_decay = 1.5545057591638582e-05
+            case "ar-gru-rnn":
+                # optimized for n_z=4
+                base_lr = 0.018759092183177933
+                loss_weights = dict(
+                    mse_z=0.36189940167672224,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=8.37449686843681,
+                    beta=0.00013130293256147146,
+                )
+                weight_decay = 3.016471182021465e-05
+            case "ar-cornn":
+                # optimized for n_z=4
+                base_lr = 0.009092269329911869
+                loss_weights = dict(
+                    mse_z=0.23777524637531147,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=53.59893896721093,
+                    beta=0.00040966721384268976,
+                )
+                weight_decay = 5.169062143268791e-06
+                cornn_gamma, cornn_epsilon = 0.49806996377185103, 0.6971087305725828
+            case _:
+                raise NotImplementedError(
+                    f"{system_type} with dynamics_model_name '{dynamics_model_name}' not implemented yet."
+                )
     case "double_pendulum_friction":
         batch_size = 10
         num_epochs = 150
