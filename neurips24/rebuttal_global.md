@@ -2,14 +2,14 @@
 
 ## Performance of CON on non-soft-robotic datasets (R1 & R2)
 
-> <cite>R1</cite>: Thus, a more detailed elaboration on the performance and limitation of CONs would be beneficial as it is evaluated for soft robotics data sets only.
+> <cite>R1</cite>: Thus, a more detailed elaboration on the performance and limitations of CONs would be beneficial as it is evaluated for soft robotics data sets only.
 
 > <cite>R2</cite>: Have you tried the method on other (non-soft) robots?
 
 We thank both reviewers for their interest in the performance of CON on non-soft-robotic datasets.
-For this rebuttal, we compared the performance of CON against the baseline method on three additional, mechanical, non-soft-robotic datasets: a mass-spring with friction (_M-SP+F_) (i.e., a damped harmonic oscillator), a single pendulum with friction (_S-P+F_), and a double pendulum with friction (_D-P+F_). These datasets are based on a interesting publication by Botev et al. (2021) [26], which appeared in the _NeurIPS 2021 Track on Datasets and Benchmarks_ and benchmarks a variety of models for learning latent space dynamics.
+For this rebuttal, we compared the performance of CON against the baseline method on three additional,mechanical, non-soft-robotic datasets: a mass-spring with friction (_M-SP+F_) (i.e., a damped harmonic oscillator), a single pendulum with friction (_S-P+F_), and a double pendulum with friction (_D-P+F_). These datasets are based on a ninteresting publication by Botev et al. (2021) [26], which appeared in the _NeurIPS 2021 Track on Datasets and Benchmarks_ and benchmarks various models for learning latent space dynamics.
 
-The results, which we will refer to as Table R1 of the global response PDF, show that the NODE model slightly outperforms the CON network on the _M-SP+F_ and _S-P+F_. However, as the datasets do not consider any system inputs, we can remove the input mapping from all models (e.g., RNN, GRU, coRNN, CON and CFA-CON). With that adjustment, the CON network has the fewest parameters, and particularily two order of magnitude less than the NODE model. Therefore, we find it very impressive that the CON network is roughly on par with the NODE model. Furthermore, the CON & CFA-CON networks most of times outperforms the other baseline methods that have slightly more trainable parameters.
+The results, which we will refer to as Table R1 of the global response PDF, show that the NODE model slightly outperforms the CON network on the _M-SP+F_ and _S-P+F_. However, as the datasets do not consider system inputs, we can remove the input mapping from all models (e.g., RNN, GRU, coRNN, CON and CFA-CON). With that adjustment, the CON network has the fewest parameters, and particularily two order of magnitude less than the NODE model. Therefore, we find it very impressive that the CON network is roughly on par with the NODE model. Furthermore, the CON & CFA-CON networks most of times outperforms the other baseline methods that have slightly more trainable parameters.
 
 ## Inference time of CON (R1)
 
