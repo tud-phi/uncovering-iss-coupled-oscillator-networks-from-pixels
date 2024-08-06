@@ -657,14 +657,14 @@ match system_type:
                 num_mlp_layers, mlp_hidden_dim = 5, 30
             case "ar-elman-rnn":
                 # optimized for n_z=12
-                base_lr = 0.005176340429875837
+                base_lr = 0.004524443032980358
                 loss_weights = dict(
-                    mse_z=0.31615198615315904,
+                    mse_z=0.12027467845758552,
                     mse_rec_static=1.0,
-                    mse_rec_dynamic=16.051911333587626,
-                    beta=0.00026524963767594775,
+                    mse_rec_dynamic=1.4056183787726764,
+                    beta=0.0007909511260972457,
                 )
-                weight_decay = 1.7532877050933287e-05
+                weight_decay = 4.617738677622606e-05
             case "ar-gru-rnn":
                 # optimized for n_z=12
                 base_lr = 0.018759092183177933
