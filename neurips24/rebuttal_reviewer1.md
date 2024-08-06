@@ -17,7 +17,7 @@ To further illustrate this point, we propose two simple passive-but-not-globally
 
 1. Take a passive CON as stated in Eq. (2) in the scalar case with $K=1$ and $D=0.4$. Conflicting with the assumptions in Theorem 1, we select $W=-5$. Now, depending on the choice of $b$, this scalar system either has 1, 2, or 3 equilibria (see Fig. R1 in global response). All global stability guarantees are lost if the system has more than one attractor. 
 2. We study a scalar CON with $K=-1$, positive damping $D=0.4$, and $W = 0$, $b=0$ resulting in the EOM $\ddot{x} + K x + D \dot{x} = \tau$. We take the passive output $o = \dot{x}$, and we prove passivity according to Def. 6.3 (Khalil, 2001) using the storage function $V(x) = K x^2 + \dot{x}^2$: $\dot{V}(x, \tau) = \tau \dot{x} - D \dot{x}^2 \leq \tau o. $
-However, this system is unstable, as it can be easily assessed by looking at the linearization at the equilibrium. 2. Fig. R2 reports the globally repulsive vector field, which exhibits a single unstable equilibrium at the origin.
+However, this system is unstable, as it can be easily assessed by looking at the linearization at the equilibrium. Fig. R2 reports the globally repulsive vector field, which exhibits a single unstable equilibrium at the origin.
 
 Therefore, we conclude that passivity is not sufficient to prove global asymptotic stability.
 
