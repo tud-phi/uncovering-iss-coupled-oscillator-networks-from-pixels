@@ -533,33 +533,31 @@ match system_type:
                     num_mlp_layers, mlp_hidden_dim = 5, 30
                 mlp_nonlinearity_name = "tanh"
             case "node-con-iae" | "node-con-iae-s":
-                raise NotImplementedError
                 # optimized for n_z=4
-                base_lr = 0.0056545951636144485
+                base_lr = 0.011064147131784937
                 loss_weights = dict(
-                    mse_z=0.13320385919138733,
+                    mse_z=0.32103670208740176,
                     mse_rec_static=1.0,
-                    mse_rec_dynamic=85.20327288600144,
-                    beta=0.0001986520795985124,
+                    mse_rec_dynamic=96.75643936202472,
+                    beta=0.0003362481655813636,
                     mse_tau_rec=5e1,
                 )
-                weight_decay = 7.226705864423811e-06
+                weight_decay = 7.422752602130393e-06
                 if dynamics_model_name == "node-con-iae-s":
                     num_mlp_layers, mlp_hidden_dim = 2, 12
                 else:
                     num_mlp_layers, mlp_hidden_dim = 5, 30
             case "ar-con-iae-cfa":
-                raise NotImplementedError
                 # optimized for n_z=4
-                base_lr = 0.008149533701551434
+                base_lr = 0.010754656092162381
                 loss_weights = dict(
-                    mse_z=0.2441078460028391,
+                    mse_z=0.2678697703682045,
                     mse_rec_static=1.0,
-                    mse_rec_dynamic=53.342183614739334,
-                    beta=0.00021457243252725872,
+                    mse_rec_dynamic=94.69625942730633,
+                    beta=0.00058540004856265,
                     mse_tau_rec=1e1,
                 )
-                weight_decay = 4.642297296907424e-05
+                weight_decay = 2.271612879994102e-05
                 num_mlp_layers, mlp_hidden_dim = 5, 30
             case "ar-elman-rnn":
                 # optimized for n_z=4
