@@ -501,32 +501,30 @@ match system_type:
         num_epochs = 150
         match dynamics_model_name:
             case "node-general-mlp" | "node-general-mlp-s":
-                raise NotImplementedError
                 # optimized for "node-general-mlp at n_z=4
-                base_lr = 0.008339693008588403
+                base_lr = 0.0029404842973983734
                 loss_weights = dict(
-                    mse_z=0.24775689453393362,
+                    mse_z=0.11846459037217552,
                     mse_rec_static=1.0,
-                    mse_rec_dynamic=1.6087813703182756,
-                    beta=0.00029500997565894957,
+                    mse_rec_dynamic=82.41447723083671,
+                    beta=0.0007865401169172522,
                 )
-                weight_decay = 1.540880150677294e-05
+                weight_decay = 1.3251268676344262e-05
                 if dynamics_model_name == "node-general-mlp-s":
                     num_mlp_layers, mlp_hidden_dim = 2, 12
                 else:
                     num_mlp_layers, mlp_hidden_dim = 5, 30
                 mlp_nonlinearity_name = "tanh"
             case "node-mechanical-mlp" | "node-mechanical-mlp-s":
-                raise NotImplementedError
                 # optimized for n_z=4
-                base_lr = 0.006361540670994402
+                base_lr = 0.00904783438825653
                 loss_weights = dict(
-                    mse_z=0.26781601891445145,
+                    mse_z=0.1296496100573024,
                     mse_rec_static=1.0,
-                    mse_rec_dynamic=17.134364197119655,
-                    beta=0.0004806404295331634,
+                    mse_rec_dynamic=76.4403216760019,
+                    beta=0.0006688707408161218,
                 )
-                weight_decay = 4.3925638476059976e-05
+                weight_decay = 1.5792346139343144e-05
                 if dynamics_model_name == "node-mechanical-mlp-s":
                     num_mlp_layers, mlp_hidden_dim = 2, 12
                 else:
