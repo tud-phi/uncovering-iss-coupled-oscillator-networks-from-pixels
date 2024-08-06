@@ -46,9 +46,8 @@ Furthermore, we also regard the closed-form approximation of the CON dynamics as
 
 > <cite>R1</cite>: Thus, a more detailed elaboration on the performance and limitation of CONs would be beneficial as it is evaluated for soft robotics data sets only.
 
-For this rebuttal, we have performed additional experiments involving non-soft-robotic datasets. They demonstrate that the CON network can also learn the latent dynamics of other mechanical systems,
-such as a mass spring, a pendulum, and a double pendulum with friction. We refer to the global rebuttal for more details.
+For this rebuttal, we have performed additional experiments involving non-soft-robotic datasets. They demonstrate that the CON network can also learn the latent dynamics of other mechanical systems, such as a mass spring, a pendulum, and a double pendulum with friction, effectively and with SOA performance. We refer to the global rebuttal for more details.
 
-The results show that the performance of the CON model is on par with other SOA methods while adding physical structure and stability guarantees.
+In totality, the results provided in the paper and in the rebuttal show that the performance of the CON model is on par with other SOA methods while adding physical structure and stability guarantees.
 As detailed in Section 6.2, the strong assumptions needed to provide global stability guarantees are the primary limitation of the presented CON network, making it unsuitable for applications where complex attractor dynamics (e.g., multiple attractors, strange attractors, etc.) are required.
 Relaxing the stability assumptions could make the CON network also suitable for these applications.
