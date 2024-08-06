@@ -669,16 +669,15 @@ match system_type:
                 )
                 weight_decay = 4.59867549628406e-05
             case "ar-gru-rnn":
-                raise NotImplementedError
                 # optimized for n_z=12
-                base_lr = 0.019842372307125208
+                base_lr = 0.018759092183177933
                 loss_weights = dict(
-                    mse_z=0.16620611214172962,
+                    mse_z=0.36189940167672224,
                     mse_rec_static=1.0,
-                    mse_rec_dynamic=3.1512643907782274,
-                    beta=0.00023992946888229258,
+                    mse_rec_dynamic=8.37449686843681,
+                    beta=0.00013130293256147146,
                 )
-                weight_decay = 2.0100052551831417e-05
+                weight_decay = 3.016471182021465e-05
             case "ar-cornn":
                 # optimized for n_z=12
                 base_lr = 0.010072831724792584
