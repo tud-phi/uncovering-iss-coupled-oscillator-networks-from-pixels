@@ -80,19 +80,29 @@ class ConIaeOde(NeuralOdeBase):
             diag_eps=self.diag_eps,
         )
 
-        V_layers = []
-        for _ in range(self.num_layers - 1):
-            V_layers.append(nn.Dense(features=self.hidden_dim))
-            V_layers.append(self.input_nonlinearity)
-        V_layers.append(nn.Dense(features=(self.latent_dim * self.input_dim)))
-        self.V_nn = nn.Sequential(V_layers)
+        if self.num_layers > 0:
+            V_layers = []
+            for _ in range(self.num_layers - 1):
+                V_layers.append(nn.Dense(features=self.hidden_dim))
+                V_layers.append(self.input_nonlinearity)
+            V_layers.append(nn.Dense(features=(self.latent_dim * self.input_dim)))
+            self.V_nn = nn.Sequential(V_layers)
+        elif self.latent_dim == self.input_dim:
+            self.V_nn = lambda tau: jnp.eye(self.latent_dim)
+        else:
+            self.V_nn = lambda tau: jnp.zeros((self.latent_dim, self.input_dim))
 
-        Y_layers = []
-        for _ in range(self.num_layers - 1):
-            Y_layers.append(nn.Dense(features=self.hidden_dim))
-            Y_layers.append(self.input_nonlinearity)
-        Y_layers.append(nn.Dense(features=(self.input_dim * self.latent_dim)))
-        self.Y_nn = nn.Sequential(Y_layers)
+        if self.num_layers > 0:
+            Y_layers = []
+            for _ in range(self.num_layers - 1):
+                Y_layers.append(nn.Dense(features=self.hidden_dim))
+                Y_layers.append(self.input_nonlinearity)
+            Y_layers.append(nn.Dense(features=(self.input_dim * self.latent_dim)))
+            self.Y_nn = nn.Sequential(Y_layers)
+        elif self.input_dim == self.latent_dim:
+            self.Y_nn = lambda u: jnp.eye(self.input_dim)
+        else:
+            self.Y_nn = lambda u: jnp.zeros((self.input_dim, self.latent_dim))
 
     def __call__(self, x: Array, tau: Array) -> Array:
         """
