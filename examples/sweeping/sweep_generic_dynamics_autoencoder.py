@@ -107,6 +107,7 @@ diag_shift, diag_eps = 1e-6, 2e-6
 assert long_horizon_dataset, "Only long horizon datasets are supported."
 assert ae_type == "beta_vae", "Only beta_vae is supported."
 
+grayscale = True
 match system_type:
     case "cs":
         match dynamics_model_name:
@@ -595,6 +596,7 @@ match system_type:
     case "double_pendulum_friction":
         batch_size = 10
         num_epochs = 150
+        grayscale = False
         match dynamics_model_name:
             case "node-general-mlp" | "node-general-mlp-s":
                 raise NotImplementedError
@@ -775,7 +777,7 @@ if __name__ == "__main__":
                 batch_size=batch_size,
                 num_epochs=num_epochs,
                 normalize=True,
-                grayscale=True,
+                grayscale=grayscale,
                 dataset_type="dm_hamiltonian_dynamics_suite"
                 if dataset_type == "toy_physics"
                 else "jsrm",
