@@ -87,7 +87,16 @@ match system_type:
     case "mass_spring_friction":
         match dynamics_model_name:
             case "node-con-iae":
-                experiment_id = f"2024-08-05_00-30-31/n_z_{n_z}_seed_{seed}"
+                experiment_id = f"2024-08-05_18-31-04/n_z_{n_z}_seed_{seed}"
+                num_mlp_layers, mlp_hidden_dim = 5, 30
+            case _:
+                raise ValueError(
+                    f"No experiment_id for dynamics_model_name={dynamics_model_name}"
+                )
+    case "pendulum_friction":
+        match dynamics_model_name:
+            case "node-con-iae":
+                experiment_id = f"2024-08-06_02-23-26/n_z_{n_z}_seed_{seed}"
                 num_mlp_layers, mlp_hidden_dim = 5, 30
             case _:
                 raise ValueError(
@@ -97,7 +106,7 @@ match system_type:
         grayscale = False
         match dynamics_model_name:
             case "node-con-iae":
-                experiment_id = f"2024-08-05_23-55-21/n_z_{n_z}_seed_{seed}"
+                experiment_id = f"2024-08-06_15-00-51/n_z_{n_z}_seed_{seed}"
                 num_mlp_layers, mlp_hidden_dim = 5, 30
             case _:
                 raise ValueError(
