@@ -48,6 +48,24 @@ def con_ode_factory(
 
     return con_ode_fn, con_energy_fn
 
+def conw_ode_factory(
+    Mw: Array, Kw: Array, Dw: Array, b: Array
+) -> Tuple[Callable, Callable]:
+    def conw_ode_fn(t: Array, yw: Array, tau: Array) -> Array:
+        xw, xw_d = jnp.split(yw, 2)
+        # xw_dd = jnp.linalg.inv(Mw) @ (tau - Kw @ xw - Dw @ xw_d - jnp.tanh(xw + b))
+        xw_dd = jnp.linalg.inv(Mw) @ (tau - Kw @ xw - Dw @ xw_d)
+        yw_d = jnp.concatenate([xw_d, xw_dd])
+        return yw_d
+
+    def conw_energy_fn(yw: Array) -> Array:
+        xw, xw_d = jnp.split(yw, 2, axis=-1)
+        U = 0.5 * jnp.sum(xw.T @ Kw @ xw) # + jnp.sum(jnp.log(jnp.cosh(xw + b)))
+        T = 0.5 * jnp.sum(xw_d.T @ Mw @ xw_d)
+        return T + U
+
+    return conw_ode_fn, conw_energy_fn
+
 
 def simulate_ode(
     ode_fn: Callable,
@@ -272,9 +290,217 @@ def simulate_unstable_coupling():
     plt.show()
 
 
+def simulate_somehow_stable_conw():
+    figsize = (6.0, 4.0)
+    """
+    K = jnp.array([[1.3, 1.0], [1.0, 1.0]])
+    D = 0.1 * jnp.array([[1.5, 0.0], [0.0, 1.0]])
+    W = jnp.array([[1.0, 2.0], [2.0, 5.0]])
+    b = jnp.zeros((2,))
+    """
+    K = jnp.array([[4.0, 1.0], [1.0, 1.0]])
+    D = jnp.array([[1.01, 1.0], [1.0, 1.0]])
+    W = jnp.array([[1.0, 2.23], [2.23, 5.0]])
+    b = jnp.array([0.0, 0.0])
+
+    print("K:\n", K, "\nEigenvalues of K:", jnp.linalg.eigh(K).eigenvalues)
+    print("D:\n", D, "Eigenvalues of D:", jnp.linalg.eigh(D).eigenvalues)
+    print("W:\n", W, "Eigenvalues of W:", jnp.linalg.eigh(W).eigenvalues)
+
+    # compute the matrices in the W coordinates
+    Mw = jnp.linalg.inv(W)
+    Kw = K @ W
+    Dw = D @ W
+    Kw_eigvals, Kw_eigvecs = jnp.linalg.eigh(Kw)
+    Dw_eigvals, Dw_eigvecs = jnp.linalg.eigh(Dw)
+
+
+    print("Kw:\n", Kw, "\nEigenvalues of Kw:", jnp.linalg.eigh(Kw).eigenvalues)
+    print("Dw:\n", Dw, "\nEigenvalues of Dw:", jnp.linalg.eigh(Dw).eigenvalues)
+
+    # create ode and energy functions in the original coordinates
+    ode_original_coords_fn, energy_original_coords_fn = con_ode_factory(K, D, W, b)
+    ode_w_coords_fn, energy_w_coords_fn = conw_ode_factory(Mw, Kw, Dw, b)
+    ts = jnp.linspace(0.0, 1000.0, 1000)
+    sim_dt = jnp.array(1e-4)
+    y0s = jnp.array(
+        [
+            [0.0, 0.0, 0.0, 0.0],
+            [100.0, -10.0, 0.0, 0.0],
+        ]
+    )
+
+    # plot the trajectory in the original coordinates
+    fig, ax = plt.subplots(figsize=figsize)
+    for i in range(y0s.shape[0]):
+        sim_ts = simulate_ode(ode_original_coords_fn, ts, y0s[i], sim_dt=sim_dt)
+        ax.plot(
+            sim_ts["ts"],
+            sim_ts["y_ts"][:, 0],
+            linewidth=lw,
+            linestyle="--",
+            color=colors[i],
+            label=r"$x_1(0)=" + str(y0s[i, 0:2].tolist()) + "$",
+        )
+        ax.plot(
+            sim_ts["ts"],
+            sim_ts["y_ts"][:, 1],
+            linewidth=lw,
+            linestyle=":",
+            color=colors[i],
+            label=r"$x_2(0)=" + str(y0s[i, 0:2].tolist()) + "$",
+        )
+    plt.box(True)
+    plt.grid(True)
+    ax.legend(ncol=2)
+    ax.set_xlabel(r"Time $t$ [s]")
+    ax.set_ylabel(r"Oscillator position $x$")
+    plt.tight_layout()
+    plt.savefig(outputs_dir / "somehow_stable_conw_time_series_original_coords.pdf")
+    plt.show()
+
+    # plot the trajectory in the W coordinates
+    tauw = Kw_eigvecs.T @ jnp.array([1000.0, 0.0])
+    tauw = jnp.zeros((2, ))
+    # tauw = Dw_eigvecs.T @ jnp.array([1000.0, 0.0])
+    print("tauw:", tauw)
+    fig, ax = plt.subplots(figsize=figsize)
+    for i in range(y0s.shape[0]):
+        sim_ts = simulate_ode(ode_w_coords_fn, ts, y0s[i], sim_dt=sim_dt, tau=tauw)
+        ax.plot(
+            sim_ts["ts"],
+            sim_ts["y_ts"][:, 0],
+            linewidth=lw,
+            linestyle="--",
+            color=colors[i],
+            label=r"$x_{\mathrm{w},1}(0)=" + str(y0s[i, 0:2].tolist()) + "$",
+        )
+        ax.plot(
+            sim_ts["ts"],
+            sim_ts["y_ts"][:, 1],
+            linewidth=lw,
+            linestyle=":",
+            color=colors[i],
+            label=r"$x_{\mathrm{w},2}(0)=" + str(y0s[i, 0:2].tolist()) + "$",
+        )
+    plt.box(True)
+    plt.grid(True)
+    ax.legend(ncol=2)
+    ax.set_xlabel(r"Time $t$ [s]")
+    ax.set_ylabel(r"Position in $\mathcal{W}$ coordinates $x_\mathrm{w}$")
+    plt.tight_layout()
+    plt.savefig(outputs_dir / "somehow_stable_conw_time_series_w_coords.pdf")
+    plt.show()
+
+    # create grid in the original coordinates
+    x_eqs = jnp.array(
+        [
+            [0.0, 0.0],
+        ]
+    )
+    xlim = 100 * jnp.array([[-1.0, 1.0], [-1.0, 1.0]])
+    x1_pts = jnp.linspace(xlim[0, 0], xlim[0, 1], 500)
+    x2_pts = jnp.linspace(xlim[1, 0], xlim[1, 1], 500)
+    x1_grid, x2_grid = jnp.meshgrid(x1_pts, x2_pts)
+    x_grid = jnp.stack([x1_grid, x2_grid], axis=-1)
+    y_grid = jnp.concat([x_grid, jnp.zeros_like(x_grid)], axis=-1)
+    # evaluate total energy on grid in the original coordinates
+    E_grid = jax.vmap(jax.vmap(energy_original_coords_fn))(y_grid)
+    # evaluate the ODE on the grid in the original coordinates
+    y_d_grid = jax.vmap(
+        jax.vmap(
+            partial(
+                ode_original_coords_fn,
+                jnp.array(0.0),
+                tau=jnp.zeros((2,)),
+            )
+        )
+    )(y_grid)
+    x_dd_grid = y_d_grid[..., 2:]
+    speed = jnp.sqrt(jnp.sum(x_dd_grid**2, axis=-1))
+    fig, ax = plt.subplots(figsize=figsize)
+    cs = ax.contourf(x1_pts, x2_pts, E_grid, levels=100)
+    stream_lw = 2 * speed / speed.max()
+    ax.streamplot(
+        onp.array(x1_pts),
+        onp.array(x2_pts),
+        onp.array(x_dd_grid[:, :, 0]),
+        onp.array(x_dd_grid[:, :, 1]),
+        density=0.7,
+        minlength=0.2,
+        maxlength=100.0,
+        linewidth=onp.array(stream_lw),
+        color="k",
+    )
+    if x_eqs is not None:
+        plt.plot(x_eqs[:, 0], x_eqs[:, 1], linestyle="None", marker="x", color="orange")
+    plt.colorbar(cs, label="Potential energy $U$")
+    ax.set_xlabel(r"$x_1$")
+    ax.set_ylabel(r"$x_2$")
+    ax.set_xlim(xlim[0])
+    ax.set_ylim(xlim[1])
+    plt.box(True)
+    plt.tight_layout()
+    plt.savefig(outputs_dir / "somehow_stable_conw_phase_portrait_original_coords.pdf")
+    plt.show()
+
+    # create grid in the w coordinates
+    x_eqs = jnp.array(
+        [
+            [0.0, 0.0],
+        ]
+    )
+    xlim = 10 * jnp.array([[-1.0, 1.0], [-1.0, 1.0]])
+    x1_pts = jnp.linspace(xlim[0, 0], xlim[0, 1], 1000)
+    x2_pts = jnp.linspace(xlim[1, 0], xlim[1, 1], 1000)
+    x1_grid, x2_grid = jnp.meshgrid(x1_pts, x2_pts)
+    x_grid = jnp.stack([x1_grid, x2_grid], axis=-1)
+    y_grid = jnp.concat([x_grid, jnp.zeros_like(x_grid)], axis=-1)
+    # evaluate total energy on grid in the w coordinates
+    E_grid = jax.vmap(jax.vmap(energy_w_coords_fn))(y_grid)
+    # evaluate the ODE on the grid in the w coordinates
+    y_d_grid = jax.vmap(
+        jax.vmap(
+            partial(
+                ode_w_coords_fn,
+                jnp.array(0.0),
+                tau=jnp.zeros((2,)),
+            )
+        )
+    )(y_grid)
+    x_dd_grid = y_d_grid[..., 2:]
+    speed = jnp.sqrt(jnp.sum(x_dd_grid**2, axis=-1))
+    fig, ax = plt.subplots(figsize=figsize)
+    cs = ax.contourf(x1_pts, x2_pts, E_grid, levels=100)
+    stream_lw = 2 * speed / speed.max()
+    ax.streamplot(
+        onp.array(x1_pts),
+        onp.array(x2_pts),
+        onp.array(x_dd_grid[:, :, 0]),
+        onp.array(x_dd_grid[:, :, 1]),
+        density=0.7,
+        minlength=0.2,
+        maxlength=100.0,
+        linewidth=onp.array(stream_lw),
+        color="k",
+    )
+    if x_eqs is not None:
+        plt.plot(x_eqs[:, 0], x_eqs[:, 1], linestyle="None", marker="x", color="orange")
+    plt.colorbar(cs, label="Potential energy $U$")
+    ax.set_xlabel(r"$x_{\mathrm{w},1}$")
+    ax.set_ylabel(r"$x_{\mathrm{w},2}$")
+    ax.set_xlim(xlim[0])
+    ax.set_ylim(xlim[1])
+    plt.box(True)
+    plt.tight_layout()
+    plt.savefig(outputs_dir / "somehow_stable_conw_phase_portrait_w_coords.pdf")
+    plt.show()
+
+
 def main():
     simulate_unstable_con()
     simulate_unstable_coupling()
+    # simulate_somehow_stable_conw()
 
 
 if __name__ == "__main__":
