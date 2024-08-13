@@ -23,6 +23,6 @@ The proof underlying Theorem 1 is only (relatively) simple as the coordinate tra
 
 Remark: In contrast to Example 1, this system actually has a single equilibrium point. 
 
-Unfortunately, the unactuated dynamics in $\mathcal{W}$ coordinates are now given by $M_\mathrm{w} \ddot{x}_\mathrm{w} + K_\mathrm{w} W + D \dot{x}_\mathrm{w} + W^\mathrm{T} \tanh(x_\mathrm{w} + b)$, for which we cannot easily derive a potential energy function (i.e., integrate), as the hyperbolic term is not (easily) separable.
+Unfortunately, the unactuated dynamics in $\mathcal{W}$ coordinates are now given by $M_\mathrm{w} \ddot{x}_\mathrm{w} + K_{\mathrm{w}} x + D \dot{x}_\mathrm{w} + W^\mathrm{T} \tanh(x_\mathrm{w} + b) = 0$, for which we cannot easily derive a potential energy function (i.e., integrate), as the hyperbolic term is not (easily) separable.
 
 This example motivates why we chose the proposed CON network architecture such that we can (easily) derive the kinetic and potential energy terms, subsequently prove GAS & ISS, and perform model-based control.
