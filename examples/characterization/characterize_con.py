@@ -53,14 +53,13 @@ def conw_ode_factory(
 ) -> Tuple[Callable, Callable]:
     def conw_ode_fn(t: Array, yw: Array, tau: Array) -> Array:
         xw, xw_d = jnp.split(yw, 2)
-        # xw_dd = jnp.linalg.inv(Mw) @ (tau - Kw @ xw - Dw @ xw_d - jnp.tanh(xw + b))
-        xw_dd = jnp.linalg.inv(Mw) @ (tau - Kw @ xw - Dw @ xw_d)
+        xw_dd = jnp.linalg.inv(Mw) @ (tau - Kw @ xw - Dw @ xw_d - jnp.tanh(xw + b))
         yw_d = jnp.concatenate([xw_d, xw_dd])
         return yw_d
 
     def conw_energy_fn(yw: Array) -> Array:
         xw, xw_d = jnp.split(yw, 2, axis=-1)
-        U = 0.5 * jnp.sum(xw.T @ Kw @ xw) # + jnp.sum(jnp.log(jnp.cosh(xw + b)))
+        U = 0.5 * jnp.sum(xw.T @ Kw @ xw) + jnp.sum(jnp.log(jnp.cosh(xw + b)))
         T = 0.5 * jnp.sum(xw_d.T @ Mw @ xw_d)
         return T + U
 
