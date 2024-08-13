@@ -66,6 +66,27 @@ def conw_ode_factory(
     return conw_ode_fn, conw_energy_fn
 
 
+def pcon_ode_factory(
+    K: Array, D: Array, W: Array, b: Array
+) -> Tuple[Callable, Callable]:
+    def pcon_ode_fn(t: Array, y: Array, tau: Array) -> Array:
+        x, x_d = jnp.split(y, 2)
+        x_dd = tau - K @ x - D @ x_d - jnp.linalg.inv(W) @ jnp.tanh(W @ x + b)
+        # x_dd = tau - K @ x - D @ x_d - W.T @ jnp.tanh(W @ x + b)
+        y_d = jnp.concatenate([x_d, x_dd])
+        return y_d
+
+    def pcon_energy_fn(y: Array) -> Array:
+        x, x_d = jnp.split(y, 2, axis=-1)
+        U = 0.5 * jnp.sum(x.T @ K @ x)
+        # if jnp.linalg.det(W) > 0.0:
+        #     U = U + jnp.sum(jnp.linalg.inv(W) @ jnp.log(jnp.cosh(W @ x + b)))
+        T = 0.5 * jnp.sum(x_d.T @ x_d)
+        return T + U
+
+    return pcon_ode_fn, pcon_energy_fn
+
+
 def simulate_ode(
     ode_fn: Callable,
     ts: Array,
@@ -496,10 +517,130 @@ def simulate_somehow_stable_conw():
     plt.show()
 
 
+def simulate_bistable_pcon():
+    figsize = (6.0, 4.0)
+    K = jnp.array([[5.0, -2.2], [-2.2, 1.0]])
+    D = 0.2 * jnp.array([[1.0, 0.0], [0.0, 1.0]])
+    W = jnp.array([[1.0, -2.2], [-2.2, 5.0]])
+    b = jnp.array([0.0, 4.0])
+
+    print("K:\n", K, "\nEigenvalues of K:", jnp.linalg.eigh(K).eigenvalues)
+    print("D:\n", D, "Eigenvalues of D:", jnp.linalg.eigh(D).eigenvalues)
+    print("W:\n", W, "Eigenvalues of W:", jnp.linalg.eigh(W).eigenvalues)
+
+    ode_fn, energy_fn = pcon_ode_factory(K, D, W, b)
+    ts = jnp.linspace(0.0, 80.0, 1000)
+    sim_dt = jnp.array(2e-5)
+    y0s = jnp.array(
+        [
+            [0.0, 0.0, 0.0, 0.0],
+            [0.5, 0.5, 0.0, 0.0],
+            [-0.5, -0.5, 0.0, 0.0],
+            [2.0, 2.0, 0.0, 0.0],
+            [2.0, -2.0, 0.0, 0.0],
+            [-2.0, 2.0, 0.0, 0.0],
+            [-2.0, -2.0, 0.0, 0.0],
+        ]
+    )
+
+    # plot the trajectory
+    fig1, ax1 = plt.subplots(figsize=figsize)
+    fig2, ax2 = plt.subplots(figsize=figsize)
+    for i in range(y0s.shape[0]):
+        sim_ts = simulate_ode(ode_fn, ts, y0s[i], sim_dt=sim_dt)
+        print("yf:", sim_ts["y_ts"][-1])
+        ax1.plot(
+            sim_ts["ts"],
+            sim_ts["y_ts"][:, 0],
+            linewidth=lw,
+            color=colors[i],
+            label=r"$x(0)=" + str(y0s[i, 0:2].tolist()) + "$",
+        )
+        ax2.plot(
+            sim_ts["ts"],
+            sim_ts["y_ts"][:, 1],
+            linewidth=lw,
+            color=colors[i],
+            label=r"$x(0)=" + str(y0s[i, 0:2].tolist()) + "$",
+        )
+    ax1.grid(True)
+    ax2.grid(True)
+    ax1.legend(ncol=2)
+    ax2.legend(ncol=2)
+    ax1.set_xlabel(r"Time $t$ [s]")
+    ax1.set_ylabel(r"1st oscillator position $x_1$")
+    ax2.set_xlabel(r"Time $t$ [s]")
+    ax2.set_ylabel(r"2nd oscillator position $x_2$")
+    fig1.tight_layout()
+    fig2.tight_layout()
+    fig1.savefig(outputs_dir / "bistable_pcon_time_series_x1.pdf")
+    fig2.savefig(outputs_dir / "bistable_pcon_time_series_x2.pdf")
+    plt.show()
+
+    # create grid
+    x_eqs = None
+    x_eqs = jnp.array(
+        [
+            [-2.12488409e+02, -4.74974002e+02],
+            [2.12488073e+02, 4.74972926e+02],
+        ]
+    )
+    # xlim = 10 * jnp.array([[-1.0, 1.0], [-1.0, 1.0]])
+    xlim = jnp.array([[-230.0, 230.0], [-490.0, 490.0]])
+    x1_pts = jnp.linspace(xlim[0, 0], xlim[0, 1], 500)
+    x2_pts = jnp.linspace(xlim[1, 0], xlim[1, 1], 500)
+    x1_grid, x2_grid = jnp.meshgrid(x1_pts, x2_pts)
+    x_grid = jnp.stack([x1_grid, x2_grid], axis=-1)
+    y_grid = jnp.concat([x_grid, jnp.zeros_like(x_grid)], axis=-1)
+
+    # evaluate total energy on grid
+    E_grid = jax.vmap(jax.vmap(energy_fn))(y_grid)
+
+    # evaluate the ODE on the grid
+    y_d_grid = jax.vmap(
+        jax.vmap(
+            partial(
+                ode_fn,
+                jnp.array(0.0),
+                tau=jnp.zeros((2,)),
+            )
+        )
+    )(y_grid)
+    x_dd_grid = y_d_grid[..., 2:]
+    speed = jnp.sqrt(jnp.sum(x_dd_grid**2, axis=-1))
+
+    fig, ax = plt.subplots(figsize=figsize)
+    # cs = ax.contourf(x1_pts, x2_pts, E_grid, levels=100)
+    stream_lw = 2 * speed / speed.max()
+    ax.streamplot(
+        onp.array(x1_pts),
+        onp.array(x2_pts),
+        onp.array(x_dd_grid[:, :, 0]),
+        onp.array(x_dd_grid[:, :, 1]),
+        density=0.7,
+        minlength=0.2,
+        maxlength=100.0,
+        linewidth=onp.array(stream_lw),
+        color="k",
+    )
+    if x_eqs is not None:
+        plt.plot(x_eqs[:, 0], x_eqs[:, 1], linestyle="None", marker="x", color="orange")
+    # plt.colorbar(cs, label="Potential energy $U$")
+    ax.set_xlabel(r"$x_1$")
+    ax.set_ylabel(r"$x_2$")
+    ax.set_xlim(xlim[0])
+    ax.set_ylim(xlim[1])
+    plt.box(True)
+    plt.tight_layout()
+    plt.savefig(outputs_dir / "bistable_pcon_phase_portrait.pdf")
+    plt.show()
+
+
 def main():
     simulate_unstable_con()
     simulate_unstable_coupling()
     # simulate_somehow_stable_conw()
+    simulate_bistable_pcon()
 
 
 if __name__ == "__main__":
