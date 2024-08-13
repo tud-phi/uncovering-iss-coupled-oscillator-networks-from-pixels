@@ -21,7 +21,8 @@ This example motivates that even if the matrices are positive-definite, the syst
 
 The proof underlying Theorem 1 is only (relatively) simple as the coordinate transformation $x_\mathrm{w} = W x$ helps us to identify the potential energy function in the $\mathcal{W}$ coordinates, where the hyperbolic nonlinearity operates elementwise. However, this is not always possible. For example, consider the system $\ddot{x} + K x + D \dot{x} + W^{\mathrm{T}} \tanh(Wx + b) = 0$, where $K, D, W \succ 0$ are positive definite matrices. 
 
-Remark: In contrast to Example 1, this system actually has a single equilibrium point. 
 Unfortunately, the unactuated dynamics in the W coordinates are now given by $M_\mathrm{w} \ddot{x}_{\mathrm{w}}+ K_{\mathrm{w}} x_\mathrm{w} + D_\mathrm{w} \dot{x}_\mathrm{w}+ W^\mathrm{T} \tanh(x_\mathrm{w} + b) = 0$, for which we cannot easily derive a potential energy function (i.e., integrate), as the hyperbolic term $W^\mathrm{T} \tanh(x_\mathrm{w} + b)$ is not (easily) separable.
+
+Remark: In contrast to Example 1, this system actually has a single equilibrium point. 
 
 This example motivates why we chose the proposed CON network architecture such that we can (easily) derive the kinetic and potential energy terms, subsequently prove GAS & ISS, and perform model-based control.
