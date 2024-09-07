@@ -35,7 +35,7 @@ def animate_image_cv2(
     fps = float(speed_up / (skip_step * dt))
 
     # create video
-    fourcc = cv2.VideoWriter_fourcc(*"MP4V")
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
     Path(filepath).parent.mkdir(parents=True, exist_ok=True)
     video = cv2.VideoWriter(
         str(filepath),
@@ -80,7 +80,7 @@ def animate_pred_vs_target_image_cv2(
     dt = onp.mean(t_ts[1:] - t_ts[:-1])
 
     # create the video writer
-    fourcc = cv2.VideoWriter_fourcc(*"MP4V")
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
     if not type(filepath) is Path:
         filepath = Path(filepath)
     filepath.parent.mkdir(parents=True, exist_ok=True)
