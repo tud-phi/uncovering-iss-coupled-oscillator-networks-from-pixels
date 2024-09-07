@@ -330,6 +330,11 @@ if __name__ == "__main__":
         ts = batch["ts"][0, start_time_idx:]
         img_pred_ts = pred["img_dynamic_ts"][0]
         img_target_ts = batch["rendering_ts"][0, start_time_idx:]
+        # denormalize the images
+        img_pred_ts = jax.vmap(partial(denormalize_img, apply_threshold=True))(img_pred_ts)
+        img_target_ts = jax.vmap(partial(denormalize_img, apply_threshold=True))(
+            img_target_ts
+        )
 
         # animate the rollout
         print(f"Animate rollout {batch_idx + 1} / {num_rollouts}...")
@@ -342,18 +347,18 @@ if __name__ == "__main__":
             show=False,
             label_target="Ground-truth",
         )
-        # animate_image_cv2(
-        #     onp.array(ts),
-        #     onp.array(img_target_ts),
-        #     filepath=ckpt_dir / f"rollout_{batch_idx}_target.mp4",
-        #     step_skip=1,
-        # )
-        # animate_image_cv2(
-        #     onp.array(ts),
-        #     onp.array(img_pred_ts),
-        #     filepath=ckpt_dir / f"rollout_{batch_idx}_pred.mp4",
-        #     step_skip=1,
-        # )
+        animate_image_cv2(
+            onp.array(ts),
+            onp.array(img_target_ts).astype(onp.uint8),
+            filepath=ckpt_dir / f"rollout_{batch_idx}_target.mp4",
+            step_skip=1,
+        )
+        animate_image_cv2(
+            onp.array(ts),
+            onp.array(img_pred_ts).astype(onp.uint8),
+            filepath=ckpt_dir / f"rollout_{batch_idx}_pred.mp4",
+            step_skip=1,
+        )
 
         if batch_idx == num_rollouts - 1:
             break
