@@ -48,6 +48,10 @@ def animate_image_cv2(
     t_ts = t_ts[::skip_step]
     img_ts = img_ts[::skip_step]
 
+    # convert to RBG if greyscale
+    if img_ts.shape[-1] == 1:
+        img_ts = onp.repeat(img_ts, 3, axis=-1)
+
     for time_idx, t in enumerate(t_ts):
         video.write(img_ts[time_idx])
 
