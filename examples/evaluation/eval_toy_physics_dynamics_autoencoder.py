@@ -66,8 +66,6 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 ]
 """
 dynamics_model_name = "node-con-iae"
-# latent space shape
-n_z = 4
 # simulation time step
 # sim_dt = None
 sim_dt = 2.5e-2
