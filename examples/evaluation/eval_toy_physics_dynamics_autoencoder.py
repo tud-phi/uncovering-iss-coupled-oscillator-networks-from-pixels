@@ -85,6 +85,7 @@ diag_shift, diag_eps = 1e-6, 2e-6
 grayscale = True
 match system_type:
     case "mass_spring_friction":
+        n_z = 4  # latent space dimension
         match dynamics_model_name:
             case "node-con-iae":
                 experiment_id = f"2024-08-05_18-31-04/n_z_{n_z}_seed_{seed}"
@@ -94,6 +95,7 @@ match system_type:
                     f"No experiment_id for dynamics_model_name={dynamics_model_name}"
                 )
     case "pendulum_friction":
+        n_z = 4  # latent space dimension
         match dynamics_model_name:
             case "node-con-iae":
                 experiment_id = f"2024-08-06_02-23-26/n_z_{n_z}_seed_{seed}"
@@ -103,6 +105,7 @@ match system_type:
                     f"No experiment_id for dynamics_model_name={dynamics_model_name}"
                 )
     case "double_pendulum_friction":
+        n_z = 12  # latent space dimension
         grayscale = False
         match dynamics_model_name:
             case "node-con-iae":
