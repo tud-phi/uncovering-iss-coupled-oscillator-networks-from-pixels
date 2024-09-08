@@ -80,6 +80,7 @@ batch_size = 10
 loss_weights = dict(mse_q=1.0, mse_rec_static=1.0, mse_rec_dynamic=1.0)
 start_time_idx = 1
 num_past_timesteps = 2
+custom_rollout_conditions = False
 
 norm_layer = nn.LayerNorm
 num_mlp_layers, mlp_hidden_dim, mlp_nonlinearity_name = 4, 20, "leaky_relu"
@@ -458,78 +459,120 @@ if __name__ == "__main__":
     )
     forward_fn_learned = jit(task_callables_rollout_learned.forward_fn)
 
-    # rollout dynamics
-    print("Rollout...")
-    q0 = (
-        0.5
-        * jnp.tile(jnp.array([1.0, -1.0]), reps=int(jnp.ceil(n_q / 2)))[:n_q]
-        * dataset_metadata["x0_max"][:n_q]
-    )
-    x0 = jnp.concatenate([q0, jnp.zeros((n_q,))])
-    # tau = jnp.zeros((n_tau,))
-    tau = -0.5 * dataset_metadata["tau_max"]
-    print("x0:", x0, "tau:", tau)
-    sim_ts = ode_rollout_fn(x0=x0, tau=tau)
-    rollout_batch = dict(
-        t_ts=ts_rollout[None, ...],
-        x_ts=sim_ts["x_ts"][None, ...],
-        tau=tau[None, ...],
-        rendering_ts=sim_ts["rendering_ts"][None, :],
-    )
-    preds = forward_fn_learned(rollout_batch, state.params)
-    # extract both the target and the predicted images
-    img_pred_ts = preds["img_dynamic_ts"][0]
-    img_target_ts = sim_ts["rendering_ts"][start_time_idx:]
-    # extract the latent state trajectory
-    xi_ts = preds["xi_dynamic_ts"][0]
+    if custom_rollout_conditions:
+        # rollout dynamics
+        print("Rollout...")
+        q0 = (
+            0.5
+            * jnp.tile(jnp.array([1.0, -1.0]), reps=int(jnp.ceil(n_q / 2)))[:n_q]
+            * dataset_metadata["x0_max"][:n_q]
+        )
+        x0 = jnp.concatenate([q0, jnp.zeros((n_q,))])
+        # tau = jnp.zeros((n_tau,))
+        tau = -0.5 * dataset_metadata["tau_max"]
+        print("x0:", x0, "tau:", tau)
+        sim_ts = ode_rollout_fn(x0=x0, tau=tau)
+        rollout_batch = dict(
+            t_ts=ts_rollout[None, ...],
+            x_ts=sim_ts["x_ts"][None, ...],
+            tau=tau[None, ...],
+            rendering_ts=sim_ts["rendering_ts"][None, :],
+        )
+        preds = forward_fn_learned(rollout_batch, state.params)
+        # extract both the target and the predicted images
+        img_pred_ts = preds["img_dynamic_ts"][0]
+        img_target_ts = sim_ts["rendering_ts"][start_time_idx:]
+        # extract the latent state trajectory
+        xi_ts = preds["xi_dynamic_ts"][0]
 
-    # denormalize the images
-    img_pred_ts = jax.vmap(partial(denormalize_img, apply_threshold=True))(img_pred_ts)
-    img_target_ts = jax.vmap(partial(denormalize_img, apply_threshold=True))(
-        img_target_ts
-    )
+        # denormalize the images
+        img_pred_ts = jax.vmap(partial(denormalize_img, apply_threshold=True))(img_pred_ts)
+        img_target_ts = jax.vmap(partial(denormalize_img, apply_threshold=True))(
+            img_target_ts
+        )
 
-    # animate the rollout
-    print("Animate the rollout...")
-    animate_pred_vs_target_image_pyplot(
-        onp.array(ts_rollout[start_time_idx:]),
-        img_pred_ts=img_pred_ts,
-        img_target_ts=img_target_ts,
-        filepath=ckpt_dir / "rollout.mp4",
-        step_skip=1,
-        show=True,
-        label_target="Ground-truth",
-    )
-    animate_image_cv2(
-        onp.array(ts_rollout[start_time_idx:]),
-        onp.array(img_target_ts),
-        filepath=ckpt_dir / "rollout_target.mp4",
-        step_skip=1,
-    )
-    animate_image_cv2(
-        onp.array(ts_rollout[start_time_idx:]),
-        onp.array(img_pred_ts),
-        filepath=ckpt_dir / "rollout_pred.mp4",
-        step_skip=1,
-    )
+        # animate the rollout
+        print("Animate the rollout...")
+        animate_pred_vs_target_image_pyplot(
+            onp.array(ts_rollout[start_time_idx:]),
+            img_pred_ts=img_pred_ts,
+            img_target_ts=img_target_ts,
+            filepath=ckpt_dir / "rollout.mp4",
+            step_skip=1,
+            show=True,
+            label_target="Ground-truth",
+        )
+        animate_image_cv2(
+            onp.array(ts_rollout[start_time_idx:]),
+            onp.array(img_target_ts),
+            filepath=ckpt_dir / "rollout_target.mp4",
+            step_skip=1,
+        )
+        animate_image_cv2(
+            onp.array(ts_rollout[start_time_idx:]),
+            onp.array(img_pred_ts),
+            filepath=ckpt_dir / "rollout_pred.mp4",
+            step_skip=1,
+        )
 
-    energy_fn = getattr(dynamics_model_bound, "energy_fn", None)
-    if callable(energy_fn):
-        if type(dynamics_model) is ConOde:
-            energy_fn = partial(
-                energy_fn,
-                coordinate="zw" if dynamics_model_bound.use_w_coordinates else "z",
+        energy_fn = getattr(dynamics_model_bound, "energy_fn", None)
+        if callable(energy_fn):
+            if type(dynamics_model) is ConOde:
+                energy_fn = partial(
+                    energy_fn,
+                    coordinate="zw" if dynamics_model_bound.use_w_coordinates else "z",
+                )
+
+            # plot the energy over time
+            fig, ax = plt.subplots(1, 1, figsize=(8, 6), num="Energy vs. time")
+            V_ts = jax.vmap(energy_fn)(xi_ts)
+            ax.plot(ts_rollout[start_time_idx:], V_ts, label="Energy")
+            ax.set_xlabel("Time [s]")
+            ax.set_ylabel("Energy")
+            ax.set_title("Energy vs. time")
+            ax.legend()
+            plt.grid(True)
+            plt.box(True)
+            plt.savefig(ckpt_dir / "energy_vs_time.pdf")
+            plt.show()
+    else:
+        num_rollouts = 25
+        for batch_idx, batch in enumerate(test_ds.as_numpy_iterator()):
+            pred = forward_fn_learned(batch)
+
+            ts = batch["ts"][0, start_time_idx:]
+            img_pred_ts = pred["img_dynamic_ts"][0]
+            img_target_ts = batch["rendering_ts"][0, start_time_idx:]
+            # denormalize the images
+            img_pred_ts = jax.vmap(partial(denormalize_img, apply_threshold=True))(img_pred_ts)
+            img_target_ts = jax.vmap(partial(denormalize_img, apply_threshold=True))(
+                img_target_ts
             )
 
-        # plot the energy over time
-        fig, ax = plt.subplots(1, 1, figsize=(8, 6), num="Energy vs. time")
-        V_ts = jax.vmap(energy_fn)(xi_ts)
-        ax.plot(ts_rollout[start_time_idx:], V_ts, label="Energy")
-        ax.set_xlabel("Time [s]")
-        ax.set_ylabel("Energy")
-        ax.set_title("Energy vs. time")
-        ax.legend()
-        plt.grid(True)
-        plt.box(True)
-        plt.savefig(ckpt_dir / "energy_vs_time.pdf")
-        plt.show()
+            # animate the rollout
+            print(f"Animate rollout {batch_idx + 1} / {num_rollouts}...")
+            animate_pred_vs_target_image_pyplot(
+                onp.array(ts),
+                img_pred_ts=img_pred_ts,
+                img_target_ts=img_target_ts,
+                filepath=ckpt_dir / f"rollout_{batch_idx}.mp4",
+                step_skip=1,
+                show=False,
+                label_target="Ground-truth",
+            )
+            animate_image_cv2(
+                onp.array(ts),
+                onp.array(img_target_ts).astype(onp.uint8),
+                filepath=ckpt_dir / f"rollout_{batch_idx}_target.mp4",
+                step_skip=1,
+            )
+            animate_image_cv2(
+                onp.array(ts),
+                onp.array(img_pred_ts).astype(onp.uint8),
+                filepath=ckpt_dir / f"rollout_{batch_idx}_pred.mp4",
+                step_skip=1,
+            )
+
+            if batch_idx == num_rollouts - 1:
+                # break
+                exit(0)
