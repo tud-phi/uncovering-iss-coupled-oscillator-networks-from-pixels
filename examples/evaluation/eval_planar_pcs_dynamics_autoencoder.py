@@ -54,8 +54,7 @@ seed = 0
 rng = random.PRNGKey(seed=seed)
 tf.random.set_seed(seed=seed)
 
-system_type = "pcc_ns-2"
-long_horizon_dataset = True
+system_type = "cs"
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 """ dynamics_model_name in [
     "node-general-mlp", "node-mechanical-mlp", "node-mechanical-mlp-s", 
@@ -87,93 +86,77 @@ num_mlp_layers, mlp_hidden_dim, mlp_nonlinearity_name = 4, 20, "leaky_relu"
 cornn_gamma, cornn_epsilon = 1.0, 1.0
 lnn_learn_dissipation = True
 diag_shift, diag_eps = 1e-6, 2e-6
-if long_horizon_dataset:
-    match dynamics_model_name:
-        case "node-general-mlp" | "node-general-mlp-s":
-            if dynamics_model_name == "node-general-mlp-s":
-                raise NotImplementedError
-                num_mlp_layers, mlp_hidden_dim = 2, 12
-            else:
-                experiment_id = f"2024-05-20_19-11-26/n_z_8_seed_{seed}"
+match system_type:
+    case "cs":
+        n_z = 12
+        print(f"Setting n_z to {n_z} for system_type={system_type}")
+        match dynamics_model_name:
+            case "node-con-iae":
+                experiment_id = "2024-05-19_17-07-08/n_z_12_seed_0"
                 num_mlp_layers, mlp_hidden_dim = 5, 30
-            mlp_nonlinearity_name = "tanh"
-        case "node-mechanical-mlp" | "node-mechanical-mlp-s":
-            if dynamics_model_name == "node-mechanical-mlp-s":
-                experiment_id = f"2024-05-20_23-27-42/n_z_8_seed_{seed}"
-                num_mlp_layers, mlp_hidden_dim = 2, 12
-            else:
-                experiment_id = f"2024-05-20_17-05-46/n_z_8_seed_{seed}"
+            case _:
+                raise ValueError(
+                    f"No experiment_id for dynamics_model_name={dynamics_model_name}"
+                )
+    case "pcc_ns-2":
+        match dynamics_model_name:
+            case "node-general-mlp" | "node-general-mlp-s":
+                if dynamics_model_name == "node-general-mlp-s":
+                    raise NotImplementedError
+                    num_mlp_layers, mlp_hidden_dim = 2, 12
+                else:
+                    experiment_id = f"2024-05-20_19-11-26/n_z_8_seed_{seed}"
+                    num_mlp_layers, mlp_hidden_dim = 5, 30
+                mlp_nonlinearity_name = "tanh"
+            case "node-mechanical-mlp" | "node-mechanical-mlp-s":
+                if dynamics_model_name == "node-mechanical-mlp-s":
+                    experiment_id = f"2024-05-20_23-27-42/n_z_8_seed_{seed}"
+                    num_mlp_layers, mlp_hidden_dim = 2, 12
+                else:
+                    experiment_id = f"2024-05-20_17-05-46/n_z_8_seed_{seed}"
+                    num_mlp_layers, mlp_hidden_dim = 5, 30
+                mlp_nonlinearity_name = "tanh"
+            case "node-mechanical-mlp":
+                experiment_id = "2024-03-08_10-42-05"
+                num_mlp_layers, mlp_hidden_dim = 5, 21
+                mlp_nonlinearity_name = "tanh"
+            case "node-w-con":
+                experiment_id = f"2024-03-12_12-53-29/n_z_{n_z}_seed_{seed}"
+            case "node-con-iae":
+                if n_z == 8:
+                    experiment_id = f"2024-05-20_13-20-49/n_z_8_seed_{seed}"
+                else:
+                    experiment_id = f"2024-03-15_21-44-34/n_z_{n_z}_seed_{seed}"
                 num_mlp_layers, mlp_hidden_dim = 5, 30
-            mlp_nonlinearity_name = "tanh"
-        case "node-mechanical-mlp":
-            experiment_id = "2024-03-08_10-42-05"
-            num_mlp_layers, mlp_hidden_dim = 5, 21
-            mlp_nonlinearity_name = "tanh"
-        case "node-w-con":
-            experiment_id = f"2024-03-12_12-53-29/n_z_{n_z}_seed_{seed}"
-        case "node-con-iae":
-            if n_z == 8:
-                experiment_id = f"2024-05-20_13-20-49/n_z_8_seed_{seed}"
-            else:
-                experiment_id = f"2024-03-15_21-44-34/n_z_{n_z}_seed_{seed}"
-            num_mlp_layers, mlp_hidden_dim = 5, 30
-        case "node-con-iae-s":
-            experiment_id = f"2024-03-17_22-26-44/n_z_{n_z}_seed_{seed}"
-            num_mlp_layers, mlp_hidden_dim = 2, 12
-        case "ar-con-iae-cfa":
-            experiment_id = "2024-05-07_20-07-24"
-            num_mlp_layers, mlp_hidden_dim = 5, 30
-            sim_dt = 1e-2
-        case "ar-elman-rnn":
-            experiment_id = f"2024-05-20_15-42-23/n_z_{n_z}_seed_{seed}"
-        case "ar-gru-rnn":
-            experiment_id = f"2024-05-20_16-52-35/n_z_{n_z}_seed_{seed}"
-        case _:
-            raise ValueError(
-                f"No experiment_id for dynamics_model_name={dynamics_model_name}"
-            )
-else:
-    if ae_type == "wae":
-        raise NotImplementedError
-    elif ae_type == "beta_vae":
-        if dynamics_model_name == "node-mechanical-mlp":
-            experiment_id = "2024-02-13_16-27-39"
-            num_mlp_layers, mlp_hidden_dim = 4, 52
-            mlp_nonlinearity_name = "elu"
-        elif dynamics_model_name == "node-cornn":
-            experiment_id = "2024-02-14_18-17-49"
-            cornn_gamma, cornn_epsilon = 35.60944428175452, 0.05125440449424828
-        elif dynamics_model_name == "node-con":
-            experiment_id = "2024-02-14_18-34-27"
-        elif dynamics_model_name == "node-w-con":
-            match n_z:
-                case 2:
-                    experiment_id = "2024-02-22_14-11-21"
-                case 4:
-                    experiment_id = "2024-02-14_22-52-37"
-                case 8:
-                    experiment_id = "2024-02-21_13-34-53"
-                case _:
-                    raise ValueError(f"No experiment_id for n_z={n_z}")
-        elif dynamics_model_name == "discrete-mlp":
-            experiment_id = "2024-02-14_17-45-30"
-            num_mlp_layers, mlp_hidden_dim = 4, 95
-            mlp_nonlinearity_name = "elu"
-        elif dynamics_model_name == "discrete-elman-rnn":
-            experiment_id = "2024-02-13_17-19-57"
-        elif dynamics_model_name == "discrete-gru-rnn":
-            experiment_id = "2024-02-13_17-28-13"
-        elif dynamics_model_name == "discrete-mamba":
-            experiment_id = "2024-02-13_17-42-29"
-        else:
-            raise NotImplementedError(
-                f"beta_vae with node_type '{dynamics_model_name}' not implemented yet."
-            )
-    else:
-        raise NotImplementedError
+            case "node-con-iae-s":
+                experiment_id = f"2024-03-17_22-26-44/n_z_{n_z}_seed_{seed}"
+                num_mlp_layers, mlp_hidden_dim = 2, 12
+            case "ar-con-iae-cfa":
+                experiment_id = "2024-05-07_20-07-24"
+                num_mlp_layers, mlp_hidden_dim = 5, 30
+                sim_dt = 1e-2
+            case "ar-elman-rnn":
+                experiment_id = f"2024-05-20_15-42-23/n_z_{n_z}_seed_{seed}"
+            case "ar-gru-rnn":
+                experiment_id = f"2024-05-20_16-52-35/n_z_{n_z}_seed_{seed}"
+            case _:
+                raise ValueError(
+                    f"No experiment_id for dynamics_model_name={dynamics_model_name}"
+                )
+    case "pcc_ns-3":
+        n_z = 12
+        print(f"Setting n_z to {n_z} for system_type={system_type}")
+        match dynamics_model_name:
+            case "node-con-iae":
+                experiment_id = "2024-05-21_21-03-33/n_z_12_seed_0"
+                num_mlp_layers, mlp_hidden_dim = 5, 30
+            case _:
+                raise ValueError(
+                    f"No experiment_id for dynamics_model_name={dynamics_model_name}"
+                )
 
 # identify the number of segments
-if system_type == "cc":
+if system_type in ["cc", "cs"]:
     num_segments = 1
 elif system_type.split("_")[0] == "pcc":
     num_segments = int(system_type.split("-")[-1])
@@ -200,10 +183,7 @@ ckpt_dir = (
 
 
 if __name__ == "__main__":
-    if long_horizon_dataset:
-        dataset_name = f"planar_pcs/{system_type}_32x32px_h-101"
-    else:
-        dataset_name = f"planar_pcs/{system_type}_32x32px"
+    dataset_name = f"planar_pcs/{system_type}_32x32px_h-101"
     datasets, dataset_info, dataset_metadata = load_dataset(
         dataset_name,
         seed=seed,
