@@ -447,7 +447,7 @@ if __name__ == "__main__":
     ) = dynamics_autoencoder.task_factory(
         system_type,
         nn_model,
-        ts=ts_rollout,
+        ts=ts_rollout if custom_rollout_conditions else dataset_metadata["ts"],
         sim_dt=dataset_metadata["sim_dt"] if sim_dt is None else sim_dt,
         loss_weights=loss_weights,
         ae_type=ae_type,
@@ -538,9 +538,8 @@ if __name__ == "__main__":
     else:
         num_rollouts = 25
         for batch_idx, batch in enumerate(test_ds.as_numpy_iterator()):
-            pred = forward_fn_learned(batch)
-
-            ts = batch["ts"][0, start_time_idx:]
+            pred = forward_fn_learned(batch, state.params)
+            ts = batch["t_ts"][0, start_time_idx:]
             img_pred_ts = pred["img_dynamic_ts"][0]
             img_target_ts = batch["rendering_ts"][0, start_time_idx:]
             # denormalize the images

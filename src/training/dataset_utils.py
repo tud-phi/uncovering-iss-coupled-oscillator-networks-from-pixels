@@ -271,7 +271,7 @@ def load_dmhds_dataset(
     @tf.function
     def rename_keys_fn(x):
         y = dict(
-            ts=ts,
+            t_ts=ts,
             rendering_ts=x["image"],
             x_ts=x["x"],
             x_d_ts=x["dx_dt"],

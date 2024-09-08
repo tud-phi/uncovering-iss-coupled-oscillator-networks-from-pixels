@@ -328,7 +328,7 @@ if __name__ == "__main__":
     for batch_idx, batch in enumerate(test_ds.as_numpy_iterator()):
         pred = inference_forward_fn(batch)
 
-        ts = batch["ts"][0, start_time_idx:]
+        ts = batch["t_ts"][0, start_time_idx:]
         img_pred_ts = pred["img_dynamic_ts"][0]
         img_target_ts = batch["rendering_ts"][0, start_time_idx:]
         # denormalize the images
