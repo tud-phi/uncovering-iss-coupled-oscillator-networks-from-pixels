@@ -19,7 +19,7 @@ def animate_image_cv2(
     **kwargs,
 ):
     """
-    Animate the n-body problem using OpenCV.
+    Animate using OpenCV
     Args:
         t_ts: time steps of the data
         img_ts: predicted images of shape (num_time_steps, width, height, channels)
@@ -46,16 +46,16 @@ def animate_image_cv2(
         tuple(img_ts.shape[1:3]),
     )
 
+    # skip frames
+    t_ts = t_ts[::skip_step]
+    img_ts = img_ts[::skip_step]
+
     # convert to RBG if grayscale
     if img_ts.shape[-1] == 1:
         img_ts = onp.repeat(img_ts, 3, axis=-1)
 
     if rgb_to_bgr:
-        img_ts = cv2.cvtColor(img_ts, cv2.COLOR_RGB2BGR)
-
-    # skip frames
-    t_ts = t_ts[::skip_step]
-    img_ts = img_ts[::skip_step]
+        img_ts = onp.stack([cv2.cvtColor(img, cv2.COLOR_RGB2BGR) for img in img_ts], axis=0)
 
     for time_idx, t in enumerate(t_ts):
         video.write(img_ts[time_idx])
@@ -91,8 +91,8 @@ def animate_pred_vs_target_image_cv2(
     dt = onp.mean(t_ts[1:] - t_ts[:-1])
 
     if rgb_to_bgr:
-        img_pred_ts = cv2.cvtColor(img_pred_ts, cv2.COLOR_RGB2BGR)
-        img_target_ts = cv2.cvtColor(img_target_ts, cv2.COLOR_RGB2BGR)
+        img_pred_ts = onp.stack([cv2.cvtColor(img, cv2.COLOR_RGB2BGR) for img in img_pred_ts], axis=0)
+        img_target_ts = onp.stack([cv2.cvtColor(img, cv2.COLOR_RGB2BGR) for img in img_target_ts], axis=0)
 
     # create the video writer
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
