@@ -230,6 +230,7 @@ def collect_dataset(
                     onp.array(rendering_ts),
                     filepath=dataset_path / f"sim-{sim_idx}.mp4",
                     skip_step=1,
+                    rgb_to_bgr=False,
                 )
 
             # merge labels with image and id

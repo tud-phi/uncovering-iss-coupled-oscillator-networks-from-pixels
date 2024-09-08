@@ -15,6 +15,7 @@ def animate_image_cv2(
     filepath: os.PathLike,
     speed_up: Union[float, Array] = 1,
     skip_step: int = 1,
+    rgb_to_bgr: bool = True,
     **kwargs,
 ):
     """
@@ -25,6 +26,7 @@ def animate_image_cv2(
         filepath: path to the output video
         speed_up: The speed up factor of the video.
         skip_step: The number of time steps to skip between animation frames.
+        rgb_to_bgr: whether to convert the images from RGB to BGR
         **kwargs: Additional keyword arguments for the rendering function.
 
     Returns:
@@ -44,13 +46,16 @@ def animate_image_cv2(
         tuple(img_ts.shape[1:3]),
     )
 
+    # convert to RBG if grayscale
+    if img_ts.shape[-1] == 1:
+        img_ts = onp.repeat(img_ts, 3, axis=-1)
+
+    if rgb_to_bgr:
+        img_ts = cv2.cvtColor(img_ts, cv2.COLOR_RGB2BGR)
+
     # skip frames
     t_ts = t_ts[::skip_step]
     img_ts = img_ts[::skip_step]
-
-    # convert to RBG if greyscale
-    if img_ts.shape[-1] == 1:
-        img_ts = onp.repeat(img_ts, 3, axis=-1)
 
     for time_idx, t in enumerate(t_ts):
         video.write(img_ts[time_idx])
@@ -64,6 +69,7 @@ def animate_pred_vs_target_image_cv2(
     img_target_ts: onp.ndarray,
     filepath: os.PathLike,
     step_skip: int = 1,
+    rgb_to_bgr: bool = True,
 ):
     """
     Creates an animation of the predicted vs. target images.
@@ -73,6 +79,7 @@ def animate_pred_vs_target_image_cv2(
         img_target_ts: target images of shape (num_time_steps, width, height, channels)
         filepath: path to the output video
         step_skip: number of time steps to skip between frames
+        rgb_to_bgr: whether to convert the images from RGB to BGR
     """
     img_h, img_w, num_channels = img_pred_ts.shape[-3:]  # height, width, channels
 
@@ -82,6 +89,10 @@ def animate_pred_vs_target_image_cv2(
 
     # averaged time step
     dt = onp.mean(t_ts[1:] - t_ts[:-1])
+
+    if rgb_to_bgr:
+        img_pred_ts = cv2.cvtColor(img_pred_ts, cv2.COLOR_RGB2BGR)
+        img_target_ts = cv2.cvtColor(img_target_ts, cv2.COLOR_RGB2BGR)
 
     # create the video writer
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
