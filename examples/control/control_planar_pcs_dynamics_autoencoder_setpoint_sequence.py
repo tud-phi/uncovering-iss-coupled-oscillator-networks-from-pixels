@@ -794,7 +794,7 @@ if __name__ == "__main__":
         img_pred_ts=onp.array(img_ts),
         img_target_ts=onp.array(img_des_ts),
         filepath=ckpt_dir / "setpoint_sequence_controlled_rollout.mp4",
-        step_skip=1,
+        skip_step=1,
         show=True,
         label_pred="Actual behavior",
         label_target="Desired behavior",
@@ -803,13 +803,13 @@ if __name__ == "__main__":
         onp.array(ts),
         onp.array(img_ts).astype(onp.uint8),
         filepath=ckpt_dir / "setpoint_sequence_controlled_rollout_actual.mp4",
-        step_skip=1,
+        skip_step=2,
     )
     animate_image_cv2(
         onp.array(ts),
         onp.array(img_des_ts).astype(onp.uint8),
         filepath=ckpt_dir / "setpoint_sequence_controlled_rollout_desired.mp4",
-        step_skip=1,
+        skip_step=2,
     )
 
     if simulate_with_learned_dynamics is False:

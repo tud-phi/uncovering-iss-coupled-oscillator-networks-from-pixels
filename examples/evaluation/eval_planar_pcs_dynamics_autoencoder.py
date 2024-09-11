@@ -503,7 +503,7 @@ if __name__ == "__main__":
             img_pred_ts=img_pred_ts,
             img_target_ts=img_target_ts,
             filepath=ckpt_dir / "rollout.mp4",
-            step_skip=1,
+            skip_step=1,
             show=True,
             label_target="Ground-truth",
         )
@@ -511,13 +511,13 @@ if __name__ == "__main__":
             onp.array(ts_rollout[start_time_idx:]),
             onp.array(img_target_ts).astype(onp.uint8),
             filepath=ckpt_dir / "rollout_target.mp4",
-            step_skip=1,
+            skip_step=1,
         )
         animate_image_cv2(
             onp.array(ts_rollout[start_time_idx:]),
             onp.array(img_pred_ts).astype(onp.uint8),
             filepath=ckpt_dir / "rollout_pred.mp4",
-            step_skip=1,
+            skip_step=1,
         )
 
         energy_fn = getattr(dynamics_model_bound, "energy_fn", None)
@@ -560,7 +560,7 @@ if __name__ == "__main__":
                 img_pred_ts=img_pred_ts,
                 img_target_ts=img_target_ts,
                 filepath=ckpt_dir / f"rollout_{batch_idx}.mp4",
-                step_skip=1,
+                skip_step=1,
                 show=False,
                 label_target="Ground-truth",
             )
@@ -568,13 +568,13 @@ if __name__ == "__main__":
                 onp.array(ts),
                 onp.array(img_target_ts).astype(onp.uint8),
                 filepath=ckpt_dir / f"rollout_{batch_idx}_target.mp4",
-                step_skip=1,
+                skip_step=1,
             )
             animate_image_cv2(
                 onp.array(ts),
                 onp.array(img_pred_ts).astype(onp.uint8),
                 filepath=ckpt_dir / f"rollout_{batch_idx}_pred.mp4",
-                step_skip=1,
+                skip_step=1,
             )
 
             if batch_idx == num_rollouts - 1:

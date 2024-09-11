@@ -29,7 +29,7 @@ if __name__ == "__main__":
     )
 
     SPEEDUP = 1  # speedup factor for the animation
-    STEP_SKIP = 3  # step skip for the animation
+    SKIP_STEP = 3  # step skip for the animation
 
     figsize = (4.5, 3.0)
     colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
@@ -60,7 +60,7 @@ if __name__ == "__main__":
 
     t_ts = sim_ts["ts"]
     # frame rate
-    frame_rate = SPEEDUP / STEP_SKIP * (1 / (t_ts[1:] - t_ts[:-1]).mean().item())
+    frame_rate = SPEEDUP / SKIP_STEP * (1 / (t_ts[1:] - t_ts[:-1]).mean().item())
     print("Frame rate:", frame_rate)
     pbar = tqdm(total=t_ts.shape[0])
 
@@ -115,13 +115,13 @@ if __name__ == "__main__":
 
             lines = q_des_lines + q_lines
 
-            pbar.update(STEP_SKIP)
+            pbar.update(SKIP_STEP)
             return lines
 
         ani = animation.FuncAnimation(
             fig,
             animate,
-            frames=np.arange(t_ts.shape[0], step=STEP_SKIP),
+            frames=np.arange(t_ts.shape[0], step=SKIP_STEP),
             interval=1000 / frame_rate,
             blit=True,
         )

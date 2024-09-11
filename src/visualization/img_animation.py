@@ -68,7 +68,7 @@ def animate_pred_vs_target_image_cv2(
     img_pred_ts: onp.ndarray,
     img_target_ts: onp.ndarray,
     filepath: os.PathLike,
-    step_skip: int = 1,
+    skip_step: int = 1,
     rgb_to_bgr: bool = True,
 ):
     """
@@ -78,7 +78,7 @@ def animate_pred_vs_target_image_cv2(
         img_pred_ts: predicted images of shape (num_time_steps, width, height, channels)
         img_target_ts: target images of shape (num_time_steps, width, height, channels)
         filepath: path to the output video
-        step_skip: number of time steps to skip between frames
+        skip_step: number of time steps to skip between frames
         rgb_to_bgr: whether to convert the images from RGB to BGR
     """
     img_h, img_w, num_channels = img_pred_ts.shape[-3:]  # height, width, channels
@@ -103,11 +103,11 @@ def animate_pred_vs_target_image_cv2(
     video = cv2.VideoWriter(
         str(filepath),
         fourcc,
-        1 / (step_skip * dt),  # fps
+        1 / (skip_step * dt),  # fps
         (2 * img_w, img_h),
     )
 
-    for time_idx, t in enumerate(range(0, t_ts.shape[0], step_skip)):
+    for time_idx, t in enumerate(range(0, t_ts.shape[0], skip_step)):
         # concatenate the image
         img = onp.concatenate((img_pred_ts[t], img_target_ts[t]), axis=1)
 
@@ -123,7 +123,7 @@ def animate_pred_vs_target_image_pyplot(
     img_target_ts: Union[Array, onp.ndarray],
     filepath: Optional[os.PathLike] = None,
     show: bool = False,
-    step_skip: int = 1,
+    skip_step: int = 1,
     bgr_to_rgb: bool = False,
     cmap: str = "binary_r",
     label_pred: str = "Prediction",
@@ -137,7 +137,7 @@ def animate_pred_vs_target_image_pyplot(
         img_target_ts: target images of shape (num_time_steps, width, height, channels)
         filepath: path to the output video
         show: whether to show the animation
-        step_skip: number of time steps to skip between frames
+        skip_step: number of time steps to skip between frames
         bgr_to_rgb: whether to convert the images from BGR to RGB
         cmap: colormap for the images
         label_pred: label for the predicted images
@@ -145,7 +145,7 @@ def animate_pred_vs_target_image_pyplot(
     """
     sample_rate = 1 / (onp.mean(t_ts[1:] - t_ts[:-1]))
     # frames
-    frames = onp.arange(0, t_ts.shape[0], step=step_skip)
+    frames = onp.arange(0, t_ts.shape[0], step=skip_step)
 
     # create the figure
     fig, axes = plt.subplots(1, 2, figsize=(6, 4), dpi=200)
@@ -180,7 +180,7 @@ def animate_pred_vs_target_image_pyplot(
         fig,
         animate,
         frames=frames,
-        interval=step_skip * 1000 / sample_rate,
+        interval=skip_step * 1000 / sample_rate,
         blit=False,
     )
 

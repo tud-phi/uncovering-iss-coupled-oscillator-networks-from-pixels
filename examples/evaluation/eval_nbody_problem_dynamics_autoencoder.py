@@ -350,7 +350,7 @@ if __name__ == "__main__":
         img_pred_ts=img_pred_ts,
         img_target_ts=img_target_ts,
         filepath=ckpt_dir / "rollout.mp4",
-        step_skip=1,
+        skip_step=1,
         show=True,
     )
 

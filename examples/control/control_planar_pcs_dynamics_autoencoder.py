@@ -708,7 +708,7 @@ if __name__ == "__main__":
         img_pred_ts=img_ts,
         img_target_ts=img_des_ts,
         filepath=ckpt_dir / "controlled_rollout.mp4",
-        step_skip=1,
+        skip_step=1,
         show=True,
         label_pred="Actual behavior",
         label_target="Desired behavior",
