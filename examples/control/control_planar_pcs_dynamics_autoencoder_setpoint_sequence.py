@@ -801,13 +801,13 @@ if __name__ == "__main__":
     )
     animate_image_cv2(
         onp.array(ts),
-        onp.array(img_ts),
+        onp.array(img_ts).astype(onp.uint8),
         filepath=ckpt_dir / "setpoint_sequence_controlled_rollout_actual.mp4",
         step_skip=1,
     )
     animate_image_cv2(
         onp.array(ts),
-        onp.array(img_des_ts),
+        onp.array(img_des_ts).astype(onp.uint8),
         filepath=ckpt_dir / "setpoint_sequence_controlled_rollout_desired.mp4",
         step_skip=1,
     )

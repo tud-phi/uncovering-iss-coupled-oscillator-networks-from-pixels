@@ -509,13 +509,13 @@ if __name__ == "__main__":
         )
         animate_image_cv2(
             onp.array(ts_rollout[start_time_idx:]),
-            onp.array(img_target_ts),
+            onp.array(img_target_ts).astype(onp.uint8),
             filepath=ckpt_dir / "rollout_target.mp4",
             step_skip=1,
         )
         animate_image_cv2(
             onp.array(ts_rollout[start_time_idx:]),
-            onp.array(img_pred_ts),
+            onp.array(img_pred_ts).astype(onp.uint8),
             filepath=ckpt_dir / "rollout_pred.mp4",
             step_skip=1,
         )
