@@ -61,11 +61,11 @@ if __name__ == "__main__":
     # compute the settling time
     print("Computing the settling time for the configuration...")
     settling_time_q_mean, settling_time_q_stdev = compute_settling_time_on_setpoint_trajectory(
-        sim_ts["ts"], sim_ts["q_des_ts"], sim_ts["x_ts"][:, :2], threshold=0.30
+        sim_ts["ts"], sim_ts["q_des_ts"], sim_ts["x_ts"][:, :2], threshold=0.20
     )
     print("Computing the settling time for the latent...")
     settling_time_z_mean, settling_time_z_stdev = compute_settling_time_on_setpoint_trajectory(
-        sim_ts["ts"], sim_ts["z_des_ts"], sim_ts["xi_ts"][:, :2], threshold=0.30
+        sim_ts["ts"], sim_ts["z_des_ts"], sim_ts["xi_ts"][:, :2], threshold=0.20
     )
     print(f"Settling time in q: {settling_time_q_mean:.3f} \u00b1 {settling_time_q_stdev:.3f} s")
     print(f"Settling time in z: {settling_time_z_mean:.3f} \u00b1 {settling_time_z_stdev:.3f} s")
