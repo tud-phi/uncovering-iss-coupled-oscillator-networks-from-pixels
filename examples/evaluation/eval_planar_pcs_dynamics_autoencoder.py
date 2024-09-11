@@ -124,10 +124,13 @@ match system_type:
             case "node-w-con":
                 experiment_id = f"2024-03-12_12-53-29/n_z_{n_z}_seed_{seed}"
             case "node-con-iae":
-                if n_z == 8:
-                    experiment_id = f"2024-05-20_13-20-49/n_z_8_seed_{seed}"
-                else:
-                    experiment_id = f"2024-03-15_21-44-34/n_z_{n_z}_seed_{seed}"
+                match n_z:
+                    case 2:
+                        experiment_id = f"2024-05-20_13-14-46/n_z_2_seed_{seed}"
+                    case 8:
+                        experiment_id = f"2024-05-20_13-20-49/n_z_8_seed_{seed}"
+                    case _:
+                        experiment_id = f"2024-03-15_21-44-34/n_z_{n_z}_seed_{seed}"
                 num_mlp_layers, mlp_hidden_dim = 5, 30
             case "node-con-iae-s":
                 experiment_id = f"2024-03-17_22-26-44/n_z_{n_z}_seed_{seed}"
