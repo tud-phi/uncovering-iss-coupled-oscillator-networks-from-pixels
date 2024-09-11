@@ -86,7 +86,7 @@ match dynamics_model_name:
             if apply_feedforward_term:
                 kp, ki, kd = 0e0, 2.0e0, 5e-2
             else:
-                kp, ki, kd = 5e-2, 2.0e0, 1e-2
+                kp, ki, kd = 1e0, 2.0e0, 2e-2
             # kp, ki, kd = 0.1e0, 3e0, 0e0
             psatid_gamma = 1.0
     case "node-mechanical-mlp":
