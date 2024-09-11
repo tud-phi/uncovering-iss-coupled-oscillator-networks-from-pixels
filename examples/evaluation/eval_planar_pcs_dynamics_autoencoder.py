@@ -380,10 +380,12 @@ if __name__ == "__main__":
         metrics_collection_cls=metrics_collection_cls,
         init_fn=nn_model.forward_all_layers,
     )
-
+    dynamics_params = state.params["dynamics"]
     # bind params to the models
     nn_model_bound = nn_model.bind({"params": state.params})
     dynamics_model_bound = dynamics_model.bind({"params": state.params["dynamics"]})
+    if type(dynamics_model) is ConIaeOde:
+        print("Lambda_w", dynamics_model_bound.Lambda_w, "with Eigenvalues:", jnp.linalg.eigh(dynamics_model_bound.Lambda_w).eigenvalues)
 
     print("Run testing...")
     state, test_history = run_eval(test_ds, state, task_callables)
