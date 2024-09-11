@@ -161,6 +161,13 @@ def generate_sweep_stats(sweep_results, verbose: bool = False) -> Dict:
                     .set(jnp.std(filtered_train_results[key]))
                 )
 
+                if verbose:
+                    # print("Train results for n_z=", n_z, key, ":", filtered_train_results[key])
+                    print(
+                        f"Train results for n_z={n_z} {key}: "
+                        f"{jnp.mean(filtered_train_results[key]).item():4f} \u00b1 {jnp.std(filtered_train_results[key]).item():4f}"
+                    )
+
         filtered_test_results = {}
         for key, value in sweep_results["test"].items():
             if value is not None:
@@ -176,11 +183,12 @@ def generate_sweep_stats(sweep_results, verbose: bool = False) -> Dict:
                     .set(jnp.std(filtered_test_results[key]))
                 )
 
-            if verbose:
-                print(
-                    f"Test results for n_z={n_z} {key}: "
-                    f"{jnp.mean(filtered_test_results[key]).item():4f} \u00b1 {jnp.std(filtered_test_results[key]).item():4f}"
-                )
+                if verbose:
+                    # print("Test results for n_z=", n_z, key, ":", filtered_test_results[key])
+                    print(
+                        f"Test results for n_z={n_z} {key}: "
+                        f"{jnp.mean(filtered_test_results[key]).item():4f} \u00b1 {jnp.std(filtered_test_results[key]).item():4f}"
+                    )
 
     return sweep_results_stats
 
