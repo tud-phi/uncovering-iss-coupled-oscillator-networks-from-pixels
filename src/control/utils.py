@@ -1,10 +1,11 @@
 from jax import Array
 import jax.numpy as jnp
+from typing import Tuple
 
 
 def compute_settling_time_on_setpoint_trajectory(
     ts: Array, ref_ts: Array, traj_ts: Array, threshold: float = 0.02
-):
+) -> Tuple[float, float]:
     """
     Compute the settling time on a setpoint trajectory.
     Arguments:
@@ -14,6 +15,7 @@ def compute_settling_time_on_setpoint_trajectory(
         threshold: the width of the settling bounds. Default: 0.02
     Returns:
         mean_settling_time: the average settling time. Shape: ()
+        stdev_settling_time: the standard deviation of the settling time. Shape: ()
     """
     error = jnp.abs(ref_ts - traj_ts)
 
@@ -34,7 +36,7 @@ def compute_settling_time_on_setpoint_trajectory(
     step_value_stps = jnp.array(step_value_stps)
     step_time_stps = jnp.array(step_time_stps)
 
-    total_settling_time = 0.0
+    settling_times = []
     for step_idx in range(len(step_size_stps)):
         if step_idx < len(step_size_stps) - 1:
             step_selector = (ts >= step_time_stps[step_idx]) & (
@@ -54,11 +56,13 @@ def compute_settling_time_on_setpoint_trajectory(
             )
         else:
             settling_time = ts[step_selector][-1] - ts[step_selector][0]
-        total_settling_time += settling_time
+        settling_times.append(settling_time)
         print(
             f"Step {step_idx}, settling time: {settling_time}, last norm_error: {norm_error[-1]}"
         )
+    settling_times = jnp.array(settling_times)
 
-    mean_settling_time = total_settling_time / step_time_stps.shape[0]
+    mean_settling_time = jnp.mean(settling_times).item()
+    stdev_settling_time = jnp.std(settling_times).item()
 
-    return mean_settling_time
+    return mean_settling_time, stdev_settling_time
