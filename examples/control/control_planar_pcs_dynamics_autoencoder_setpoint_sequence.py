@@ -70,9 +70,6 @@ sim_duration_per_setpoint = 5.0  # s
 sim_duration = num_setpoints * sim_duration_per_setpoint  # s
 # initial configuration
 q0 = jnp.pi * jnp.array([0.0, 0.0])
-# specify desired configuration
-# q_des = jnp.array([jnp.pi, 1.25 * jnp.pi])
-q_des = jnp.pi * jnp.array([-1.0, 0.5])
 # control settings
 apply_feedforward_term = True
 apply_feedback_term = True
