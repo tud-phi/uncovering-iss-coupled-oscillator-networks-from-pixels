@@ -271,9 +271,9 @@ def load_dmhds_dataset(
     @tf.function
     def rename_keys_fn(x):
         if x.get("other", {}).get("tau", None) is not None:
-            tau = x["other"]["tau"].astype(tf.float32)
+            tau = tf.cast(x["other"]["tau"], tf.float32)
         else:
-            tf.zeros((x["x"].shape[-1],), dtype=tf.float32)
+            tau = tf.zeros((x["x"].shape[-1],), dtype=tf.float32)
         y = dict(
             t_ts=ts,
             rendering_ts=x["image"],
