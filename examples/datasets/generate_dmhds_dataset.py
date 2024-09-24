@@ -8,6 +8,7 @@ from pathlib import Path
 
 from dm_hamiltonian_dynamics_suite.datasets import (
     MASS_SPRING_FRICTION,
+    MASS_SPRING_FRICTION_ACTUATION,
     PENDULUM_FRICTION,
     DOUBLE_PENDULUM_FRICTION,
 )
@@ -35,7 +36,7 @@ dataset_dir = data_dir / f"{dataset_name}_dt_{str(dt).replace('.', '_')}"
 
 def main():
     match dataset_name:
-        case "mass_spring_friction":
+        case "mass_spring_friction" | "mass_spring_friction_actuation":
             state_dim = 2
         case "pendulum_friction":
             state_dim = 2

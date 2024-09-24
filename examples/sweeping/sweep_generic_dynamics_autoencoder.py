@@ -63,7 +63,7 @@ seed_range = onp.array([0, 1, 2])
 
 # set the system type in [
 # "cc", "cs", "pcc_ns-2",
-# "mass_spring_friction", "pendulum_friction", "double_pendulum_friction",
+# "mass_spring_friction", "mass_spring_friction_actuation", "pendulum_friction", "double_pendulum_friction",
 # "single_pendulum"]
 system_type = "pcc_ns-2"
 long_horizon_dataset = True
@@ -84,6 +84,7 @@ elif system_type in [
     "single_pendulum",
     "double_pendulum",
     "mass_spring_friction",
+    "mass_spring_friction_actuation",
     "pendulum_friction",
     "double_pendulum_friction",
 ]:
@@ -751,6 +752,7 @@ if __name__ == "__main__":
                 dataset_type = "pendulum"
             elif system_type in [
                 "mass_spring_friction",
+                "mass_spring_friction_actuation",
                 "pendulum_friction",
                 "double_pendulum_friction",
             ]:
