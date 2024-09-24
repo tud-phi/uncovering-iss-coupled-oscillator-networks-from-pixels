@@ -498,6 +498,29 @@ match system_type:
                 raise NotImplementedError(
                     f"{system_type} with dynamics_model_name '{dynamics_model_name}' not implemented yet."
                 )
+    case "mass_spring_friction_actuation":
+        batch_size = 30
+        num_epochs = 30
+        match dynamics_model_name:
+            case "node-con-iae" | "node-con-iae-s":
+                # optimized for n_z=1
+                base_lr = 0.012167063903051282
+                loss_weights = dict(
+                    mse_z=0.48096832307604587,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=3.2068774870714103,
+                    beta=0.000168109922930295,
+                    mse_tau_rec=5e1,
+                )
+                weight_decay = 9.194869913157625e-06
+                if dynamics_model_name == "node-con-iae-s":
+                    num_mlp_layers, mlp_hidden_dim = 2, 12
+                else:
+                    num_mlp_layers, mlp_hidden_dim = 5, 30
+            case _:
+                raise NotImplementedError(
+                    f"{system_type} with dynamics_model_name '{dynamics_model_name}' not implemented yet."
+                )
     case "pendulum_friction":
         batch_size = 30
         num_epochs = 150
