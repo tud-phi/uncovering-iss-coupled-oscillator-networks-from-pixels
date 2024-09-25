@@ -123,16 +123,6 @@ for k in range(n_z // len(plt_colors_cycle) + 1):
 
 
 if __name__ == "__main__":
-    # generate a random setpoint sequence
-    rng_setpoint = random.PRNGKey(seed=1)
-    q_des_ps = (
-        5.0
-        * jnp.pi
-        * random.uniform(
-            rng_setpoint, shape=(num_setpoints, n_q), minval=-1.0, maxval=1.0
-        )
-    )
-
     dataset_name = f"toy_physics/{system_type}_dt_0_05"
     print(f"Loading dataset: {dataset_name}")
     datasets, dataset_info, dataset_metadata = load_dataset(
@@ -240,6 +230,12 @@ if __name__ == "__main__":
     solver_class = getattr(
         __import__("diffrax", fromlist=[dataset_metadata["solver_class"]]),
         dataset_metadata["solver_class"],
+    )
+
+    # generate a random setpoint sequence
+    rng_setpoint = random.PRNGKey(seed=1)
+    q_des_ps = random.uniform(
+        rng_setpoint, shape=(num_setpoints, n_q), minval=q0_min, maxval=q0_max
     )
 
     # define settings for the closed-loop simulation
