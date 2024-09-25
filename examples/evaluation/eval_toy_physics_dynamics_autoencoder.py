@@ -92,6 +92,16 @@ match system_type:
                 raise ValueError(
                     f"No experiment_id for dynamics_model_name={dynamics_model_name}"
                 )
+    case "mass_spring_friction_actuation":
+        n_z = 1  # latent space dimension
+        match dynamics_model_name:
+            case "node-con-iae":
+                experiment_id = f"2024-09-25_16-15-11/n_z_{n_z}_seed_{seed}"
+                num_mlp_layers, mlp_hidden_dim = 5, 30
+            case _:
+                raise ValueError(
+                    f"No experiment_id for dynamics_model_name={dynamics_model_name}"
+                )
     case "pendulum_friction":
         n_z = 4  # latent space dimension
         match dynamics_model_name:
