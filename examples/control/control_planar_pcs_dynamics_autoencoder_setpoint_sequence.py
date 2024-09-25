@@ -244,15 +244,6 @@ if __name__ == "__main__":
     control_dt = 1e-2  # control and time step of 1e-2 s
     sim_dt = 5e-4 * control_dt  # simulation time step of 1e-5 s
     ts = jnp.linspace(0.0, sim_duration, num=int(sim_duration / control_dt))
-    ode_rollout_fn = partial(
-        rollout_ode,
-        ode_fn=ode_fn,
-        ts=ts,
-        sim_dt=sim_dt,
-        rendering_fn=rendering_fn,
-        solver=solver_class(),
-        show_progress=True,
-    )
     # define the task callables for the rollout
     (
         task_callables_rollout_learned,

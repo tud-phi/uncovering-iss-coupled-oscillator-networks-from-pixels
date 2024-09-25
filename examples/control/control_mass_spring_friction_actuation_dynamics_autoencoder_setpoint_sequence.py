@@ -171,11 +171,11 @@ if __name__ == "__main__":
     # define the ode and potential energy functions of the system
 
     def system_ode_fn(t: float, x: Array, tau: Array) -> Array:
-        q, q_d = jnp.split(x, indices_or_sections=2, axis=-1)
-        x_d = jnp.stack([
+        q, q_d = jnp.split(x, 2, axis=-1)
+        x_d = jnp.concatenate([
             q_d,
             (tau - robot_params["d"] * q_d - robot_params["k"] * q) / robot_params["m"]
-        ])
+        ], axis=-1)
         return x_d
 
     def system_potential_energy_fn(q: Array) -> Array:
@@ -189,7 +189,7 @@ if __name__ == "__main__":
             k=robot_params["k"],
         )
         imgs, extra = system.render_trajectories(q[None, None, ...], params=params, rng_key=rng)
-        img = imgs[0]
+        img = imgs[0, 0, ...]
         return img
 
     # initialize the neural networks
@@ -237,15 +237,6 @@ if __name__ == "__main__":
     control_dt = 1e-2  # control and time step of 1e-2 s
     sim_dt = 5e-4 * control_dt  # simulation time step of 1e-5 s
     ts = jnp.linspace(0.0, sim_duration, num=int(sim_duration / control_dt))
-    ode_rollout_fn = partial(
-        rollout_ode,
-        ode_fn=system_ode_fn,
-        ts=ts,
-        sim_dt=sim_dt,
-        rendering_fn=rendering_fn,
-        solver=solver_class(),
-        show_progress=True,
-    )
     # define the task callables for the rollout
     (
         task_callables_rollout_learned,
@@ -328,7 +319,7 @@ if __name__ == "__main__":
 
     if callable(potential_energy_fn) and n_q == 1 and dynamics_model_name in ["node-con-iae", "node-con-iae-s"]:
         q_ps = jnp.linspace(q0_min[0], q0_max[0], 100)[:, None]
-
+        xi_ps = []
         Uq_hat_ps, Uq_gt_ps = [], []
         for i in range(q_ps.shape[0]):
             q = q_ps[i]
@@ -344,9 +335,27 @@ if __name__ == "__main__":
             # compute the ground-truth potential energy landscape in the configuration space
             Uq_gt = system_potential_energy_fn(q)
 
+            xi_ps.append(xi)
             Uq_hat_ps.append(Uq_hat)
             Uq_gt_ps.append(Uq_gt)
+        xi_ps = jnp.stack(xi_ps, axis=0)
         Uq_hat_ps, Uq_gt_ps = jnp.stack(Uq_hat_ps, axis=0), jnp.stack(Uq_gt_ps, axis=0)
+
+        # plot the mapping from configurtion space to latent space
+        fig, ax = plt.subplots(
+            1,
+            1,
+            figsize=figsize,
+            num="Mapping from configuration to latent space",
+        )
+        ax.plot(q_ps, xi_ps[..., 0], label=r"$z(q)$")
+        ax.set_xlabel(r"$q$")
+        ax.set_ylabel(r"$z$")
+        plt.grid(True)
+        plt.legend()
+        ax.get_yaxis().get_major_formatter().set_useOffset(False)
+        plt.savefig(ckpt_dir / "mapping_configuration_to_latent_space.pdf")
+        plt.show()
 
         # plot the potential energy landscape in the configuration space
         fig, ax1 = plt.subplots(
