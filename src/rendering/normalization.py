@@ -1,10 +1,13 @@
+from jax import Array
+import jax.numpy as jnp
 import numpy as onp
 import tensorflow as tf
+from typing import Union
 
 
 def preprocess_rendering(
-    rendering: onp.ndarray, grayscale: bool = False, normalize: bool = True
-) -> onp.ndarray:
+    rendering: Union[onp.ndarray, Array], grayscale: bool = False, normalize: bool = True
+) -> Union[onp.ndarray, Array]:
     """
     Preprocesses the rendering image.
     Args:
@@ -14,6 +17,8 @@ def preprocess_rendering(
     Returns:
         normalized_rendering: A numpy array containing the preprocessed rendered image.
     """
+    input = rendering
+
     if grayscale:
         # convert rendering image to grayscale
         rendering = tf.image.rgb_to_grayscale(rendering)
@@ -22,7 +27,13 @@ def preprocess_rendering(
         # normalize rendering image to [-1, 1]
         rendering = tf.cast(rendering, tf.float32) / 128.0 - 1.0
 
-    # cast image to numpy array
-    normalized_rendering = onp.array(rendering)
+    if isinstance(input, jnp.ndarray):
+        # cast image to jax array
+        normalized_rendering = jnp.array(rendering)
+    elif isinstance(input, onp.ndarray):
+        # cast image to numpy array
+        normalized_rendering = onp.array(rendering)
+    else:
+        normalized_rendering = rendering
 
     return normalized_rendering

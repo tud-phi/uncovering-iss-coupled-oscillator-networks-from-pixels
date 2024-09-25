@@ -290,9 +290,7 @@ if __name__ == "__main__":
 
     # get an estimate of the maximum latent
     img_q0_max = rendering_fn(q0_max)
-    img_q0_max = jnp.array(
-        preprocess_rendering(img_q0_max, grayscale=True, normalize=True)
-    )
+    img_q0_max = preprocess_rendering(img_q0_max, grayscale=True, normalize=True)
     z0_max = jnp.abs(nn_model_bound.encode(img_q0_max[None, ...])[0, ...])
 
     if n_z == 1 and dynamics_model_name in ["node-con-iae", "node-con-iae-s"]:
@@ -324,9 +322,7 @@ if __name__ == "__main__":
         for i in range(q_ps.shape[0]):
             q = q_ps[i]
             img = rendering_fn(q)
-            img = jnp.array(
-                preprocess_rendering(img, grayscale=True, normalize=True)
-            )
+            img = preprocess_rendering(img, grayscale=True, normalize=True)
             z = nn_model_bound.encode(img[None, ...])[0, ...]
             xi = jnp.concatenate([z, jnp.zeros((n_z,))])
 
@@ -417,9 +413,7 @@ if __name__ == "__main__":
         # render target image
         img_des = rendering_fn(q_des)
         # normalize the target image
-        img_des = jnp.array(
-            preprocess_rendering(img_des, grayscale=True, normalize=True)
-        )
+        img_des = preprocess_rendering(img_des, grayscale=True, normalize=True)
         # encode the target image
         z_des = nn_model_bound.encode(img_des[None, ...])[0, ...]
 
@@ -438,7 +432,7 @@ if __name__ == "__main__":
         # render the initial condition
         img0 = rendering_fn(q0)
         # normalize the initial image
-        img0 = jnp.array(preprocess_rendering(img0, grayscale=True, normalize=True))
+        img0 = preprocess_rendering(img0, grayscale=True, normalize=True)
         # encode the initial condition
         z0 = nn_model_bound.encode(img0[None, ...])[0, ...]
 
