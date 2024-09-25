@@ -316,7 +316,7 @@ if __name__ == "__main__":
             figsize=figsize,
             num="Potential energy landscape in z-coordinates",
         )
-        ax.plot(z_ps, Uz_ps, label=r"$\mathcal{U}(z)$")
+        ax.plot(z_ps, Uz_ps, linewidth=2.0, label=r"$\mathcal{U}(z)$")
         ax.set_xlabel(r"$z$")
         ax.set_ylabel(r"$\mathcal{U}$")
         plt.grid(True)
@@ -353,8 +353,8 @@ if __name__ == "__main__":
             figsize=figsize,
             num="Mapping from configuration to latent space",
         )
-        ax.plot(q_ps, xi_ps[..., 0], label=r"$z(q)$")
-        ax.set_xlabel(r"$q$")
+        ax.plot(q_ps, xi_ps[..., 0], linewidth=2.0, label=r"$z(q)$")
+        ax.set_xlabel(r"$q$ [m]")
         ax.set_ylabel(r"$z$")
         plt.grid(True)
         plt.legend()
@@ -363,6 +363,7 @@ if __name__ == "__main__":
         plt.show()
 
         # plot the potential energy landscape in the configuration space
+        """
         fig, ax1 = plt.subplots(
             1,
             1,
@@ -378,6 +379,21 @@ if __name__ == "__main__":
         plt.grid(True)
         ax1.legend()
         ax2.legend()
+        plt.savefig(ckpt_dir / "potential_energy_landscape_q.pdf")
+        plt.show()
+        """
+        fig, ax = plt.subplots(
+            1,
+            1,
+            figsize=figsize,
+            num="Learned potential energy landscape in configuration space",
+        )
+        ax.plot(q_ps, Uq_gt_ps, linewidth=2.5, color=colors[0], label=r"$\mathcal{U}_{\mathrm{gt}}(q)$")
+        ax.plot(q_ps, Uq_hat_ps, linewidth=2.0, color=colors[1], label=r"$\hat{\mathcal{U}}(q)$")
+        ax.set_xlabel(r"$q$ [m]")
+        ax.set_ylabel(r"$\mathcal{U}$")
+        plt.grid(True)
+        ax.legend()
         plt.savefig(ckpt_dir / "potential_energy_landscape_q.pdf")
         plt.show()
 
