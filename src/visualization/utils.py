@@ -36,7 +36,11 @@ def extract_states_from_dataset(ds: tf.data.Dataset) -> Tuple[Array, Array]:
     return x_ss, tau_ss
 
 
-def denormalize_img(img: Array, apply_threshold: bool = False) -> Array:
+def denormalize_img(
+        img: Array,
+        threshold: float = 127.5,
+        apply_threshold: bool = False
+) -> Array:
     """
     Denormalize an image.
     Args:
@@ -49,6 +53,6 @@ def denormalize_img(img: Array, apply_threshold: bool = False) -> Array:
     img = jnp.clip(img, 0, 255)
 
     if apply_threshold:
-        img = jnp.where(img > 127.5, 255, 0)
+        img = jnp.where(img > threshold, 255, 0)
 
     return img.astype(jnp.uint8)
