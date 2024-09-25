@@ -189,8 +189,17 @@ if __name__ == "__main__":
             k=robot_params["k"],
         )
         imgs, extra = system.render_trajectories(q[None, None, ...], params=params, rng_key=rng)
-        img = imgs[0, 0, ...]
+        img = jnp.array(imgs[0, 0, ...])
         return img
+
+    # configure the rendering preprocessor
+    preprocess_rendering_kwargs = dict(
+        grayscale=True,
+        normalize=True,
+        img_min_val=dataset_metadata["rendering"]["img_min_val"],
+        img_max_val=dataset_metadata["rendering"]["img_max_val"],
+    )
+    preprocess_rendering_fn = partial(preprocess_rendering, **preprocess_rendering_kwargs)
 
     # initialize the neural networks
     if ae_type == "beta_vae":
@@ -290,7 +299,7 @@ if __name__ == "__main__":
 
     # get an estimate of the maximum latent
     img_q0_max = rendering_fn(q0_max)
-    img_q0_max = preprocess_rendering(img_q0_max, grayscale=True, normalize=True)
+    img_q0_max = preprocess_rendering_fn(img_q0_max)
     z0_max = jnp.abs(nn_model_bound.encode(img_q0_max[None, ...])[0, ...])
 
     if n_z == 1 and dynamics_model_name in ["node-con-iae", "node-con-iae-s"]:
@@ -322,7 +331,7 @@ if __name__ == "__main__":
         for i in range(q_ps.shape[0]):
             q = q_ps[i]
             img = rendering_fn(q)
-            img = preprocess_rendering(img, grayscale=True, normalize=True)
+            img = preprocess_rendering_fn(img)
             z = nn_model_bound.encode(img[None, ...])[0, ...]
             xi = jnp.concatenate([z, jnp.zeros((n_z,))])
 
@@ -413,7 +422,7 @@ if __name__ == "__main__":
         # render target image
         img_des = rendering_fn(q_des)
         # normalize the target image
-        img_des = preprocess_rendering(img_des, grayscale=True, normalize=True)
+        img_des = preprocess_rendering_fn(img_des)
         # encode the target image
         z_des = nn_model_bound.encode(img_des[None, ...])[0, ...]
 
@@ -432,7 +441,7 @@ if __name__ == "__main__":
         # render the initial condition
         img0 = rendering_fn(q0)
         # normalize the initial image
-        img0 = preprocess_rendering(img0, grayscale=True, normalize=True)
+        img0 = preprocess_rendering_fn(img0)
         # encode the initial condition
         z0 = nn_model_bound.encode(img0[None, ...])[0, ...]
 
@@ -459,8 +468,7 @@ if __name__ == "__main__":
             x0=xi0,
             control_fn=jit(control_fn),
             control_state_init={"e_int": jnp.zeros((n_z,))},
-            grayscale_rendering=False,
-            normalize_rendering=False,
+            preprocess_rendering_kwargs=preprocess_rendering_kwargs,
         )
         xi_ts = sim_ts["x_ts"]
     else:
@@ -477,6 +485,7 @@ if __name__ == "__main__":
             latent_dim=n_z,
             control_fn=jit(control_fn),
             control_state_init={"e_int": jnp.zeros((n_z,))},
+            preprocess_rendering_kwargs=preprocess_rendering_kwargs,
         )
         xi_ts = sim_ts["xi_ts"]
 

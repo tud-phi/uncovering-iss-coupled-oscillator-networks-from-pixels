@@ -21,8 +21,7 @@ def rollout_ode(
     tau: Optional[Array] = None,
     control_fn: Optional[Callable] = None,
     control_state_init: Optional[Dict[str, Array]] = None,
-    grayscale_rendering: bool = True,
-    normalize_rendering: bool = True,
+    preprocess_rendering_kwargs: Optional[Dict[str, Any]] = None,
     show_progress: bool = False,
 ) -> Dict[str, Array]:
     """
@@ -42,8 +41,7 @@ def rollout_ode(
                 control_fn(t, x, control_state) -> tau, control_state, control_info.
             If None, tau needs to be provided.
         control_state_init (Optional[Dict[str, Array]]): Initial control state.
-        grayscale_rendering: Whether to convert the rendering image to grayscale.
-        normalize_rendering: Whether to normalize the rendering image to [-1, 1].
+        preprocess_rendering_kwargs: Keyword arguments for the `preprocess_rendering` function.
         show_progress: Whether to show the progress bar.
     Returns:
         data_ts: Dictionary with the following keys:
@@ -148,10 +146,7 @@ def rollout_ode(
 
             # render the image
             img = rendering_fn(q)
-            if grayscale_rendering is True or normalize_rendering is True:
-                img = preprocess_rendering(
-                    img, grayscale=grayscale_rendering, normalize=normalize_rendering
-                )
+            img = preprocess_rendering(img, **preprocess_rendering_kwargs)
 
             rendering_ts.append(jnp.array(img))
 
@@ -173,8 +168,7 @@ def rollout_ode_with_latent_space_control(
     control_fn: Optional[Callable] = None,
     control_state_init: Optional[Dict[str, Array]] = None,
     latent_velocity_source: str = "image-space-finite-differences",
-    grayscale_rendering: bool = True,
-    normalize_rendering: bool = True,
+    preprocess_rendering_kwargs: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Array]:
     """
     Rollout system dynamics and rollout the system configurations along the way.
@@ -201,8 +195,7 @@ def rollout_ode_with_latent_space_control(
             - "image-space-finite-differences": Finite differences in the image space.
             - "latent-space-finite-differences": Finite differences in the latent space.
             - "latent-space-integration": Integrating the latent dynamics.
-        grayscale_rendering: Whether to convert the rendering image to grayscale.
-        normalize_rendering: Whether to normalize the rendering image to [-1, 1].
+        preprocess_rendering_kwargs: Keyword arguments for the `preprocess_rendering` function.
     Returns:
         sim_ts: Dictionary with the following keys:
             - t_ts: Time steps of the rollout.
@@ -277,9 +270,7 @@ def rollout_ode_with_latent_space_control(
 
         # render the image
         img_curr = rendering_fn(onp.array(q_curr))
-        img_curr = preprocess_rendering(
-            img_curr, grayscale=grayscale_rendering, normalize=normalize_rendering
-        )
+        img_curr = preprocess_rendering(img_curr, **preprocess_rendering_kwargs)
         # convert image to jax array
         img_curr = jnp.array(img_curr)
 
@@ -357,12 +348,7 @@ def rollout_ode_with_latent_space_control(
     # initialize carry
     # render the image
     img_prior_init = rendering_fn(onp.array(x0[:n_q]))
-    if grayscale_rendering:
-        # convert rendering image to grayscale
-        img_prior_init = tf.image.rgb_to_grayscale(img_prior_init)
-    if normalize_rendering:
-        # normalize rendering image to [-1, 1]
-        img_prior_init = tf.cast(img_prior_init, tf.float32) / 128.0 - 1.0
+    img_prior_init = preprocess_rendering(img_prior_init, **preprocess_rendering_kwargs)
     # convert image to jax array
     img_prior_init = jnp.array(img_prior_init)
     z_prior_init = encode_fn(img_prior_init)
