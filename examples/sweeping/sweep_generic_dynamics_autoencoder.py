@@ -504,15 +504,15 @@ match system_type:
         match dynamics_model_name:
             case "node-con-iae" | "node-con-iae-s":
                 # optimized for n_z=1
-                base_lr = 0.012167063903051282
+                base_lr = 0.015455537009830515
                 loss_weights = dict(
-                    mse_z=0.48096832307604587,
+                    mse_z=0.37113239429013933,
                     mse_rec_static=1.0,
-                    mse_rec_dynamic=3.2068774870714103,
-                    beta=0.000168109922930295,
+                    mse_rec_dynamic=3.508873565643729,
+                    beta=0.00016464944241306734,
                     mse_tau_rec=5e1,
                 )
-                weight_decay = 9.194869913157625e-06
+                weight_decay = 7.637814350596357e-06
                 if dynamics_model_name == "node-con-iae-s":
                     num_mlp_layers, mlp_hidden_dim = 2, 12
                 else:
