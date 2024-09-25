@@ -30,6 +30,7 @@ from src.models.neural_odes import (
     MlpOde,
 )
 from src.models.dynamics_autoencoder import DynamicsAutoencoder
+from src.rendering import preprocess_rendering
 from src.rollout import rollout_ode, rollout_ode_with_latent_space_control
 from src.training.dataset_utils import load_dataset, load_dummy_neural_network_input
 from src.tasks import dynamics_autoencoder
@@ -47,7 +48,7 @@ seed = 0
 rng = random.PRNGKey(seed=seed)
 tf.random.set_seed(seed=seed)
 
-system_type = "pcc_ns-2"
+system_type = "mass_spring_friction_actuation"
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 dynamics_model_name = (
     "node-con-iae"  # "node-con-iae", "node-con-iae-s", "node-mechanical-mlp"
@@ -94,8 +95,7 @@ norm_layer = nn.LayerNorm
 diag_shift, diag_eps = 1e-6, 2e-6
 match dynamics_model_name:
     case "node-con-iae":
-        raise NotImplementedError
-        experiment_id = f"2024-05-20_13-14-46/n_z_{n_z}_seed_{seed}"
+        experiment_id = f"2024-09-25_16-15-11/n_z_{n_z}_seed_{seed}"
         num_mlp_layers, mlp_hidden_dim = 5, 30
     case "node-mechanical-mlp":
         raise NotImplementedError
@@ -105,15 +105,6 @@ match dynamics_model_name:
         raise ValueError(
             f"No experiment_id for dynamics_model_name={dynamics_model_name}"
         )
-
-# identify the number of segments
-if system_type == "cc":
-    num_segments = 1
-elif system_type.split("_")[0] == "pcc":
-    num_segments = int(system_type.split("-")[-1])
-else:
-    raise ValueError(f"Unknown system_type: {system_type}")
-print(f"Number of segments: {num_segments}")
 
 # identify the dynamics_type
 dynamics_type = dynamics_model_name.split("-")[0]
@@ -142,21 +133,29 @@ if __name__ == "__main__":
         )
     )
 
-    dataset_name = f"toy_physics/{system_type}_32x32px_h-101"
+    dataset_name = f"toy_physics/{system_type}_dt_0_05"
+    print(f"Loading dataset: {dataset_name}")
     datasets, dataset_info, dataset_metadata = load_dataset(
         dataset_name,
         seed=seed,
         batch_size=batch_size,
         normalize=True,
         grayscale=True,
+        dataset_type="dm_hamiltonian_dynamics_suite"
     )
     train_ds, val_ds, test_ds = datasets["train"], datasets["val"], datasets["test"]
 
+    # initialize the system
+    system_cls, config_fn = globals().get(system_type.upper())
+    system_config = config_fn()
+    system = system_cls(**system_config)
+    # print(f"System: {system}", f"System configuration: {system_config}")
+
     # extract the robot parameters from the dataset
     robot_params = dict(
-        m=MASS_SPRING_FRICTION_ACTUATION.m_range.max,
-        k=MASS_SPRING_FRICTION_ACTUATION.k_range.max,
-        d=MASS_SPRING_FRICTION_ACTUATION.friction,
+        m=system_config["m_range"].max,
+        k=system_config["k_range"].max,
+        d=system_config["friction"],
     )
     print(f"Robot parameters: {robot_params}")
     # size of torques
@@ -168,10 +167,6 @@ if __name__ == "__main__":
     # limits of the configuration space
     q0_min, q0_max = dataset_metadata["x0_min"][:n_q], dataset_metadata["x0_max"][:n_q]
     print(f"Configuration space limits: {q0_min}, {q0_max}")
-
-    # initialize the system
-    cls, config = globals().get(dataset.upper())
-    system = cls(**config())
 
     # define the ode and potential energy functions of the system
 
@@ -189,7 +184,11 @@ if __name__ == "__main__":
 
     # initialize the rendering function
     def rendering_fn(q: Array) -> Array:
-        imgs, extra = system.render_trajectories(q[None, ...], params=robot_params, rng_key=rng)
+        params = dict(
+            m=robot_params["m"],
+            k=robot_params["k"],
+        )
+        imgs, extra = system.render_trajectories(q[None, None, ...], params=params, rng_key=rng)
         img = imgs[0]
         return img
 
@@ -240,7 +239,7 @@ if __name__ == "__main__":
     ts = jnp.linspace(0.0, sim_duration, num=int(sim_duration / control_dt))
     ode_rollout_fn = partial(
         rollout_ode,
-        ode_fn=ode_fn,
+        ode_fn=system_ode_fn,
         ts=ts,
         sim_dt=sim_dt,
         rendering_fn=rendering_fn,
@@ -306,7 +305,7 @@ if __name__ == "__main__":
     z0_max = nn_model_bound.encode(img_q0_max[None, ...])[0, ...]
 
     if n_z == 1 and dynamics_model_name in ["node-con-iae", "node-con-iae-s"]:
-        z_ps = jnp.linspace(-z0_max[0], z0_max[0], 100)
+        z_ps = jnp.linspace(-z0_max[0], z0_max[0], 100)[None, :]
         xi_ps = jnp.concatenate([z_ps, jnp.zeros_like(z_ps)], axis=-1)
 
         # evaluate the potential energy on the grid of latent variables
@@ -462,7 +461,7 @@ if __name__ == "__main__":
         # start closed-loop simulation of real dynamics with latent space control
         print("Simulating real closed-loop dynamics...")
         sim_ts = rollout_ode_with_latent_space_control(
-            ode_fn=ode_fn,
+            ode_fn=system_ode_fn,
             rendering_fn=rendering_fn,
             encode_fn=jit(encode_fn),
             ts=ts,
