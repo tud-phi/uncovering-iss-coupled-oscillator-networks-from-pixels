@@ -1,5 +1,41 @@
 # Input-to-State Stable Coupled Oscillator Networks for Closed-form Model-based Control in Latent Space
 
+This repository contains the code for the paper **Input-to-State Stable Coupled Oscillator Networks for Closed-form Model-based Control in Latent Space**
+by Maximilian Stölzle and Cosimo Della Santina, which will be presented at **NeurIPS 2024**.
+In particular, this codebase includes:
+
+- A JAX implementation of the Coupled Oscillator Network (CON) the CFA-CON models.
+- The training code for learning latent-space dynamics of mechanical systems with CONs, CFA-CONs, and other baselines (e.g., NODE, RNN, GRU, coRNN, etc.)
+- Model-based latent-space controllers.
+- Analysis and visualization scripts for generating the figures in the paper.
+
+**Abstract:** 
+Even though a variety of methods (e.g., RL, MPC, LQR) have been proposed in the literature, efficient and effective latent-space control of physical systems remains an open challenge.
+A promising avenue would be to leverage powerful and well-understood closed-form strategies from control theory literature in combination with learned dynamics, such as potential-energy shaping.
+We identify three fundamental shortcomings in existing latent-space models that have so far prevented this powerful combination: (i) they lack the mathematical structure of a physical system, (ii) they do not inherently conserve the stability properties of the real systems. Furthermore, (iii) these methods do not have an invertible mapping between input and latent-space forcing.
+This work proposes a novel Coupled Oscillator Network (CON) model that simultaneously tackles all these issues. 
+More specifically, (i) we show analytically that CON is a Lagrangian system - i.e., it presses well-defined potential and kinetic energy terms. Then, (ii) we provide formal proof of global Input-to-State stability using Lyapunov arguments.
+Moving to the experimental side, (iii) we demonstrate that CON reaches SoA performance when learning complex nonlinear dynamics of mechanical systems directly from images.
+An additional methodological innovation contributing to achieving this third goal is an approximated closed-form solution for efficient integration of network dynamics, which eases efficient training.
+We tackle (iv) by approximating the forcing-to-input mapping with a decoder that is trained to reconstruct the input based on the encoded latent space force.
+Finally, we leverage these four properties and show that they enable latent-space control. We use an integral-saturated PID with potential force compensation and demonstrate high-quality performance on a soft robot using raw pixels as the only feedback information.
+
+## Citation
+
+This simulator is part of the publication _Input-to-State Stable Coupled Oscillator Networks for Closed-form Model-based Control in Latent Space_ presented at as a **Spotlight paper** at the _Thirty-Eighth Annual Conference on Neural Information Processing Systems (NeurIPS 2024)_ in Vancouver, Canada. 
+You can find the publication online on arXiv: https://arxiv.org/abs/2409.08439
+
+Please use the following citation if you use our software in your (scientific) work:
+
+```bibtex
+@inproceedings{stolzle2024input,
+  title={Input-to-State Stable Coupled Oscillator Networks for Closed-form Model-based Control in Latent Space},
+  author={St{\"o}lzle, Maximilian and Della Santina, Cosimo},
+  booktitle={Thirty-eighth Annual Conference on Neural Information Processing Systems (NeurIPS)},
+  year={2024},
+}
+```
+
 ## Installation
 
 ### Install the system dependencies
