@@ -66,7 +66,7 @@ num_setpoints = 7
 sim_duration_per_setpoint = 5.0  # s
 sim_duration = num_setpoints * sim_duration_per_setpoint  # s
 # initial configuration
-q0 = jnp.pi * jnp.array([0.0])
+q0 = jnp.array([0.0])
 # control settings
 apply_feedforward_term = True
 apply_feedback_term = True
