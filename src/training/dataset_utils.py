@@ -149,14 +149,17 @@ def load_dataset(
 
         datasets[split_name] = ds
 
+    img_min_val, img_max_val = 0, 255
     if dataset_type == "dm_hamiltonian_dynamics_suite":
         # determine the min and max values of the rendering image
         for sample_idx, sample in enumerate(datasets["test"].as_numpy_iterator()):
             img_min_val = onp.min(sample["rendering_ts"])
             img_max_val = onp.max(sample["rendering_ts"])
             break
-    else:
-        img_min_val, img_max_val = 0, 255
+
+    metadata["rendering"] = metadata.get("rendering", {})
+    metadata["rendering"]["img_min_val"] = img_min_val
+    metadata["rendering"]["img_max_val"] = img_max_val
 
     for split_name in datasets.keys():
         ds = datasets[split_name]
