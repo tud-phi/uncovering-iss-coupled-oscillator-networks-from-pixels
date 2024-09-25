@@ -302,10 +302,10 @@ if __name__ == "__main__":
     img_q0_max = jnp.array(
         preprocess_rendering(img_q0_max, grayscale=True, normalize=True)
     )
-    z0_max = nn_model_bound.encode(img_q0_max[None, ...])[0, ...]
+    z0_max = jnp.abs(nn_model_bound.encode(img_q0_max[None, ...])[0, ...])
 
     if n_z == 1 and dynamics_model_name in ["node-con-iae", "node-con-iae-s"]:
-        z_ps = jnp.linspace(-z0_max[0], z0_max[0], 100)[None, :]
+        z_ps = jnp.linspace(-z0_max[0], z0_max[0], 100)[:, None]
         xi_ps = jnp.concatenate([z_ps, jnp.zeros_like(z_ps)], axis=-1)
 
         # evaluate the potential energy on the grid of latent variables
@@ -327,11 +327,11 @@ if __name__ == "__main__":
         plt.show()
 
     if callable(potential_energy_fn) and n_q == 1 and dynamics_model_name in ["node-con-iae", "node-con-iae-s"]:
-        q_ps = jnp.linspace(q0_min[0], q0_max[0], 100)
+        q_ps = jnp.linspace(q0_min[0], q0_max[0], 100)[:, None]
 
         Uq_hat_ps, Uq_gt_ps = [], []
         for i in range(q_ps.shape[0]):
-            q = q[i]
+            q = q_ps[i]
             img = rendering_fn(q)
             img = jnp.array(
                 preprocess_rendering(img, grayscale=True, normalize=True)
@@ -349,18 +349,21 @@ if __name__ == "__main__":
         Uq_hat_ps, Uq_gt_ps = jnp.stack(Uq_hat_ps, axis=0), jnp.stack(Uq_gt_ps, axis=0)
 
         # plot the potential energy landscape in the configuration space
-        fig, ax = plt.subplots(
+        fig, ax1 = plt.subplots(
             1,
             1,
             figsize=figsize,
             num="Learned potential energy landscape in configuration space",
         )
-        ax.plot(q_ps, Uq_hat_ps, label=r"$\mathcal{U}(q)$")
-        ax.plot(q_ps, Uq_gt_ps, label=r"$\mathcal{U}_{\text{gt}}(q)$")
-        ax.set_xlabel(r"$q$")
-        ax.set_ylabel(r"$\mathcal{U}$")
+        ax2 = ax1.twinx()
+        ax1.plot(q_ps, Uq_hat_ps, color=colors[0], label=r"$\hat{\mathcal{U}}(q)$")
+        ax2.plot(q_ps, Uq_gt_ps, color=colors[1], label=r"$\mathcal{U}_{\mathrm{gt}}(q)$")
+        ax1.set_xlabel(r"$q$")
+        ax1.set_ylabel(r"$\hat{\mathcal{U}}$")
+        ax2.set_ylabel(r"$\mathcal{U}_{\mathrm{gt}}$")
         plt.grid(True)
-        plt.legend()
+        ax1.legend()
+        ax2.legend()
         plt.savefig(ckpt_dir / "potential_energy_landscape_q.pdf")
         plt.show()
 
