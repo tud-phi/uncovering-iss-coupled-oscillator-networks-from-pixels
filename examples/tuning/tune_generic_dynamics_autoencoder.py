@@ -65,7 +65,7 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
     "ar-con-iae-cfa", "ar-elman-rnn", "ar-gru-rnn", "ar-cornn"
 ]
 """
-dynamics_model_name = "ar-con-iae-cfa"
+dynamics_model_name = "node-con-iae"
 # latent space shape
 n_z = 8
 # simulation time step
