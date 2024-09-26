@@ -51,7 +51,7 @@ tf.random.set_seed(seed=seed)
 system_type = "mass_spring_friction_actuation"
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 dynamics_model_name = (
-    "node-con-iae"  # "node-con-iae", "node-con-iae-s", "node-mechanical-mlp"
+    "node-con-iae"  # "node-con-iae", "node-mechanical-mlp"
 )
 # latent space shape
 n_z = 1

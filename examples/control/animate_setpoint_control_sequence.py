@@ -12,12 +12,17 @@ from tqdm import tqdm
 from src.control.utils import compute_settling_time_on_setpoint_trajectory
 
 seed = 0
-system_type = "pcc_ns-2"
+system_type = "pcc_ns-2"  # "pcc_ns-2", "mass_spring_friction_actuation"
 # set the dynamics_model_name
 dynamics_model_name = (
-    "node-con-iae"  # "node-con-iae", "node-con-iae-s", "node-mechanical-mlp"
+    "node-con-iae"  # "node-con-iae", "node-mechanical-mlp"
 )
-n_z = 2
+if system_type == "pcc_ns-2":
+    n_z = 2
+elif system_type == "mass_spring_friction_actuation":
+    n_z = 1
+else:
+    raise ValueError(f"Invalid system_type: {system_type}")
 
 if __name__ == "__main__":
     plt.rcParams.update(
@@ -39,17 +44,31 @@ if __name__ == "__main__":
     dots = (1.2, 0.8)
     dashes = (2.5, 1.2)
 
-    match dynamics_model_name:
-        case "node-con-iae":
-            experiment_id = f"2024-05-20_13-14-46/n_z_{n_z}_seed_{seed}"
-        case "node-con-iae-s":
-            experiment_id = f"2024-03-17_22-26-44/n_z_{n_z}_seed_{seed}"
-        case "node-mechanical-mlp":
-            experiment_id = f"2024-05-21_07-45-14/n_z_{n_z}_seed_{seed}"
+    match system_type:
+        case "pcc_ns-2":
+            match dynamics_model_name:
+                case "node-con-iae":
+                    experiment_id = f"2024-05-20_13-14-46/n_z_{n_z}_seed_{seed}"
+                case "node-con-iae-s":
+                    experiment_id = f"2024-03-17_22-26-44/n_z_{n_z}_seed_{seed}"
+                case "node-mechanical-mlp":
+                    experiment_id = f"2024-05-21_07-45-14/n_z_{n_z}_seed_{seed}"
+                case _:
+                    raise ValueError(
+                        f"No experiment_id for dynamics_model_name={dynamics_model_name}"
+                    )
+        case "mass_spring_friction_actuation":
+            match dynamics_model_name:
+                case "node-con-iae":
+                    experiment_id = f"2024-09-26_16-00-56/n_z_{n_z}_seed_{seed}"
+                case "node-mechanical-mlp":
+                    experiment_id = f"2024-09-26_05-16-30/n_z_{n_z}_seed_{seed}"
+                case _:
+                    raise ValueError(
+                        f"No experiment_id for dynamics_model_name={dynamics_model_name}"
+                    )
         case _:
-            raise ValueError(
-                f"No experiment_id for dynamics_model_name={dynamics_model_name}"
-            )
+            raise ValueError(f"Invalid system_type: {system_type}")
 
     ckpt_dir = (
         Path("logs").resolve() / f"{system_type}_dynamics_autoencoder" / experiment_id
