@@ -95,7 +95,12 @@ if __name__ == "__main__":
             np.max(sim_ts["x_ts"][:, :n_q]) + np.pi,
         )
         plt.xlabel(r"Time $t$ [s]")
-        plt.ylabel(r"Configuration $q$ [rad/m]")
+        if system_type == "pcc_ns-2":
+            plt.ylabel(r"Configuration $q$ [rad/m]")
+        elif system_type == "mass_spring_friction_actuation":
+            plt.ylabel(r"Configuration $q$ [m]")
+        else:
+            plt.ylabel(r"Configuration")
         plt.grid(True)
         plt.box(True)
         plt.legend()

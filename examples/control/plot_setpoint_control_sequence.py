@@ -10,12 +10,17 @@ from pathlib import Path
 from src.control.utils import compute_settling_time_on_setpoint_trajectory
 
 seed = 0
-system_type = "pcc_ns-2"
+system_type = "pcc_ns-2"  # "pcc_ns-2", "mass_spring_friction_actuation"
 # set the dynamics_model_name
 dynamics_model_name = (
-    "node-con-iae"  # "node-con-iae", "node-con-iae-s", "node-mechanical-mlp"
+    "node-con-iae"  # "node-con-iae", "node-mechanical-mlp"
 )
-n_z = 2
+if system_type == "pcc_ns-2":
+    n_z = 2
+elif system_type == "mass_spring_friction_actuation":
+    n_z = 1
+else:
+    raise ValueError(f"Invalid system_type: {system_type}")
 
 if __name__ == "__main__":
     plt.rcParams.update(
@@ -34,17 +39,31 @@ if __name__ == "__main__":
     dots = (1.2, 0.8)
     dashes = (2.5, 1.2)
 
-    match dynamics_model_name:
-        case "node-con-iae":
-            experiment_id = f"2024-05-20_13-14-46/n_z_{n_z}_seed_{seed}"
-        case "node-con-iae-s":
-            experiment_id = f"2024-03-17_22-26-44/n_z_{n_z}_seed_{seed}"
-        case "node-mechanical-mlp":
-            experiment_id = f"2024-05-21_07-45-14/n_z_{n_z}_seed_{seed}"
+    match system_type:
+        case "pcc_ns-2":
+            match dynamics_model_name:
+                case "node-con-iae":
+                    experiment_id = f"2024-05-20_13-14-46/n_z_{n_z}_seed_{seed}"
+                case "node-con-iae-s":
+                    experiment_id = f"2024-03-17_22-26-44/n_z_{n_z}_seed_{seed}"
+                case "node-mechanical-mlp":
+                    experiment_id = f"2024-05-21_07-45-14/n_z_{n_z}_seed_{seed}"
+                case _:
+                    raise ValueError(
+                        f"No experiment_id for dynamics_model_name={dynamics_model_name}"
+                    )
+        case "mass_spring_friction_actuation":
+            match dynamics_model_name:
+                case "node-con-iae":
+                    experiment_id = f"2024-09-26_16-00-56/n_z_{n_z}_seed_{seed}"
+                case "node-mechanical-mlp":
+                    experiment_id = f"2024-09-26_05-16-30/n_z_{n_z}_seed_{seed}"
+                case _:
+                    raise ValueError(
+                        f"No experiment_id for dynamics_model_name={dynamics_model_name}"
+                    )
         case _:
-            raise ValueError(
-                f"No experiment_id for dynamics_model_name={dynamics_model_name}"
-            )
+            raise ValueError(f"Invalid system_type: {system_type}")
 
     ckpt_dir = (
         Path("logs").resolve() / f"{system_type}_dynamics_autoencoder" / experiment_id
@@ -56,19 +75,20 @@ if __name__ == "__main__":
     # compute the mean setpoint error
     rmse_q = np.sqrt(np.mean((sim_ts["q_des_ts"] - sim_ts["x_ts"][:, :2]) ** 2))
     rmse_z = np.sqrt(np.mean((sim_ts["z_des_ts"] - sim_ts["xi_ts"][:, :2]) ** 2))
-    print(f"RMSE in q: {rmse_q:.4f} rad/m")
+    print(f"RMSE in q: {rmse_q:.4f}")
     print(f"RMSE in z: {rmse_z:.4f} m")
-    # compute the settling time
-    print("Computing the settling time for the configuration...")
-    settling_time_q_mean, settling_time_q_stdev = compute_settling_time_on_setpoint_trajectory(
-        sim_ts["ts"], sim_ts["q_des_ts"], sim_ts["x_ts"][:, :2], threshold=0.20
-    )
-    print("Computing the settling time for the latent...")
-    settling_time_z_mean, settling_time_z_stdev = compute_settling_time_on_setpoint_trajectory(
-        sim_ts["ts"], sim_ts["z_des_ts"], sim_ts["xi_ts"][:, :2], threshold=0.20
-    )
-    print(f"Settling time in q: {settling_time_q_mean:.3f} \u00b1 {settling_time_q_stdev:.3f} s")
-    print(f"Settling time in z: {settling_time_z_mean:.3f} \u00b1 {settling_time_z_stdev:.3f} s")
+    if system_type == "pcc_ns-2":
+        # compute the settling time
+        print("Computing the settling time for the configuration...")
+        settling_time_q_mean, settling_time_q_stdev = compute_settling_time_on_setpoint_trajectory(
+            sim_ts["ts"], sim_ts["q_des_ts"], sim_ts["x_ts"][:, :2], threshold=0.20
+        )
+        print("Computing the settling time for the latent...")
+        settling_time_z_mean, settling_time_z_stdev = compute_settling_time_on_setpoint_trajectory(
+            sim_ts["ts"], sim_ts["z_des_ts"], sim_ts["xi_ts"][:, :2], threshold=0.20
+        )
+        print(f"Settling time in q: {settling_time_q_mean:.3f} \u00b1 {settling_time_q_stdev:.3f} s")
+        print(f"Settling time in z: {settling_time_z_mean:.3f} \u00b1 {settling_time_z_stdev:.3f} s")
 
     # plot the configuration trajectory
     fig, ax = plt.subplots(1, 1, figsize=figsize)
@@ -90,7 +110,12 @@ if __name__ == "__main__":
             label=r"$q_" + str(i) + "$",
         )
     plt.xlabel(r"Time $t$ [s]")
-    plt.ylabel(r"Configuration $q$ [rad/m]")
+    if system_type == "pcc_ns-2":
+        plt.ylabel(r"Configuration $q$ [rad/m]")
+    elif system_type == "mass_spring_friction_actuation":
+        plt.ylabel(r"Configuration $q$ [m]")
+    else:
+        plt.ylabel(r"Configuration")
     plt.grid(True)
     plt.box(True)
     plt.legend()
@@ -139,7 +164,12 @@ if __name__ == "__main__":
             label=r"$u_" + str(i) + "$",
         )
     plt.xlabel(r"Time $t$ [s]")
-    plt.ylabel(r"Control input $u$ [Nm]")
+    if system_type == "pcc_ns-2":
+        plt.ylabel(r"Control input $u$ [Nm]")
+    elif system_type == "mass_spring_friction_actuation":
+        plt.ylabel(r"Control input $u$ [N]")
+    else:
+        plt.ylabel(r"Configuration $u$")
     plt.grid(True)
     plt.box(True)
     plt.legend()
