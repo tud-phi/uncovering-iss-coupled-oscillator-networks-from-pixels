@@ -78,10 +78,9 @@ match dynamics_model_name:
             psatid_gamma = 1.0
         else:
             if apply_feedforward_term:
-                kp, ki, kd = 0e0, 2.0e0, 5e-2
+                kp, ki, kd = 2e1, 2.0e0, 4e0
             else:
-                kp, ki, kd = 1e0, 2.0e0, 2e-2
-            # kp, ki, kd = 0.1e0, 3e0, 0e0
+                kp, ki, kd = 2e1, 2.0e0, 4e0
             psatid_gamma = 1.0
     case "node-mechanical-mlp":
         kp, ki, kd = 1e-3, 2e-2, 1e-5
