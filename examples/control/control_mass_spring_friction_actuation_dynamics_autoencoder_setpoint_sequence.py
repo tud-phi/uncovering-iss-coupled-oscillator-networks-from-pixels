@@ -77,13 +77,14 @@ match dynamics_model_name:
             kp, ki, kd = 1e0, 1e0, 0e0
             psatid_gamma = 1.0
         else:
-            if apply_feedforward_term:
-                kp, ki, kd = 2e1, 2.0e0, 4e0
-            else:
-                kp, ki, kd = 2e1, 2.0e0, 4e0
+            # if apply_feedforward_term:
+            #     kp, ki, kd = 2e1, 2.0e0, 4e0
+            # else:
+            #     kp, ki, kd = 2e1, 2.0e0, 4e0
+            kp, ki, kd = 2e0, 3e-1, 3.5e0
             psatid_gamma = 1.0
     case "node-mechanical-mlp":
-        kp, ki, kd = 1e-3, 2e-2, 1e-5
+        kp, ki, kd = 5e3, 1e3, 2e3
         psatid_gamma = 1.0
     case _:
         raise ValueError(f"Unknown dynamics_model_name: {dynamics_model_name}")
