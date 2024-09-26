@@ -95,11 +95,10 @@ norm_layer = nn.LayerNorm
 diag_shift, diag_eps = 1e-6, 2e-6
 match dynamics_model_name:
     case "node-con-iae":
-        experiment_id = f"2024-09-25_16-15-11/n_z_{n_z}_seed_{seed}"
+        experiment_id = f"2024-09-26_16-00-56/n_z_{n_z}_seed_{seed}"
         num_mlp_layers, mlp_hidden_dim = 5, 30
     case "node-mechanical-mlp":
-        raise NotImplementedError
-        experiment_id = f"2024-05-21_07-45-14/n_z_{n_z}_seed_{seed}"
+        experiment_id = f"2024-09-26_05-16-30/n_z_{n_z}_seed_{seed}"
         num_mlp_layers, mlp_hidden_dim = 5, 30
     case _:
         raise ValueError(
