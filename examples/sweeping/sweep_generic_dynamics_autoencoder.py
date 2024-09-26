@@ -504,19 +504,34 @@ match system_type:
         match dynamics_model_name:
             case "node-con-iae" | "node-con-iae-s":
                 # optimized for n_z=1
-                base_lr = 0.015455537009830515
+                base_lr = 0.010691140531761378
                 loss_weights = dict(
-                    mse_z=0.37113239429013933,
+                    mse_z=0.483373283813048,
                     mse_rec_static=1.0,
-                    mse_rec_dynamic=3.508873565643729,
-                    beta=0.00016464944241306734,
+                    mse_rec_dynamic=3.7216197739429715,
+                    beta=0.0001946301846127814,
                     mse_tau_rec=5e1,
                 )
-                weight_decay = 7.637814350596357e-06
+                weight_decay = 1.070113135475619e-05
                 if dynamics_model_name == "node-con-iae-s":
                     num_mlp_layers, mlp_hidden_dim = 2, 12
                 else:
                     num_mlp_layers, mlp_hidden_dim = 5, 30
+            case "node-mechanical-mlp" | "node-mechanical-mlp-s":
+                # optimized for n_z=1
+                base_lr = 0.010904629374008561
+                loss_weights = dict(
+                    mse_z=0.1037876096372912,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=3.011464307772081,
+                    beta=0.0009937029783177562,
+                )
+                weight_decay = 7.641634176772359e-06
+                if dynamics_model_name == "node-mechanical-mlp-s":
+                    num_mlp_layers, mlp_hidden_dim = 2, 12
+                else:
+                    num_mlp_layers, mlp_hidden_dim = 5, 30
+                mlp_nonlinearity_name = "tanh"
             case _:
                 raise NotImplementedError(
                     f"{system_type} with dynamics_model_name '{dynamics_model_name}' not implemented yet."
