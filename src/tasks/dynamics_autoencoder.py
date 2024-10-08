@@ -79,7 +79,8 @@ def task_factory(
         latent_velocity_source: the source of the latent velocity. Only used for the neural ODE.
             Can be either "latent-space-finite-differences", or "image-space-finite-differences". Only active if
             dynamics_order=2.
-        num_past_timesteps: the number of past timesteps to use for the discrete forward dynamics.
+        num_past_timesteps: the number of past timesteps to use for the discrete forward dynamics when dynamics_order=2.
+            When dynamics_order=1, we set num_past_timesteps=1.
         interpret_discrete_hidden_state_as_displacement: whether to interpret the hidden state of the discrete forward dynamics
             as differences (i.e., deltas) between actual physical states. It has been shown that this can improve the
             performance of RNNs, see:
@@ -93,6 +94,10 @@ def task_factory(
     """
     # make sure that dynamics order is either 1 or 2
     assert dynamics_order in [1, 2], "The dynamics order needs to be either 1 or 2."
+    if dynamics_order == 1:
+        num_past_timesteps = 1
+        print(f"Warning: Setting num_past_timesteps to 1 as dynamics_order=1.")
+
     # time step between samples
     sample_dt = (ts[1:] - ts[:-1]).mean()
     # compute the dynamic rollout of the latent representation
