@@ -7,7 +7,8 @@ from typing import Any, Callable, Optional, Sequence, Tuple, Union
 class DynamicsAutoencoder(nn.Module):
     autoencoder: nn.Module
     dynamics: nn.Module
-    dynamics_type: str = "node"  # "node" or "discrete"
+    dynamics_type: str = "node"  # "node", "discrete", or "ar"
+    dynamics_order: int = 2
     num_past_timesteps: int = 2  # only used if dynamics_type == "discrete"
 
     def setup(self):
@@ -26,8 +27,15 @@ class DynamicsAutoencoder(nn.Module):
         z_bt = self.encode(*args, **kwargs)
         self.decode(z_bt)
 
+        match self.dynamics_order:
+            case 1:
+                x_bt = z_bt
+            case 2:
+                x_bt = jnp.concatenate([z_bt, jnp.zeros_like(z_bt)], axis=-1)
+            case _:
+                raise ValueError(f"Unknown dynamics order: {self.dynamics_order}")
+
         if self.dynamics_type == "node":
-            x_bt = jnp.concatenate([z_bt, jnp.zeros_like(z_bt)], axis=-1)
             tau_bt = jnp.zeros_like(
                 x_bt, shape=(z_bt.shape[0], self.dynamics.input_dim)
             )
@@ -39,7 +47,6 @@ class DynamicsAutoencoder(nn.Module):
             tau = jnp.zeros_like(z_ts, shape=(self.dynamics.input_dim,))
             _ = self.dynamics.forward_all_layers(z_ts.flatten(), tau)
         elif self.dynamics_type == "ar":
-            x_bt = jnp.concatenate([z_bt, jnp.zeros_like(z_bt)], axis=-1)
             tau_bt = jnp.zeros_like(
                 x_bt, shape=(z_bt.shape[0], self.dynamics.input_dim)
             )
