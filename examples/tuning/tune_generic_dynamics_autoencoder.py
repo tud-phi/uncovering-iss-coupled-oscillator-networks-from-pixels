@@ -429,7 +429,7 @@ if __name__ == "__main__":
             "Dataset dt:",
             dataset_metadata["dt"],
             "dataset sim_dt:",
-            dataset_metadata["sim_dt"],
+            dataset_metadata.get("sim_dt", "not available"),
             "actually using sim_dt",
             sim_dt,
         )
