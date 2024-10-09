@@ -91,7 +91,13 @@ class ReactionDiffusion(tfds.core.GeneratorBasedBuilder):
     def _generate_examples(self):
         """Yields examples."""
         # normal imports
+        import dill
         import scipy.io as sio
+
+        # dataset directory
+        dataset_path = Path(self.data_dir)
+        # (re)create the directory
+        dataset_path.mkdir(parents=True, exist_ok=True)
 
         # load the data
         data = sio.loadmat(
@@ -138,7 +144,29 @@ class ReactionDiffusion(tfds.core.GeneratorBasedBuilder):
         # recalibrate the time to start from zero
         ts_rls = ts_rls - ts_rls[:, 0][:, None]
 
-        # TODO: save img_min and img_max to the metadata file
+        # define and save the metadata
+        metadata = dict(
+            dt=self.builder_config.dt,
+            ts=ts_rls[0],
+            solver_class="Tsit5",
+            tau_max=tau_rls.max(axis=0),
+            system_params=dict(
+                d1=0.1,
+                d2=0.1,
+                beta=1.0,
+            ),
+            rendering=dict(
+                width=self.builder_config.img_size[0],
+                height=self.builder_config.img_size[1],
+                origin_uv=self.builder_config.origin_uv,
+                img_min=img_min,
+                img_max=img_max,
+            )
+        )
+        print("Metadata:\n", metadata)
+        # save the metadata in the `dataset_dir`
+        with open(str(dataset_path / "metadata.pkl"), "wb") as f:
+            dill.dump(metadata, f)
 
         # iterate over the rollouts
         for rollout_idx in range(num_rollouts):
