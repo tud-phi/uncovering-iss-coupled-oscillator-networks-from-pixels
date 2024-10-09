@@ -112,7 +112,7 @@ tfds build datasets/planar_pcs --data_dir data/tensorflow_datasets --config pcc_
 ### Reaction-Diffusion
 
 ```bash
-tfds build datasets/reaction_diffusion --data_dir data/tensorflow_datasets --config default --overwrite
+tfds build datasets/reaction_diffusion --data_dir data/tensorflow_datasets --config reaction_diffusion_default --overwrite
 ```
 
 ### N-Body problem

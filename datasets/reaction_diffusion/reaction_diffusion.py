@@ -28,7 +28,7 @@ class ReactionDiffusion(tfds.core.GeneratorBasedBuilder):
     BUILDER_CONFIGS = [
         # `name` (and optionally `description`) are required for each config
         ReactionDiffusionDatasetConfig(
-            name="default",
+            name="reaction_diffusion_default",
             description="The default configuration for the reactor diffusion dataset.",
         ),
     ]
@@ -44,6 +44,10 @@ class ReactionDiffusion(tfds.core.GeneratorBasedBuilder):
                     "id": tfds.features.Scalar(dtype=onp.int32),
                     "t_ts": tfds.features.Tensor(
                         shape=(self.builder_config.horizon_dim,),
+                        dtype=onp.float64,
+                    ),
+                    "tau": tfds.features.Tensor(
+                        shape=(2,),
                         dtype=onp.float64,
                     ),
                     "rendering_ts": tfds.features.Sequence(
@@ -128,6 +132,8 @@ class ReactionDiffusion(tfds.core.GeneratorBasedBuilder):
         ts_rls = onp.reshape(ts, (num_rollouts, horizon_dim))
         rendering_ts_rls = onp.reshape(rendering_ts, (num_rollouts, horizon_dim, *rendering_ts.shape[1:]))
         rendering_d_ts_rls = onp.reshape(rendering_d_ts, (num_rollouts, horizon_dim, *rendering_d_ts.shape[1:]))
+        # virtual torque that is zero for compatibility with the rest of the datasets
+        tau_rls = onp.zeros((num_rollouts, 2), dtype=onp.float64)
 
         # recalibrate the time to start from zero
         ts_rls = ts_rls - ts_rls[:, 0][:, None]
@@ -140,6 +146,7 @@ class ReactionDiffusion(tfds.core.GeneratorBasedBuilder):
             sample = {
                 "id": rollout_idx,
                 "t_ts": ts_rls[rollout_idx],
+                "tau": tau_rls[rollout_idx],
                 "rendering_ts": rendering_ts_rls[rollout_idx],
                 "rendering_d_ts": rendering_d_ts_rls[rollout_idx],
             }

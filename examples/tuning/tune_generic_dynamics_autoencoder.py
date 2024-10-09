@@ -53,8 +53,8 @@ rng = random.PRNGKey(seed=seed)
 # set the system type in [
 # "cc", "cs", "pcc_ns-2",
 # "mass_spring_friction", "mass_spring_friction_actuation", "pendulum_friction", "double_pendulum_friction",
-# "single_pendulum"]
-system_type = "pcc_ns-2"
+# "single_pendulum", "reaction_diffusion_default"]
+system_type = "reaction_diffusion_default"
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 """ dynamics_model_name in [
     "node-general-mlp", "node-mechanical-mlp", "node-mechanical-mlp-s", 
@@ -77,7 +77,7 @@ elif system_type in [
     "mass_spring_friction_actuation",
     "pendulum_friction",
     "double_pendulum_friction",
-    "reactor_diffusion",
+    "reaction_diffusion_default",
 ]:
     sim_dt = 2.5e-2
 else:
@@ -142,12 +142,14 @@ if __name__ == "__main__":
 
         grayscale = True
         dynamics_order = 2
+        trial_batch_size = batch_size
+        trial_max_num_epochs = max_num_epochs
         if system_type in ["cc", "cs", "pcc_ns-2", "pcc_ns-3", "pcc_ns-4"]:
             dataset_type = "planar_pcs"
         elif system_type in ["single_pendulum", "double_pendulum"]:
             dataset_type = "pendulum"
-        elif system_type == "reactor_diffusion":
-            dataset_type = "reactor_diffusion"
+        elif system_type == "reaction_diffusion_default":
+            dataset_type = "reaction_diffusion"
             grayscale = False
             dynamics_order = 1
         elif system_type in [
@@ -156,18 +158,18 @@ if __name__ == "__main__":
             "pendulum_friction",
         ]:
             dataset_type = "toy_physics"
-            batch_size = 30
-            max_num_epochs = 50
+            trial_batch_size = 30
+            trial_max_num_epochs = 50
         elif system_type == "double_pendulum_friction":
             dataset_type = "toy_physics"
             grayscale = False
-            batch_size = 10
-            max_num_epochs = 100
+            trial_batch_size = 10
+            trial_max_num_epochs = 100
         else:
             raise ValueError(f"Unknown system_type: {system_type}")
 
         dataset_name_postfix = ""
-        if not dataset_type in ["reactor_diffusion"]:
+        if not dataset_type in ["reaction_diffusion"]:
             if dataset_type == "toy_physics":
                 dataset_name_postfix += f"_dt_0_05"
             else:
@@ -178,15 +180,15 @@ if __name__ == "__main__":
         dataset_name = f"{dataset_type}/{system_type}{dataset_name_postfix}"
         if dataset_type == "toy_physics":
             load_dataset_type = "dm_hamiltonian_dynamics_suite"
-        elif dataset_type == "reactor_diffusion":
-            load_dataset_type = "reactor_diffusion"
+        elif dataset_type == "reaction_diffusion":
+            load_dataset_type = "reaction_diffusion"
         else:
             load_dataset_type = "jsrm"
         datasets, dataset_info, dataset_metadata = load_dataset(
             dataset_name,
             seed=seed,
-            batch_size=batch_size,
-            num_epochs=max_num_epochs,
+            batch_size=trial_batch_size,
+            num_epochs=trial_max_num_epochs,
             normalize=True,
             grayscale=grayscale,
             dataset_type=load_dataset_type,
@@ -265,10 +267,15 @@ if __name__ == "__main__":
             loss_weights["mse_tau_rec"] = 1e1
             # num_mlp_layers = trial.suggest_int("num_mlp_layers", 1, 6)
             # mlp_hidden_dim = trial.suggest_int("mlp_hidden_dim", 4, 96)
-            if dynamics_model_name == "node-con-iae-s":
-                num_mlp_layers, mlp_hidden_dim = 2, 12
+            if system_type in [
+                "mass_spring_friction", "single_pendulum_friction", "double_pendulum_friction", "reaction_diffusion_default"
+            ]:
+                num_mlp_layers, mlp_hidden_dim = 0, 0
             else:
-                num_mlp_layers, mlp_hidden_dim = 5, 30
+                if dynamics_model_name.split("-")[-1] == "s":
+                    num_mlp_layers, mlp_hidden_dim = 2, 12
+                else:
+                    num_mlp_layers, mlp_hidden_dim = 5, 30
             dynamics_model = ConIaeOde(
                 latent_dim=n_z,
                 input_dim=n_tau,
@@ -365,7 +372,12 @@ if __name__ == "__main__":
             loss_weights["mse_tau_rec"] = 1e1
             # num_mlp_layers = trial.suggest_int("num_mlp_layers", 1, 6)
             # mlp_hidden_dim = trial.suggest_int("mlp_hidden_dim", 4, 96)
-            num_mlp_layers, mlp_hidden_dim = 5, 30
+            if system_type in [
+                "mass_spring_friction", "single_pendulum_friction", "double_pendulum_friction", "reaction_diffusion_default"
+            ]:
+                num_mlp_layers, mlp_hidden_dim = 0, 0
+            else:
+                num_mlp_layers, mlp_hidden_dim = 5, 30
             # sim_dt = trial.suggest_categorical("sim_dt", [1e-2, 5e-3, 2.5e-3])
             dynamics_model = DiscreteConIaeCfaDynamics(
                 latent_dim=n_z,
@@ -404,10 +416,13 @@ if __name__ == "__main__":
 
         # import solver class from diffrax
         # https://stackoverflow.com/questions/6677424/how-do-i-import-variable-packages-in-python-like-using-variable-variables-i
-        solver_class = getattr(
-            __import__("diffrax", fromlist=[dataset_metadata["solver_class"]]),
-            dataset_metadata["solver_class"],
-        )
+        if "solver_class" in dataset_metadata:
+            solver_class = getattr(
+                __import__("diffrax", fromlist=[dataset_metadata["solver_class"]]),
+                dataset_metadata["solver_class"],
+            )
+        else:
+            __import__("diffrax", fromlist=["Dopri5"])
 
         # call the factory function for the task
         print(
