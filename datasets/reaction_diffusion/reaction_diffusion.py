@@ -50,25 +50,23 @@ class ReactionDiffusion(tfds.core.GeneratorBasedBuilder):
                         shape=(2,),
                         dtype=onp.float64,
                     ),
-                    "rendering_ts": tfds.features.Sequence(
-                        tfds.features.Image(
-                            shape=(
-                                self.builder_config.img_size[1],
-                                self.builder_config.img_size[0],
-                                2,
-                            )
+                    "rendering_ts": tfds.features.Tensor(
+                        shape=(
+                            self.builder_config.horizon_dim,
+                            self.builder_config.img_size[1],
+                            self.builder_config.img_size[0],
+                            2,
                         ),
-                        length=self.builder_config.horizon_dim,
+                        dtype=onp.float32,
                     ),
-                    "rendering_d_ts": tfds.features.Sequence(
-                        tfds.features.Image(
-                            shape=(
-                                self.builder_config.img_size[1],
-                                self.builder_config.img_size[0],
-                                2,
-                            )
+                    "rendering_d_ts": tfds.features.Tensor(
+                        shape=(
+                            self.builder_config.horizon_dim,
+                            self.builder_config.img_size[1],
+                            self.builder_config.img_size[0],
+                            2,
                         ),
-                        length=self.builder_config.horizon_dim,
+                        dtype=onp.float32,
                     ),
                 }
             ),
@@ -120,10 +118,13 @@ class ReactionDiffusion(tfds.core.GeneratorBasedBuilder):
         rendering_ts = onp.stack([u_ts, v_ts], axis=-1)
         rendering_d_ts = onp.stack([u_d_ts, v_d_ts], axis=-1)
 
-        # normalize the images to be in the range [0, 255] and cast to uint8
-        img_min, img_max = rendering_ts.min(), rendering_ts.max()
-        rendering_ts = ((rendering_ts - img_min) / (img_max - img_min) * 255).astype(onp.uint8)
-        rendering_d_ts = (rendering_d_ts / (img_max - img_min) * 255).astype(onp.uint8)
+        # # normalize the images to be in the range [0, 255] and cast to uint8
+        # img_min, img_max = rendering_ts.min(), rendering_ts.max()
+        # rendering_ts = ((rendering_ts - img_min) / (img_max - img_min) * 255).astype(onp.uint8)
+        # rendering_d_ts = (rendering_d_ts / (img_max - img_min) * 255).astype(onp.uint8)
+        # cast the images to float32
+        rendering_ts = rendering_ts.astype(onp.float32)
+        rendering_d_ts = rendering_d_ts.astype(onp.float32)
 
         # determine the number of samples in the dataset
         horizon_dim = self.builder_config.horizon_dim
@@ -159,8 +160,6 @@ class ReactionDiffusion(tfds.core.GeneratorBasedBuilder):
                 width=self.builder_config.img_size[0],
                 height=self.builder_config.img_size[1],
                 origin_uv=self.builder_config.origin_uv,
-                img_min=img_min,
-                img_max=img_max,
             )
         )
         print("Metadata:\n", metadata)
