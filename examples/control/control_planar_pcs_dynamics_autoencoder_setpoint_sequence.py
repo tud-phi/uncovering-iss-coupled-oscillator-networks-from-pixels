@@ -243,10 +243,7 @@ if __name__ == "__main__":
 
     # import solver class from diffrax
     # https://stackoverflow.com/questions/6677424/how-do-i-import-variable-packages-in-python-like-using-variable-variables-i
-    solver_class = getattr(
-        __import__("diffrax", fromlist=[dataset_metadata["solver_class"]]),
-        dataset_metadata["solver_class"],
-    )
+    solver_class = __import__("diffrax", fromlist=[dataset_metadata.get("solver_class", "Dopri5")])
 
     # define settings for the closed-loop simulation
     control_dt = 1e-2  # control and time step of 1e-2 s
