@@ -138,3 +138,6 @@ dmypy.json
 
 logs/
 logs_*/
+
+# ignore reaction-diffusion-dataset
+datasets/reaction_diffusion/*.mat
