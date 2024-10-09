@@ -26,7 +26,6 @@ from src.models.neural_odes import (
     ConOde,
     ConIaeOde,
     CornnOde,
-    DconOde,
     LnnOde,
     LinearStateSpaceOde,
     MambaOde,
@@ -49,7 +48,7 @@ rng = random.PRNGKey(seed=seed)
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 """ dynamics_model_name in [
     "node-general-mlp", "node-mechanical-mlp", "node-mechanical-mlp-s", 
-    "node-cornn", "node-con", "node-w-con", "node-con-iae", "node-dcon", "node-lnn", 
+    "node-cornn", "node-con", "node-w-con", "node-con-iae", "node-lnn", 
     "node-hippo-lss", "node-mamba",
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
     "ar-con-iae-cfa"
