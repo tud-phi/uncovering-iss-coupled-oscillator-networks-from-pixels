@@ -767,16 +767,16 @@ match system_type:
                 mlp_nonlinearity_name = "tanh"
             case "node-con-iae" | "node-con-iae-s":
                 raise NotImplementedError()
-                # optimized for n_z=12
-                base_lr = 0.004371111690634623
+                # optimized for n_z=2
+                base_lr = 0.005888917625351585
                 loss_weights = dict(
-                    mse_z=0.10002120482256567,
+                    mse_z=0.13054403694912117,
                     mse_rec_static=1.0,
-                    mse_rec_dynamic=51.70644278103679,
-                    beta=0.00027963911733805484,
+                    mse_rec_dynamic=2.6387201915885408,
+                    beta=0.0006981872905554007,
                     mse_tau_rec=0e0,
                 )
-                weight_decay = 2.1177073207071563e-05
+                weight_decay = 1.1276927331777516e-05
                 # the dataset doesn't consider inputs
                 num_mlp_layers, mlp_hidden_dim = 0, 0
             case "ar-elman-rnn":
