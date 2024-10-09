@@ -64,7 +64,7 @@ seed_range = onp.array([0, 1, 2])
 # set the system type in [
 # "cc", "cs", "pcc_ns-2",
 # "mass_spring_friction", "mass_spring_friction_actuation", "pendulum_friction", "double_pendulum_friction",
-# "single_pendulum"]
+# "single_pendulum", "reaction_diffusion_default"]
 system_type = "pcc_ns-2"
 long_horizon_dataset = True
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
@@ -87,6 +87,7 @@ elif system_type in [
     "mass_spring_friction_actuation",
     "pendulum_friction",
     "double_pendulum_friction",
+    "reaction_diffusion_default",
 ]:
     sim_dt = 2.5e-2
 else:
@@ -729,6 +730,96 @@ match system_type:
                 raise NotImplementedError(
                     f"{system_type} with dynamics_model_name '{dynamics_model_name}' not implemented yet."
                 )
+    case "reaction_diffusion_default":
+        batch_size = 10
+        grayscale = False
+        match dynamics_model_name:
+            case "node-general-mlp" | "node-general-mlp-s":
+                raise NotImplementedError()
+                # optimized for "node-general-mlp at n_z=12
+                base_lr = 0.003789514088335835
+                loss_weights = dict(
+                    mse_z=0.10354674975294657,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=37.43925221480726,
+                    beta=0.0004462734231619719,
+                )
+                weight_decay = 8.042584606568567e-06
+                if dynamics_model_name == "node-general-mlp-s":
+                    num_mlp_layers, mlp_hidden_dim = 2, 12
+                else:
+                    num_mlp_layers, mlp_hidden_dim = 5, 30
+                mlp_nonlinearity_name = "tanh"
+            case "node-mechanical-mlp" | "node-mechanical-mlp-s":
+                raise NotImplementedError()
+                # optimized for n_z=12
+                base_lr = 0.006923530586011298
+                loss_weights = dict(
+                    mse_z=0.20223686992178358,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=60.74996073425695,
+                    beta=0.0002417917724332947,
+                )
+                weight_decay = 4.59867549628406e-05
+                if dynamics_model_name == "node-mechanical-mlp-s":
+                    num_mlp_layers, mlp_hidden_dim = 2, 12
+                else:
+                    num_mlp_layers, mlp_hidden_dim = 5, 30
+                mlp_nonlinearity_name = "tanh"
+            case "node-con-iae" | "node-con-iae-s":
+                raise NotImplementedError()
+                # optimized for n_z=12
+                base_lr = 0.004371111690634623
+                loss_weights = dict(
+                    mse_z=0.10002120482256567,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=51.70644278103679,
+                    beta=0.00027963911733805484,
+                    mse_tau_rec=5e1,
+                )
+                weight_decay = 2.1177073207071563e-05
+                if dynamics_model_name == "node-con-iae-s":
+                    num_mlp_layers, mlp_hidden_dim = 2, 12
+                else:
+                    num_mlp_layers, mlp_hidden_dim = 5, 30
+            case "ar-elman-rnn":
+                raise NotImplementedError()
+                # optimized for n_z=12
+                base_lr = 0.004524443032980358
+                loss_weights = dict(
+                    mse_z=0.12027467845758552,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=1.4056183787726764,
+                    beta=0.0007909511260972457,
+                )
+                weight_decay = 4.617738677622606e-05
+            case "ar-gru-rnn":
+                raise NotImplementedError()
+                # optimized for n_z=12
+                base_lr = 0.018759092183177933
+                loss_weights = dict(
+                    mse_z=0.36189940167672224,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=8.37449686843681,
+                    beta=0.00013130293256147146,
+                )
+                weight_decay = 3.016471182021465e-05
+            case "ar-cornn":
+                raise NotImplementedError()
+                # optimized for n_z=12
+                base_lr = 0.010072831724792584
+                loss_weights = dict(
+                    mse_z=0.10054968603804583,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=8.295226425347138,
+                    beta=0.00018624281835822343,
+                )
+                weight_decay = 1.3424702241051468e-05
+                cornn_gamma, cornn_epsilon = 1.8202725088035752, 0.12389358153779872
+    case _:
+        raise NotImplementedError(
+            f"{system_type} with dynamics_model_name '{dynamics_model_name}' not implemented yet."
+        )
 
 # identify the dynamics_type
 dynamics_type = dynamics_model_name.split("-")[0]
@@ -784,10 +875,15 @@ if __name__ == "__main__":
             # specify the folder
             logdir_run = logdir / f"n_z_{n_z}_seed_{seed}"
 
+            dynamics_order = 2
             if system_type in ["cc", "cs", "pcc_ns-2", "pcc_ns-3", "pcc_ns-4"]:
                 dataset_type = "planar_pcs"
             elif system_type in ["single_pendulum", "double_pendulum"]:
                 dataset_type = "pendulum"
+            elif system_type == "reaction_diffusion_default":
+                dataset_type = "reaction_diffusion"
+                grayscale = False
+                dynamics_order = 1
             elif system_type in [
                 "mass_spring_friction",
                 "mass_spring_friction_actuation",
@@ -799,14 +895,21 @@ if __name__ == "__main__":
                 raise ValueError(f"Unknown system_type: {system_type}")
 
             dataset_name_postfix = ""
-            if dataset_type == "toy_physics":
-                dataset_name_postfix += f"_dt_0_05"
-            else:
-                dataset_name_postfix += f"_32x32px"
-            if long_horizon_dataset and dataset_type != "toy_physics":
-                dataset_name_postfix += f"_h-101"
+            if not dataset_type in ["reaction_diffusion"]:
+                if dataset_type == "toy_physics":
+                    dataset_name_postfix += f"_dt_0_05"
+                else:
+                    dataset_name_postfix += f"_32x32px"
+                if dataset_type != "toy_physics":
+                    dataset_name_postfix += f"_h-101"
 
             dataset_name = f"{dataset_type}/{system_type}{dataset_name_postfix}"
+            if dataset_type == "toy_physics":
+                load_dataset_type = "dm_hamiltonian_dynamics_suite"
+            elif dataset_type == "reaction_diffusion":
+                load_dataset_type = "reaction_diffusion"
+            else:
+                load_dataset_type = "jsrm"
             datasets, dataset_info, dataset_metadata = load_dataset(
                 dataset_name,
                 seed=seed,
@@ -814,9 +917,7 @@ if __name__ == "__main__":
                 num_epochs=num_epochs,
                 normalize=True,
                 grayscale=grayscale,
-                dataset_type="dm_hamiltonian_dynamics_suite"
-                if dataset_type == "toy_physics"
-                else "jsrm",
+                dataset_type=load_dataset_type,
             )
             train_ds, val_ds, test_ds = (
                 datasets["train"],
@@ -842,6 +943,7 @@ if __name__ == "__main__":
                 autoencoder_model = Autoencoder(
                     latent_dim=n_z, img_shape=img_shape, norm_layer=nn.LayerNorm
                 )
+            state_dim = n_z if dynamics_order == 1 else 2 * n_z
             if dynamics_model_name in [
                 "node-general-mlp",
                 "node-mechanical-mlp",
@@ -850,6 +952,7 @@ if __name__ == "__main__":
                 dynamics_model = MlpOde(
                     latent_dim=n_z,
                     input_dim=n_tau,
+                    dynamics_order=dynamics_order,
                     num_layers=num_mlp_layers,
                     hidden_dim=mlp_hidden_dim,
                     nonlinearity=getattr(nn, mlp_nonlinearity_name),
@@ -861,6 +964,7 @@ if __name__ == "__main__":
                 dynamics_model = CornnOde(
                     latent_dim=n_z,
                     input_dim=n_tau,
+                    dynamics_order=dynamics_order,
                     gamma=cornn_gamma,
                     epsilon=cornn_epsilon,
                 )
@@ -874,6 +978,7 @@ if __name__ == "__main__":
                 dynamics_model = ConIaeOde(
                     latent_dim=n_z,
                     input_dim=n_tau,
+                    dynamics_order=dynamics_order,
                     num_layers=num_mlp_layers,
                     hidden_dim=mlp_hidden_dim,
                 )
@@ -943,6 +1048,7 @@ if __name__ == "__main__":
                 dynamics_model = DiscreteCornn(
                     latent_dim=n_z,
                     input_dim=n_tau,
+                    dynamics_order=dynamics_order,
                     dt=sim_dt,
                     gamma=cornn_gamma,
                     epsilon=cornn_epsilon,
@@ -953,6 +1059,7 @@ if __name__ == "__main__":
                 autoencoder=autoencoder_model,
                 dynamics=dynamics_model,
                 dynamics_type=dynamics_type,
+                dynamics_order=dynamics_order,
                 num_past_timesteps=num_past_timesteps,
             )
 
@@ -970,6 +1077,7 @@ if __name__ == "__main__":
                     loss_weights=loss_weights,
                     ae_type=ae_type,
                     dynamics_type=dynamics_type,
+                    dynamics_order=dynamics_order,
                     start_time_idx=start_time_idx,
                     solver=solver_class(),
                     latent_velocity_source=latent_velocity_source,
