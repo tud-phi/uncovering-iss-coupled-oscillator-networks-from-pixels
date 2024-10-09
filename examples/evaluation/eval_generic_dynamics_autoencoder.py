@@ -405,11 +405,27 @@ if __name__ == "__main__":
         ts = batch["t_ts"][0, start_time_idx:]
         img_pred_ts = pred["img_dynamic_ts"][0]
         img_target_ts = batch["rendering_ts"][0, start_time_idx:]
-        # denormalize the images
-        img_pred_ts = jax.vmap(partial(denormalize_img, apply_threshold=True))(img_pred_ts)
-        img_target_ts = jax.vmap(partial(denormalize_img, apply_threshold=True))(
-            img_target_ts
-        )
+
+        if dataset_type == "reaction_diffusion":
+            # add third channel that consists of zeros
+            img_pred_ts = jnp.concatenate(
+                [img_pred_ts, jnp.zeros_like(img_pred_ts[..., 0:1])], axis=-1
+            )
+            img_target_ts = jnp.concatenate(
+                [img_target_ts, jnp.zeros_like(img_target_ts[..., 0:1])], axis=-1
+            )
+
+            # denormalize the images
+            img_pred_ts = jax.vmap(partial(denormalize_img, apply_threshold=False))(img_pred_ts)
+            img_target_ts = jax.vmap(partial(denormalize_img, apply_threshold=False))(
+                img_target_ts
+            )
+        else:
+            # denormalize the images
+            img_pred_ts = jax.vmap(partial(denormalize_img, apply_threshold=True))(img_pred_ts)
+            img_target_ts = jax.vmap(partial(denormalize_img, apply_threshold=True))(
+                img_target_ts
+            )
 
         # animate the rollout
         print(f"Animate rollout {batch_idx + 1} / {num_rollouts}...")
