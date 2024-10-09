@@ -3,9 +3,7 @@ clu
 diffrax
 dill
 dm-pix  # PIX is an image processing library in JAX, for JAX.
-flax
 hippox
-jax
 jax-models
 jsrm>=0.0.9
 matplotlib
@@ -13,18 +11,16 @@ natsort
 nbodyx
 numpy
 opencv-python
-optax
 optuna
 optuna-dashboard
-orbax-checkpoint>=0.5.0
 pytest
 ruff
 seaborn
 sympy
 tensorboard
-tensorflow  # required for tensorflow-datasets
-tensorflow-datasets
 tqdm
+
+jax-ai-stack[tfds]==2024.10.1
 
 git+https://github.com/mstoelzle/ciclo
 git+https://github.com/mstoelzle/dm_hamiltonian_dynamics_suite
