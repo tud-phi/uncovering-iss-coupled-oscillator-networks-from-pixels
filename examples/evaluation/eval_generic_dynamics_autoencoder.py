@@ -141,7 +141,8 @@ match system_type:
         grayscale = False
         match dynamics_model_name:
             case "node-con-iae":
-                experiment_id = f"2024-10-09_16-53-38/n_z_{n_z}_seed_{seed}"
+                experiment_id = f"2024-10-09_17-13-09/n_z_{n_z}_seed_{seed}"
+                # the dataset doesn't consider inputs
                 num_mlp_layers, mlp_hidden_dim = 0, 0
             case _:
                 raise ValueError(

@@ -778,7 +778,7 @@ match system_type:
                 )
                 weight_decay = 2.1177073207071563e-05
                 # the dataset doesn't consider inputs
-                num_mlp_layers, mlp_hidden_dim = 2, 12
+                num_mlp_layers, mlp_hidden_dim = 0, 0
             case "ar-elman-rnn":
                 raise NotImplementedError()
                 # optimized for n_z=12
