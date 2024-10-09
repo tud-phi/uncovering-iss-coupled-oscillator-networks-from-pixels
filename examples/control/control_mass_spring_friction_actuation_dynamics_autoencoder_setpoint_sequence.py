@@ -223,9 +223,12 @@ if __name__ == "__main__":
         dynamics_type=dynamics_type,
     )
 
+    solver_class_name = dataset_metadata.get("solver_class", "Dopri5")
     # import solver class from diffrax
     # https://stackoverflow.com/questions/6677424/how-do-i-import-variable-packages-in-python-like-using-variable-variables-i
-    solver_class = __import__("diffrax", fromlist=[dataset_metadata.get("solver_class", "Dopri5")])
+    solver_class = getattr(
+        __import__("diffrax", fromlist=[solver_class_name]), solver_class_name,
+    )
 
     # generate a random setpoint sequence
     rng_setpoint = random.PRNGKey(seed=1)
