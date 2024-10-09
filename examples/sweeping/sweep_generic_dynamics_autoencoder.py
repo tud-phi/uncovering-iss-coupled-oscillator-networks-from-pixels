@@ -774,13 +774,11 @@ match system_type:
                     mse_rec_static=1.0,
                     mse_rec_dynamic=51.70644278103679,
                     beta=0.00027963911733805484,
-                    mse_tau_rec=5e1,
+                    mse_tau_rec=0e0,
                 )
                 weight_decay = 2.1177073207071563e-05
-                if dynamics_model_name == "node-con-iae-s":
-                    num_mlp_layers, mlp_hidden_dim = 2, 12
-                else:
-                    num_mlp_layers, mlp_hidden_dim = 5, 30
+                # the dataset doesn't consider inputs
+                num_mlp_layers, mlp_hidden_dim = 2, 12
             case "ar-elman-rnn":
                 raise NotImplementedError()
                 # optimized for n_z=12
