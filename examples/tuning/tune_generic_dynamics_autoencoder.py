@@ -152,6 +152,7 @@ if __name__ == "__main__":
             dataset_type = "reaction_diffusion"
             grayscale = False
             dynamics_order = 1
+            trial_batch_size = 30
         elif system_type in [
             "mass_spring_friction",
             "mass_spring_friction_actuation",
