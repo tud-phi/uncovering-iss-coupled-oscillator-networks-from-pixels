@@ -77,6 +77,7 @@ elif system_type in [
     "mass_spring_friction_actuation",
     "pendulum_friction",
     "double_pendulum_friction",
+    "reactor_diffusion",
 ]:
     sim_dt = 2.5e-2
 else:
@@ -140,10 +141,15 @@ if __name__ == "__main__":
             loss_weights["mmd"] = mmd
 
         grayscale = True
+        dynamics_order = 2
         if system_type in ["cc", "cs", "pcc_ns-2", "pcc_ns-3", "pcc_ns-4"]:
             dataset_type = "planar_pcs"
         elif system_type in ["single_pendulum", "double_pendulum"]:
             dataset_type = "pendulum"
+        elif system_type == "reactor_diffusion":
+            dataset_type = "reactor_diffusion"
+            grayscale = False
+            dynamics_order = 1
         elif system_type in [
             "mass_spring_friction",
             "mass_spring_friction_actuation",
@@ -161,14 +167,21 @@ if __name__ == "__main__":
             raise ValueError(f"Unknown system_type: {system_type}")
 
         dataset_name_postfix = ""
-        if dataset_type == "toy_physics":
-            dataset_name_postfix += f"_dt_0_05"
-        else:
-            dataset_name_postfix += f"_32x32px"
-        if dataset_type != "toy_physics":
-            dataset_name_postfix += f"_h-101"
+        if not dataset_type in ["reactor_diffusion"]:
+            if dataset_type == "toy_physics":
+                dataset_name_postfix += f"_dt_0_05"
+            else:
+                dataset_name_postfix += f"_32x32px"
+            if dataset_type != "toy_physics":
+                dataset_name_postfix += f"_h-101"
 
         dataset_name = f"{dataset_type}/{system_type}{dataset_name_postfix}"
+        if dataset_type == "toy_physics":
+            load_dataset_type = "dm_hamiltonian_dynamics_suite"
+        elif dataset_type == "reactor_diffusion":
+            load_dataset_type = "reactor_diffusion"
+        else:
+            load_dataset_type = "jsrm"
         datasets, dataset_info, dataset_metadata = load_dataset(
             dataset_name,
             seed=seed,
@@ -176,9 +189,7 @@ if __name__ == "__main__":
             num_epochs=max_num_epochs,
             normalize=True,
             grayscale=grayscale,
-            dataset_type="dm_hamiltonian_dynamics_suite"
-            if dataset_type == "toy_physics"
-            else "jsrm",
+            dataset_type=load_dataset_type,
         )
         train_ds, val_ds, test_ds = datasets["train"], datasets["val"], datasets["test"]
 
@@ -197,6 +208,7 @@ if __name__ == "__main__":
             autoencoder_model = Autoencoder(
                 latent_dim=n_z, img_shape=img_shape, norm_layer=nn.LayerNorm
             )
+        state_dim = n_z if dynamics_order == 1 else 2 * n_z
         if dynamics_model_name in [
             "node-general-mlp",
             "node-mechanical-mlp",
@@ -224,6 +236,7 @@ if __name__ == "__main__":
             dynamics_model = MlpOde(
                 latent_dim=n_z,
                 input_dim=n_tau,
+                dynamics_order=dynamics_order,
                 num_layers=num_mlp_layers,
                 hidden_dim=mlp_hidden_dim,
                 nonlinearity=mlp_nonlinearity_name,
@@ -237,6 +250,7 @@ if __name__ == "__main__":
             dynamics_model = CornnOde(
                 latent_dim=n_z,
                 input_dim=n_tau,
+                dynamics_order=dynamics_order,
                 gamma=cornn_gamma,
                 epsilon=cornn_epsilon,
             )
@@ -258,6 +272,7 @@ if __name__ == "__main__":
             dynamics_model = ConIaeOde(
                 latent_dim=n_z,
                 input_dim=n_tau,
+                dynamics_order=dynamics_order,
                 num_layers=num_mlp_layers,
                 hidden_dim=mlp_hidden_dim,
             )
@@ -361,9 +376,9 @@ if __name__ == "__main__":
             )
         elif dynamics_model_name in ["ar-elman-rnn", "ar-gru-rnn"]:
             dynamics_model = DiscreteRnnDynamics(
-                state_dim=2 * n_z,
+                state_dim=state_dim,
                 input_dim=n_tau,
-                output_dim=2 * n_z,
+                output_dim=state_dim,
                 rnn_method=dynamics_model_name.split("-")[1],  # "elman" or "gru"
             )
         elif dynamics_model_name == "ar-cornn":
@@ -372,6 +387,7 @@ if __name__ == "__main__":
             dynamics_model = DiscreteCornn(
                 latent_dim=n_z,
                 input_dim=n_tau,
+                dynamics_order=dynamics_order,
                 dt=sim_dt,
                 gamma=cornn_gamma,
                 epsilon=cornn_epsilon,
@@ -382,6 +398,7 @@ if __name__ == "__main__":
             autoencoder=autoencoder_model,
             dynamics=dynamics_model,
             dynamics_type=dynamics_type,
+            dynamics_order=dynamics_order,
             num_past_timesteps=num_past_timesteps,
         )
 
