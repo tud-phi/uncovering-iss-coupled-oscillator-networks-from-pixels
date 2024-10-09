@@ -6,14 +6,10 @@ jax.config.update("jax_enable_x64", True)
 jax.config.update("jax_platforms", "cpu")  # set default device to 'cpu'
 from jax import Array, jit, random
 import jax.numpy as jnp
-import jsrm
-from jsrm.integration import ode_with_forcing_factory
-from jsrm.systems import planar_pcs
 import matplotlib.pyplot as plt
 import numpy as onp
 from pathlib import Path
 import tensorflow as tf
-from timeit import timeit
 
 from src.models.autoencoders import Autoencoder, VAE
 from src.models.discrete_forward_dynamics import (
@@ -54,8 +50,11 @@ seed = 0
 rng = random.PRNGKey(seed=seed)
 tf.random.set_seed(seed=seed)
 
-# system_type in [mass_spring_friction, pendulum_friction, double_pendulum_friction]
-system_type = "mass_spring_friction"
+# set the system type in [
+# "cc", "cs", "pcc_ns-2",
+# "mass_spring_friction", "mass_spring_friction_actuation", "pendulum_friction", "double_pendulum_friction",
+# "single_pendulum", "reaction_diffusion_default"]
+system_type = "reaction_diffusion_default"
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 """ dynamics_model_name in [
     "node-general-mlp", "node-mechanical-mlp", "node-mechanical-mlp-s",
@@ -67,8 +66,20 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 """
 dynamics_model_name = "node-con-iae"
 # simulation time step
-# sim_dt = None
-sim_dt = 2.5e-2
+if system_type in ["cc", "cs", "pcc_ns-2", "pcc_ns-3", "pcc_ns-4"]:
+    sim_dt = 1e-2
+elif system_type in [
+    "single_pendulum",
+    "double_pendulum",
+    "mass_spring_friction",
+    "mass_spring_friction_actuation",
+    "pendulum_friction",
+    "double_pendulum_friction",
+    "reaction_diffusion_default",
+]:
+    sim_dt = 2.5e-2
+else:
+    raise ValueError(f"Unknown system_type: {system_type}")
 
 batch_size = 5
 loss_weights = dict(mse_q=1.0, mse_rec_static=1.0, mse_rec_dynamic=1.0)
