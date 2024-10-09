@@ -30,8 +30,6 @@ from src.models.neural_odes import (
     MlpOde,
 )
 from src.models.dynamics_autoencoder import DynamicsAutoencoder
-from src.rendering import render_planar_pcs
-from src.rollout import rollout_ode
 from src.training.dataset_utils import load_dataset, load_dummy_neural_network_input
 from src.training.loops import run_eval
 from src.tasks import dynamics_autoencoder
@@ -137,14 +135,14 @@ match system_type:
                 raise ValueError(
                     f"No experiment_id for dynamics_model_name={dynamics_model_name}"
                 )
-    case "reaction_diffusion":
-        raise NotImplementedError("Reaction-diffusion system not implemented yet.")
-        n_z = 2  # latent space dimension
+    case "reaction_diffusion_default":
+        # raise NotImplementedError("Reaction-diffusion system not implemented yet.")
+        n_z = 4  # latent space dimension
         grayscale = False
         match dynamics_model_name:
             case "node-con-iae":
-                experiment_id = f"2024-08-06_15-00-51/n_z_{n_z}_seed_{seed}"
-                num_mlp_layers, mlp_hidden_dim = 5, 30
+                experiment_id = f"2024-10-09_16-53-38/n_z_{n_z}_seed_{seed}"
+                num_mlp_layers, mlp_hidden_dim = 0, 0
             case _:
                 raise ValueError(
                     f"No experiment_id for dynamics_model_name={dynamics_model_name}"
@@ -193,7 +191,7 @@ if __name__ == "__main__":
             dataset_name_postfix += f"_32x32px"
         if dataset_type != "toy_physics":
             dataset_name_postfix += f"_h-101"
-
+    dataset_name = f"{dataset_type}/{system_type}{dataset_name_postfix}"
     if dataset_type == "toy_physics":
         load_dataset_type = "dm_hamiltonian_dynamics_suite"
     elif dataset_type == "reaction_diffusion":
@@ -210,8 +208,6 @@ if __name__ == "__main__":
     )
     train_ds, val_ds, test_ds = datasets["train"], datasets["val"], datasets["test"]
 
-    # dimension of the configuration space
-    n_q = train_ds.element_spec["x_ts"].shape[-1] // 2
     # size of torques
     n_tau = train_ds.element_spec["tau"].shape[-1]  # dimension of the control input
     # image shape

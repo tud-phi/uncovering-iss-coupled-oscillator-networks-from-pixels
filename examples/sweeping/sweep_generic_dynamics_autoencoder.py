@@ -1119,6 +1119,7 @@ if __name__ == "__main__":
                     loss_weights=loss_weights,
                     ae_type=ae_type,
                     dynamics_type=dynamics_type,
+                    dynamics_order=dynamics_order,
                     start_time_idx=start_time_idx,
                     solver=solver_class(),
                     latent_velocity_source=latent_velocity_source,
