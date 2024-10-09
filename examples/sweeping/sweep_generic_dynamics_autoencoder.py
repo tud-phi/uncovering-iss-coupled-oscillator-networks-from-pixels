@@ -1039,9 +1039,9 @@ if __name__ == "__main__":
                 )
             elif dynamics_model_name in ["ar-elman-rnn", "ar-gru-rnn"]:
                 dynamics_model = DiscreteRnnDynamics(
-                    state_dim=2 * n_z,
+                    state_dim=state_dim,
                     input_dim=n_tau,
-                    output_dim=2 * n_z,
+                    output_dim=state_dim,
                     rnn_method=dynamics_model_name.split("-")[1],  # "elman" or "gru"
                 )
             elif dynamics_model_name == "ar-cornn":

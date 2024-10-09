@@ -126,6 +126,18 @@ match system_type:
                 raise ValueError(
                     f"No experiment_id for dynamics_model_name={dynamics_model_name}"
                 )
+    case "reaction_diffusion":
+        raise NotImplementedError("Reaction-diffusion system not implemented yet.")
+        n_z = 2  # latent space dimension
+        grayscale = False
+        match dynamics_model_name:
+            case "node-con-iae":
+                experiment_id = f"2024-08-06_15-00-51/n_z_{n_z}_seed_{seed}"
+                num_mlp_layers, mlp_hidden_dim = 5, 30
+            case _:
+                raise ValueError(
+                    f"No experiment_id for dynamics_model_name={dynamics_model_name}"
+                )
 
 
 # identify the dynamics_type
@@ -143,14 +155,47 @@ ckpt_dir = (
 
 
 if __name__ == "__main__":
-    dataset_name = f"toy_physics/{system_type}_dt_0_05"
+    dynamics_order = 2
+    if system_type in ["cc", "cs", "pcc_ns-2", "pcc_ns-3", "pcc_ns-4"]:
+        dataset_type = "planar_pcs"
+    elif system_type in ["single_pendulum", "double_pendulum"]:
+        dataset_type = "pendulum"
+    elif system_type == "reaction_diffusion_default":
+        dataset_type = "reaction_diffusion"
+        dynamics_order = 1
+    elif system_type in [
+        "mass_spring_friction",
+        "mass_spring_friction_actuation",
+        "pendulum_friction",
+    ]:
+        dataset_type = "toy_physics"
+    elif system_type == "double_pendulum_friction":
+        dataset_type = "toy_physics"
+    else:
+        raise ValueError(f"Unknown system_type: {system_type}")
+
+    dataset_name_postfix = ""
+    if not dataset_type in ["reaction_diffusion"]:
+        if dataset_type == "toy_physics":
+            dataset_name_postfix += f"_dt_0_05"
+        else:
+            dataset_name_postfix += f"_32x32px"
+        if dataset_type != "toy_physics":
+            dataset_name_postfix += f"_h-101"
+
+    if dataset_type == "toy_physics":
+        load_dataset_type = "dm_hamiltonian_dynamics_suite"
+    elif dataset_type == "reaction_diffusion":
+        load_dataset_type = "reaction_diffusion"
+    else:
+        load_dataset_type = "jsrm"
     datasets, dataset_info, dataset_metadata = load_dataset(
         dataset_name,
         seed=seed,
         batch_size=batch_size,
         normalize=True,
         grayscale=grayscale,
-        dataset_type="dm_hamiltonian_dynamics_suite",
+        dataset_type=load_dataset_type,
     )
     train_ds, val_ds, test_ds = datasets["train"], datasets["val"], datasets["test"]
 
@@ -170,10 +215,12 @@ if __name__ == "__main__":
         autoencoder_model = Autoencoder(
             latent_dim=n_z, img_shape=img_shape, norm_layer=norm_layer
         )
+    state_dim = n_z if dynamics_order == 1 else 2 * n_z
     if dynamics_model_name in ["node-general-mlp", "node-mechanical-mlp"]:
         dynamics_model = MlpOde(
             latent_dim=n_z,
             input_dim=n_tau,
+            dynamics_order=dynamics_order,
             num_layers=num_mlp_layers,
             hidden_dim=mlp_hidden_dim,
             nonlinearity=getattr(nn, mlp_nonlinearity_name),
@@ -185,6 +232,7 @@ if __name__ == "__main__":
         dynamics_model = CornnOde(
             latent_dim=n_z,
             input_dim=n_tau,
+            dynamics_order=dynamics_order,
             gamma=cornn_gamma,
             epsilon=cornn_epsilon,
         )
@@ -198,6 +246,7 @@ if __name__ == "__main__":
         dynamics_model = ConIaeOde(
             latent_dim=n_z,
             input_dim=n_tau,
+            dynamics_order=dynamics_order,
             num_layers=num_mlp_layers,
             hidden_dim=mlp_hidden_dim,
         )
@@ -205,6 +254,7 @@ if __name__ == "__main__":
         dynamics_model = LnnOde(
             latent_dim=n_z,
             input_dim=n_tau,
+            dynamics_order=dynamics_order,
             learn_dissipation=lnn_learn_dissipation,
             num_layers=num_mlp_layers,
             hidden_dim=mlp_hidden_dim,
@@ -258,15 +308,16 @@ if __name__ == "__main__":
         )
     elif dynamics_model_name in ["ar-elman-rnn", "ar-gru-rnn"]:
         dynamics_model = DiscreteRnnDynamics(
-            state_dim=2 * n_z,
+            state_dim=state_dim,
             input_dim=n_tau,
-            output_dim=2 * n_z,
+            output_dim=state_dim,
             rnn_method=dynamics_model_name.split("-")[1],  # "elman" or "gru"
         )
     elif dynamics_model_name == "ar-cornn":
         dynamics_model = DiscreteCornn(
             latent_dim=n_z,
             input_dim=n_tau,
+            dynamics_order=dynamics_order,
             dt=sim_dt,
             gamma=cornn_gamma,
             epsilon=cornn_epsilon,
@@ -277,6 +328,7 @@ if __name__ == "__main__":
         autoencoder=autoencoder_model,
         dynamics=dynamics_model,
         dynamics_type=dynamics_type,
+        dynamics_order=dynamics_order,
         num_past_timesteps=num_past_timesteps,
     )
 
@@ -293,6 +345,7 @@ if __name__ == "__main__":
         loss_weights=loss_weights,
         ae_type=ae_type,
         dynamics_type=dynamics_type,
+        dynamics_order=dynamics_order,
         start_time_idx=start_time_idx,
         solver=solver_class(),
         latent_velocity_source="image-space-finite-differences",
