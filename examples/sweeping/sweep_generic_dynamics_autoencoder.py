@@ -75,7 +75,7 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
     "ar-con-iae-cfa", "ar-elman-rnn", "ar-gru-rnn", "ar-cornn"
 ]
 """
-dynamics_model_name = "node-con-iae"
+dynamics_model_name = "ar-con-iae-cfa"
 # simulation time step
 if system_type in ["cc", "cs", "pcc_ns-2", "pcc_ns-3", "pcc_ns-4"]:
     sim_dt = 1e-2
