@@ -265,18 +265,19 @@ if __name__ == "__main__":
             )
         elif dynamics_model_name in ["node-con-iae", "node-con-iae-s"]:
             # loss_weights["mse_tau_rec"] = trial.suggest_float("mse_tau_rec_weight", 1e-1, 1e3, log=True)
-            loss_weights["mse_tau_rec"] = 1e1
             # num_mlp_layers = trial.suggest_int("num_mlp_layers", 1, 6)
             # mlp_hidden_dim = trial.suggest_int("mlp_hidden_dim", 4, 96)
             if system_type in [
                 "mass_spring_friction", "single_pendulum_friction", "double_pendulum_friction", "reaction_diffusion_default"
             ]:
                 num_mlp_layers, mlp_hidden_dim = 0, 0
+                loss_weights["mse_tau_rec"] = 0e0
             else:
                 if dynamics_model_name.split("-")[-1] == "s":
                     num_mlp_layers, mlp_hidden_dim = 2, 12
                 else:
                     num_mlp_layers, mlp_hidden_dim = 5, 30
+                loss_weights["mse_tau_rec"] = 1e1
             dynamics_model = ConIaeOde(
                 latent_dim=n_z,
                 input_dim=n_tau,
@@ -370,20 +371,22 @@ if __name__ == "__main__":
                 dt=dataset_metadata["dt"],
             )
         elif dynamics_model_name == "ar-con-iae-cfa":
-            loss_weights["mse_tau_rec"] = 1e1
             # num_mlp_layers = trial.suggest_int("num_mlp_layers", 1, 6)
             # mlp_hidden_dim = trial.suggest_int("mlp_hidden_dim", 4, 96)
             if system_type in [
                 "mass_spring_friction", "single_pendulum_friction", "double_pendulum_friction", "reaction_diffusion_default"
             ]:
                 num_mlp_layers, mlp_hidden_dim = 0, 0
+                loss_weights["mse_tau_rec"] = 0e0
             else:
                 num_mlp_layers, mlp_hidden_dim = 5, 30
+                loss_weights["mse_tau_rec"] = 1e1
             # sim_dt = trial.suggest_categorical("sim_dt", [1e-2, 5e-3, 2.5e-3])
             dynamics_model = DiscreteConIaeCfaDynamics(
                 latent_dim=n_z,
                 input_dim=n_tau,
                 dt=sim_dt,
+                dynamics_order=dynamics_order,
                 num_layers=num_mlp_layers,
                 hidden_dim=mlp_hidden_dim,
             )
@@ -400,8 +403,8 @@ if __name__ == "__main__":
             dynamics_model = DiscreteCornn(
                 latent_dim=n_z,
                 input_dim=n_tau,
-                dynamics_order=dynamics_order,
                 dt=sim_dt,
+                dynamics_order=dynamics_order,
                 gamma=cornn_gamma,
                 epsilon=cornn_epsilon,
             )
