@@ -771,6 +771,18 @@ match system_type:
                 weight_decay = 1.163668844018335e-05
                 # the dataset doesn't consider inputs
                 num_mlp_layers, mlp_hidden_dim = 0, 0
+            case "ar-con-iae-cfa":
+                # optimized for n_z=4
+                base_lr = 0.009766329444231621
+                loss_weights = dict(
+                    mse_z=0.11552971801128281,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=15.563769911124428,
+                    beta=0.0003136141073989516,
+                    mse_tau_rec=0e0,
+                )
+                weight_decay = 4.096005404399632e-05
+                num_mlp_layers, mlp_hidden_dim = 0, 0
             case "ar-elman-rnn":
                 # optimized for n_z=4
                 base_lr = 0.0019378423391292106
