@@ -58,7 +58,7 @@ class DiscreteMambaDynamics(DiscreteForwardDynamicsBase):
         Ad, Bd = discretize_state_space_model(
             A, B, self.dt, method=self.discretization_method
         )
-        x_next = Ad @ x + Bd @ tau
+        x_next = Ad @ x + Bd @ tau[: self.input_dim]
 
         # the state dim might be larger than the output dim
         # in which case we need to slice the output

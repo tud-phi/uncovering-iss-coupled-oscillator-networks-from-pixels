@@ -38,7 +38,7 @@ class DiscreteCornn(DiscreteForwardDynamicsBase):
             x_next: state of shape (2 * latent_dim, ). In RNN literature, this is often called the next "hidden state" or "carry" h.
         """
         # concatenate the state and the control input
-        input = jnp.concatenate([x, tau], axis=-1)
+        input = jnp.concatenate([x, tau[:self.input_dim]], axis=-1)
 
         match self.dynamics_order:
             case 1:

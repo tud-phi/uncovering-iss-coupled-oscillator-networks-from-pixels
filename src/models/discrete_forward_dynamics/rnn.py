@@ -37,13 +37,13 @@ class DiscreteRnnDynamics(DiscreteForwardDynamicsBase):
             # https://pytorch.org/docs/stable/generated/torch.nn.RNN.html
             x_next = nn.tanh(
                 nn.Dense(features=self.state_dim)(x)
-                + nn.Dense(features=self.state_dim)(tau)
+                + nn.Dense(features=self.state_dim)(tau[:self.input_dim])
             )
         elif self.rnn_method == "gru":
             # GRU
             # https://en.wikipedia.org/wiki/Gated_recurrent_unit
             # https://flax.readthedocs.io/en/latest/api_reference/flax.linen/_autosummary/flax.linen.GRUCell.html
-            x_next, _ = nn.GRUCell(features=self.state_dim)(x, tau)
+            x_next, _ = nn.GRUCell(features=self.state_dim)(x, tau[: self.input_dim])
         else:
             raise NotImplementedError(f"RNN method {self.rnn_method} not implemented")
 

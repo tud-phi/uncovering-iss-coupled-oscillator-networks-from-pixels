@@ -30,7 +30,7 @@ class CornnOde(NeuralOdeBase):
     @nn.compact
     def __call__(self, x: Array, tau: Array) -> Array:
         # concatenate the state and the control input
-        input = jnp.concatenate([x, tau], axis=-1)
+        input = jnp.concatenate([x, tau[:self.input_dim]], axis=-1)
 
         match self.dynamics_order:
             case 1:
