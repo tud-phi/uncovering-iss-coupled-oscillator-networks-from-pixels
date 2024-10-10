@@ -733,34 +733,17 @@ match system_type:
         batch_size = 10
         grayscale = False
         match dynamics_model_name:
-            case "node-general-mlp" | "node-general-mlp-s":
-                raise NotImplementedError()
-                # optimized for "node-general-mlp at n_z=12
-                base_lr = 0.003789514088335835
+            case "node-general-mlp" | "node-general-mlp-s" | "node-mechanical-mlp" | "node-mechanical-mlp-s":
+                # optimized for "node-general-mlp at n_z=4
+                base_lr = 0.0059168868877279915
                 loss_weights = dict(
-                    mse_z=0.10354674975294657,
+                    mse_z=0.10889131669317606,
                     mse_rec_static=1.0,
-                    mse_rec_dynamic=37.43925221480726,
-                    beta=0.0004462734231619719,
+                    mse_rec_dynamic=1.1653845909300706,
+                    beta=0.0008282714338681616,
                 )
-                weight_decay = 8.042584606568567e-06
-                if dynamics_model_name == "node-general-mlp-s":
-                    num_mlp_layers, mlp_hidden_dim = 2, 12
-                else:
-                    num_mlp_layers, mlp_hidden_dim = 5, 30
-                mlp_nonlinearity_name = "tanh"
-            case "node-mechanical-mlp" | "node-mechanical-mlp-s":
-                raise NotImplementedError()
-                # optimized for n_z=12
-                base_lr = 0.006923530586011298
-                loss_weights = dict(
-                    mse_z=0.20223686992178358,
-                    mse_rec_static=1.0,
-                    mse_rec_dynamic=60.74996073425695,
-                    beta=0.0002417917724332947,
-                )
-                weight_decay = 4.59867549628406e-05
-                if dynamics_model_name == "node-mechanical-mlp-s":
+                weight_decay = 1.2611460334026154e-05
+                if dynamics_model_name.split("-")[-1] == "s":
                     num_mlp_layers, mlp_hidden_dim = 2, 12
                 else:
                     num_mlp_layers, mlp_hidden_dim = 5, 30
