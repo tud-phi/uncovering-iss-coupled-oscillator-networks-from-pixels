@@ -197,6 +197,8 @@ if __name__ == "__main__":
 
         # size of torques
         n_tau = train_ds.element_spec["tau"].shape[-1]  # dimension of the control input
+        if system_type in ["reaction_diffusion_default"]:
+            n_tau = 0
         print(f"Control input dimension: {n_tau}")
         # image shape
         img_shape = train_ds.element_spec["rendering_ts"].shape[-3:]
