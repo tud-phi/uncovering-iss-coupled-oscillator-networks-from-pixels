@@ -84,29 +84,39 @@ class ConIaeOde(NeuralOdeBase):
             diag_eps=self.diag_eps,
         )
 
-        if self.num_layers > 0:
-            V_layers = []
-            for _ in range(self.num_layers - 1):
-                V_layers.append(nn.Dense(features=self.hidden_dim))
-                V_layers.append(self.input_nonlinearity)
-            V_layers.append(nn.Dense(features=(self.latent_dim * self.input_dim)))
-            self.V_nn = nn.Sequential(V_layers)
-        elif self.latent_dim == self.input_dim:
-            self.V_nn = lambda tau: jnp.eye(self.latent_dim)
+        if self.input_dim > 0:
+            if self.num_layers > 0:
+                V_layers = []
+                for _ in range(self.num_layers - 1):
+                    V_layers.append(nn.Dense(features=self.hidden_dim))
+                    V_layers.append(self.input_nonlinearity)
+                V_layers.append(nn.Dense(features=(self.latent_dim * self.input_dim)))
+                self.V_nn = nn.Sequential(V_layers)
+            elif self.latent_dim == self.input_dim:
+                self.V_nn = lambda tau: jnp.eye(self.latent_dim)
+            else:
+                self.V_nn = lambda tau: jnp.zeros((self.latent_dim, self.input_dim))
+        elif self.input_dim == 0:
+            self.V_nn = lambda tau: jnp.zeros((self.latent_dim, 0))
         else:
-            self.V_nn = lambda tau: jnp.zeros((self.latent_dim, self.input_dim))
+            raise ValueError("Input dimension must be non-negative")
 
-        if self.num_layers > 0:
-            Y_layers = []
-            for _ in range(self.num_layers - 1):
-                Y_layers.append(nn.Dense(features=self.hidden_dim))
-                Y_layers.append(self.input_nonlinearity)
-            Y_layers.append(nn.Dense(features=(self.input_dim * self.latent_dim)))
-            self.Y_nn = nn.Sequential(Y_layers)
-        elif self.input_dim == self.latent_dim:
-            self.Y_nn = lambda u: jnp.eye(self.input_dim)
+        if self.input_dim > 0:
+            if self.num_layers > 0:
+                Y_layers = []
+                for _ in range(self.num_layers - 1):
+                    Y_layers.append(nn.Dense(features=self.hidden_dim))
+                    Y_layers.append(self.input_nonlinearity)
+                Y_layers.append(nn.Dense(features=(self.input_dim * self.latent_dim)))
+                self.Y_nn = nn.Sequential(Y_layers)
+            elif self.input_dim == self.latent_dim:
+                self.Y_nn = lambda u: jnp.eye(self.input_dim)
+            else:
+                self.Y_nn = lambda u: jnp.zeros((self.input_dim, self.latent_dim))
+        elif self.input_dim == 0:
+            self.Y_nn = lambda u: jnp.zeros((0, self.latent_dim))
         else:
-            self.Y_nn = lambda u: jnp.zeros((self.input_dim, self.latent_dim))
+            raise ValueError("Input dimension must be non-negative")
 
     def __call__(self, x: Array, tau: Array) -> Array:
         """
@@ -158,7 +168,7 @@ class ConIaeOde(NeuralOdeBase):
 
     def encode_input(self, tau: Array):
         V = self.input_state_coupling(tau)
-        u = V @ tau
+        u = V @ tau[:self.input_dim]
         return u
 
     def decode_input(self, u: Array):

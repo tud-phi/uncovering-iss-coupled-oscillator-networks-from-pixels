@@ -618,9 +618,9 @@ def task_factory(
 
             loss = loss + loss_weights["beta"] * kld_loss
 
-        if type(nn_model.dynamics) in [ConIaeOde, DiscreteConIaeCfaDynamics]:
+        if type(nn_model.dynamics) in [ConIaeOde, DiscreteConIaeCfaDynamics] and nn_model.dynamics.input_dim > 0:
             # autoencoder the torque
-            mse_tau_rec = jnp.mean(jnp.square(preds["tau_pred"] - batch["tau"]))
+            mse_tau_rec = jnp.mean(jnp.square(preds["tau_pred"] - batch["tau"][..., :nn_model.dynamics.input_dim]))
             loss = loss + loss_weights.get("mse_tau_rec", 0.0) * mse_tau_rec
 
         return loss, preds
@@ -665,9 +665,9 @@ def task_factory(
                 ),
             )
 
-        if type(nn_model.dynamics) in [ConIaeOde, DiscreteConIaeCfaDynamics]:
+        if type(nn_model.dynamics) in [ConIaeOde, DiscreteConIaeCfaDynamics] and nn_model.dynamics.input_dim > 0:
             batch_loss_dict["mse_tau_rec"] = jnp.mean(
-                jnp.square(preds["tau_pred"] - batch["tau"])
+                jnp.square(preds["tau_pred"] - batch["tau"][..., :nn_model.dynamics.input_dim])
             )
 
         return batch_loss_dict
@@ -691,7 +691,7 @@ def task_factory(
             ssim_rec_static: RootAverage.from_output("ssim_rec_static")
             ssim_rec_dynamic: RootAverage.from_output("ssim_rec_dynamic")
 
-        if type(nn_model.dynamics) in [ConIaeOde, DiscreteConIaeCfaDynamics]:
+        if type(nn_model.dynamics) in [ConIaeOde, DiscreteConIaeCfaDynamics] and nn_model.dynamics.input_dim > 0:
             rmse_tau_rec: RootAverage.from_output("mse_tau_rec")
 
     metrics_collection_cls = MetricsCollection
