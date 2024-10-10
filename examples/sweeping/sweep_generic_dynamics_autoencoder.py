@@ -1032,6 +1032,7 @@ if __name__ == "__main__":
                     latent_dim=n_z,
                     input_dim=n_tau,
                     dt=sim_dt,
+                    dynamics_order=dynamics_order,
                     num_layers=num_mlp_layers,
                     hidden_dim=mlp_hidden_dim,
                 )
