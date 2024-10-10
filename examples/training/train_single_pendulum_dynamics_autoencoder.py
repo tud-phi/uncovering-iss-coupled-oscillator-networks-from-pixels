@@ -25,7 +25,6 @@ from src.models.neural_odes import (
     CornnOde,
     LnnOde,
     LinearStateSpaceOde,
-    MambaOde,
     MlpOde,
 )
 from src.models.dynamics_autoencoder import DynamicsAutoencoder
@@ -46,7 +45,7 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 """ dynamics_model_name in [
     "node-general-mlp", "node-mechanical-mlp", "node-mechanical-mlp-s", 
     "node-cornn", "node-con", "node-w-con", "node-con-iae", "node-lnn", 
-    "node-hippo-lss", "node-mamba",
+    "node-hippo-lss",
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
     "ar-con-iae-cfa"
 ]

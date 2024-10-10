@@ -24,7 +24,6 @@ from src.models.neural_odes import (
     CornnOde,
     LnnOde,
     LinearStateSpaceOde,
-    MambaOde,
     MlpOde,
 )
 from src.models.dynamics_autoencoder import DynamicsAutoencoder

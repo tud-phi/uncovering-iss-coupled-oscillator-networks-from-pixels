@@ -25,7 +25,6 @@ from src.models.neural_odes import (
     CornnOde,
     LnnOde,
     LinearStateSpaceOde,
-    MambaOde,
     MlpOde,
 )
 from src.models.dynamics_autoencoder import DynamicsAutoencoder
@@ -47,7 +46,7 @@ ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 """ dynamics_model_name in [
     "node-general-mlp", "node-mechanical-mlp", "node-mechanical-mlp-s", 
     "node-cornn", "node-con", "node-w-con", "node-con-iae", "node-lnn", 
-    "node-hippo-lss", "node-mamba",
+    "node-hippo-lss",
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
 ]
 """
@@ -232,11 +231,6 @@ if __name__ == "__main__":
                 transition_matrix_init=dynamics_model_name.split("-")[
                     1
                 ],  # "general", "mechanical", or "hippo"
-            )
-        elif dynamics_model_name == "node-mamba":
-            dynamics_model = MambaOde(
-                latent_dim=n_z,
-                input_dim=n_tau,
             )
         elif dynamics_model_name == "discrete-mlp":
             num_mlp_layers = trial.suggest_int("num_mlp_layers", 2, 6)
