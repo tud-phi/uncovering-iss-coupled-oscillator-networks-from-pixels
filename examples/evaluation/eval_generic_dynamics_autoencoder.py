@@ -51,7 +51,7 @@ tf.random.set_seed(seed=seed)
 # "cc", "cs", "pcc_ns-2",
 # "mass_spring_friction", "mass_spring_friction_actuation", "pendulum_friction", "double_pendulum_friction",
 # "single_pendulum", "reaction_diffusion_default"]
-system_type = "reaction_diffusion_default"
+system_type = "pcc_ns-2"
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 """ dynamics_model_name in [
     "node-general-mlp", "node-mechanical-mlp", "node-mechanical-mlp-s",
