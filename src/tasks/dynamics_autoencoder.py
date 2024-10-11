@@ -40,6 +40,7 @@ def task_factory(
     loss_weights: Optional[Dict[str, float]] = None,
     ae_type: str = "None",
     dynamics_type: str = "node",  # node or discrete
+    dynamics_order: int = 2,
     start_time_idx: int = 1,
     solver: AbstractSolver = Dopri5(),
     latent_velocity_source: str = "latent-space-finite-differences",
@@ -69,12 +70,17 @@ def task_factory(
             discrete: Discrete forward dynamics map the latents at the num_past_timesteps to the next latent.
             ar: Discrete forward dynamics maps autoregressively the latent state (latent position and velocity) to the
                 next latent state at time step sim_dt.
+        dynamics_order: the order of the dynamics. Either 1 or 2.
+            By default, the dynamics are of order 2 (i.e., the state consists of the latent position and velocity).
+            If the dynamics are of order 1, the state consists only of the latent position.
         start_time_idx: the index of the time step to start the simulation at. Needs to be >=1 to enable the application
             of finite differences for the latent-space velocity.
         solver: Diffrax solver to use for the simulation. Only use for the neural ODE.
         latent_velocity_source: the source of the latent velocity. Only used for the neural ODE.
-            Can be either "latent-space-finite-differences", or "image-space-finite-differences".
-        num_past_timesteps: the number of past timesteps to use for the discrete forward dynamics.
+            Can be either "latent-space-finite-differences", or "image-space-finite-differences". Only active if
+            dynamics_order=2.
+        num_past_timesteps: the number of past timesteps to use for the discrete forward dynamics when dynamics_order=2.
+            When dynamics_order=1, we set num_past_timesteps=1.
         interpret_discrete_hidden_state_as_displacement: whether to interpret the hidden state of the discrete forward dynamics
             as differences (i.e., deltas) between actual physical states. It has been shown that this can improve the
             performance of RNNs, see:
@@ -86,6 +92,12 @@ def task_factory(
         task_callables: struct containing the functions for the learning task
         metrics_collection_cls: contains class for collecting metrics
     """
+    # make sure that dynamics order is either 1 or 2
+    assert dynamics_order in [1, 2], "The dynamics order needs to be either 1 or 2."
+    if dynamics_order == 1:
+        num_past_timesteps = 1
+        print(f"Warning: Setting num_past_timesteps to 1 as dynamics_order=1.")
+
     # time step between samples
     sample_dt = (ts[1:] - ts[:-1]).mean()
     # compute the dynamic rollout of the latent representation
@@ -228,11 +240,18 @@ def task_factory(
             return z_d_init_bt
 
         if dynamics_type == "node":
-            # latent and latent velocity at initial time provided by the encoder
+            # initial latent position as provided by the encoder
             z_init_bt = z_static_pred_bt[:, start_time_idx, ...]
-            z_d_init_bt = estimate_initial_latent_velocity()
-            # specify initial state for the dynamic rollout
-            x_init_bt = jnp.concatenate((z_init_bt, z_d_init_bt), axis=-1)
+            match dynamics_order:
+                case 1:
+                    x_init_bt = z_init_bt
+                case 2:
+                    # latent velocity at initial time provided by the encoder
+                    z_d_init_bt = estimate_initial_latent_velocity()
+                    # specify initial state for the dynamic rollout
+                    x_init_bt = jnp.concatenate((z_init_bt, z_d_init_bt), axis=-1)
+                case _:
+                    raise ValueError(f"Dynamics order {dynamics_order} not supported.")
 
             # construct ode_fn and initiate ODE term
             def ode_fn(t: Array, x: Array, tau: Array) -> Array:
@@ -380,11 +399,20 @@ def task_factory(
             z_d_dynamic_pred_bt = jnp.zeros_like(z_dynamic_pred_bt)
         elif dynamics_type == "ar":
             # autoregresses the latent space positions and velocities
-            # latent and latent velocity at initial time provided by the encoder
+
+            # initial latent position as provided by the encoder
             z_init_bt = z_static_pred_bt[:, start_time_idx, ...]
-            z_d_init_bt = estimate_initial_latent_velocity()
-            # specify initial state for the dynamic rollout
-            x_init_bt = jnp.concatenate((z_init_bt, z_d_init_bt), axis=-1)
+            match dynamics_order:
+                case 1:
+                    x_init_bt = z_init_bt
+                case 2:
+                    # latent velocity at initial time provided by the encoder
+                    z_d_init_bt = estimate_initial_latent_velocity()
+                    # specify initial state for the dynamic rollout
+                    x_init_bt = jnp.concatenate((z_init_bt, z_d_init_bt), axis=-1)
+                case _:
+                    raise ValueError(f"Dynamics order {dynamics_order} not supported.")
+
             # construct batch of external torques of shape batch_dim x time_dim x n_tau
             tau_bt_sim = jnp.expand_dims(batch["tau"], axis=1).repeat(
                 ts_sim.shape[0], axis=1
@@ -457,7 +485,10 @@ def task_factory(
             ].astype(jnp.float32)
 
             z_dynamic_pred_bt = x_dynamic_pred_bt[..., :n_z].astype(jnp.float32)
-            z_d_dynamic_pred_bt = x_dynamic_pred_bt[..., n_z:].astype(jnp.float32)
+            if dynamics_order == 2:
+                z_d_dynamic_pred_bt = x_dynamic_pred_bt[..., n_z:].astype(jnp.float32)
+            else:
+                z_d_dynamic_pred_bt = None
         else:
             raise ValueError(f"Unknown dynamics_type: {dynamics_type}")
 
@@ -494,10 +525,13 @@ def task_factory(
             img_static_ts=img_static_pred_bt,
             z_dynamic_ts=z_dynamic_pred_bt,
             img_dynamic_ts=img_dynamic_pred_bt,
-            xi_dynamic_ts=jnp.concatenate(
+        )
+        if dynamics_order == 2:
+            preds["xi_dynamic_ts"] = jnp.concatenate(
                 (z_dynamic_pred_bt, z_d_dynamic_pred_bt), axis=-1
             ),
-        )
+        else:
+            preds["xi_dynamic_ts"] = z_dynamic_pred_bt
 
         if ae_type == "beta_vae":
             # reshape to batch_dim x time_dim x n_z
@@ -584,9 +618,9 @@ def task_factory(
 
             loss = loss + loss_weights["beta"] * kld_loss
 
-        if type(nn_model.dynamics) in [ConIaeOde, DiscreteConIaeCfaDynamics]:
+        if type(nn_model.dynamics) in [ConIaeOde, DiscreteConIaeCfaDynamics] and nn_model.dynamics.input_dim > 0:
             # autoencoder the torque
-            mse_tau_rec = jnp.mean(jnp.square(preds["tau_pred"] - batch["tau"]))
+            mse_tau_rec = jnp.mean(jnp.square(preds["tau_pred"] - batch["tau"][..., :nn_model.dynamics.input_dim]))
             loss = loss + loss_weights.get("mse_tau_rec", 0.0) * mse_tau_rec
 
         return loss, preds
@@ -631,9 +665,9 @@ def task_factory(
                 ),
             )
 
-        if type(nn_model.dynamics) in [ConIaeOde, DiscreteConIaeCfaDynamics]:
+        if type(nn_model.dynamics) in [ConIaeOde, DiscreteConIaeCfaDynamics] and nn_model.dynamics.input_dim > 0:
             batch_loss_dict["mse_tau_rec"] = jnp.mean(
-                jnp.square(preds["tau_pred"] - batch["tau"])
+                jnp.square(preds["tau_pred"] - batch["tau"][..., :nn_model.dynamics.input_dim])
             )
 
         return batch_loss_dict
@@ -657,7 +691,7 @@ def task_factory(
             ssim_rec_static: RootAverage.from_output("ssim_rec_static")
             ssim_rec_dynamic: RootAverage.from_output("ssim_rec_dynamic")
 
-        if type(nn_model.dynamics) in [ConIaeOde, DiscreteConIaeCfaDynamics]:
+        if type(nn_model.dynamics) in [ConIaeOde, DiscreteConIaeCfaDynamics] and nn_model.dynamics.input_dim > 0:
             rmse_tau_rec: RootAverage.from_output("mse_tau_rec")
 
     metrics_collection_cls = MetricsCollection

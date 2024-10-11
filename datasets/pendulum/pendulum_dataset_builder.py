@@ -82,7 +82,7 @@ class Pendulum(tfds.core.GeneratorBasedBuilder):
             features=tfds.features.FeaturesDict(
                 {
                     # These are the features of your dataset like images, labels ...
-                    "id": tfds.features.Scalar(dtype=jnp.int32),
+                    "id": tfds.features.Scalar(dtype=onp.int32),
                     "t_ts": tfds.features.Tensor(
                         shape=(self.builder_config.horizon_dim,),
                         dtype=onp.float64,

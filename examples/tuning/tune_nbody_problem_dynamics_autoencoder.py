@@ -23,10 +23,8 @@ from src.models.neural_odes import (
     ConOde,
     ConIaeOde,
     CornnOde,
-    DconOde,
     LnnOde,
     LinearStateSpaceOde,
-    MambaOde,
     MlpOde,
 )
 from src.models.dynamics_autoencoder import DynamicsAutoencoder
@@ -47,8 +45,8 @@ system_type = "nb-2"
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 """ dynamics_model_name in [
     "node-general-mlp", "node-mechanical-mlp", "node-mechanical-mlp-s", 
-    "node-cornn", "node-con", "node-w-con", "node-con-iae", "node-dcon", "node-lnn", 
-    "node-hippo-lss", "node-mamba",
+    "node-cornn", "node-con", "node-w-con", "node-con-iae", "node-lnn", 
+    "node-hippo-lss",
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
 ]
 """
@@ -196,19 +194,6 @@ if __name__ == "__main__":
                 num_layers=num_mlp_layers,
                 hidden_dim=mlp_hidden_dim,
             )
-        elif dynamics_model_name == "node-dcon":
-            dcon_gamma = trial.suggest_float("dcon_gamma", 1e-2, 1e2, log=True)
-            dcon_epsilon = trial.suggest_float("dcon_epsilon", 1e-2, 1e2, log=True)
-            num_mlp_layers = trial.suggest_int("num_mlp_layers", 2, 6)
-            mlp_hidden_dim = trial.suggest_int("mlp_hidden_dim", 4, 96)
-            dynamics_model = DconOde(
-                latent_dim=n_z,
-                input_dim=n_tau,
-                gamma=dcon_gamma,
-                epsilon=dcon_epsilon,
-                num_layers=num_mlp_layers,
-                hidden_dim=mlp_hidden_dim,
-            )
         elif dynamics_model_name == "node-lnn":
             learn_dissipation = trial.suggest_categorical(
                 "learn_dissipation", [True, False]
@@ -246,11 +231,6 @@ if __name__ == "__main__":
                 transition_matrix_init=dynamics_model_name.split("-")[
                     1
                 ],  # "general", "mechanical", or "hippo"
-            )
-        elif dynamics_model_name == "node-mamba":
-            dynamics_model = MambaOde(
-                latent_dim=n_z,
-                input_dim=n_tau,
             )
         elif dynamics_model_name == "discrete-mlp":
             num_mlp_layers = trial.suggest_int("num_mlp_layers", 2, 6)
@@ -303,11 +283,11 @@ if __name__ == "__main__":
             num_past_timesteps=num_past_timesteps,
         )
 
+        solver_class_name = dataset_metadata.get("solver_class", "Dopri5")
         # import solver class from diffrax
         # https://stackoverflow.com/questions/6677424/how-do-i-import-variable-packages-in-python-like-using-variable-variables-i
         solver_class = getattr(
-            __import__("diffrax", fromlist=[dataset_metadata["solver_class"]]),
-            dataset_metadata["solver_class"],
+            __import__("diffrax", fromlist=[solver_class_name]), solver_class_name,
         )
 
         # call the factory function for the task
@@ -315,7 +295,7 @@ if __name__ == "__main__":
             "Dataset dt:",
             dataset_metadata["dt"],
             "dataset sim_dt:",
-            dataset_metadata["sim_dt"],
+            dataset_metadata.get("sim_dt", "not available"),
             "actually using sim_dt",
             sim_dt,
         )

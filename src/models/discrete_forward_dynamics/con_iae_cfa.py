@@ -22,6 +22,7 @@ class DiscreteConIaeCfaDynamics(DiscreteForwardDynamicsBase):
     latent_dim: int
     input_dim: int
     dt: float
+    dynamics_order: int = 2
 
     num_layers: int = 5
     hidden_dim: int = 32
@@ -57,13 +58,16 @@ class DiscreteConIaeCfaDynamics(DiscreteForwardDynamicsBase):
             diag_eps=self.diag_eps,
         )
 
-        # constructing E_w as a positive definite matrix
-        num_E_w_params = int((self.latent_dim**2 + self.latent_dim) / 2)
-        # vector of parameters for triangular matrix
-        e_w = self.param("e_w", tri_params_init, (num_E_w_params,), self.param_dtype)
-        self.E_w = generate_positive_definite_matrix_from_params(
-            self.latent_dim, e_w, diag_shift=self.diag_shift, diag_eps=self.diag_eps
-        )
+        if self.dynamics_order == 2:
+            # constructing E_w as a positive definite matrix
+            num_E_w_params = int((self.latent_dim**2 + self.latent_dim) / 2)
+            # vector of parameters for triangular matrix
+            e_w = self.param("e_w", tri_params_init, (num_E_w_params,), self.param_dtype)
+            self.E_w = generate_positive_definite_matrix_from_params(
+                self.latent_dim, e_w, diag_shift=self.diag_shift, diag_eps=self.diag_eps
+            )
+        else:
+            self.E_w = None
 
         # bias term
         self.bias = self.param(
@@ -82,19 +86,39 @@ class DiscreteConIaeCfaDynamics(DiscreteForwardDynamicsBase):
             diag_eps=self.diag_eps,
         )
 
-        V_layers = []
-        for _ in range(self.num_layers - 1):
-            V_layers.append(nn.Dense(features=self.hidden_dim))
-            V_layers.append(self.input_nonlinearity)
-        V_layers.append(nn.Dense(features=(self.latent_dim * self.input_dim)))
-        self.V_nn = nn.Sequential(V_layers)
+        if self.input_dim > 0:
+            if self.num_layers > 0:
+                V_layers = []
+                for _ in range(self.num_layers - 1):
+                    V_layers.append(nn.Dense(features=self.hidden_dim))
+                    V_layers.append(self.input_nonlinearity)
+                V_layers.append(nn.Dense(features=(self.latent_dim * self.input_dim)))
+                self.V_nn = nn.Sequential(V_layers)
+            elif self.latent_dim == self.input_dim:
+                self.V_nn = lambda tau: jnp.eye(self.latent_dim)
+            else:
+                self.V_nn = lambda tau: jnp.zeros((self.latent_dim, self.input_dim))
+        elif self.input_dim == 0:
+            self.V_nn = lambda tau: jnp.zeros((self.latent_dim, 0))
+        else:
+            raise ValueError("Input dimension must be non-negative")
 
-        Y_layers = []
-        for _ in range(self.num_layers - 1):
-            Y_layers.append(nn.Dense(features=self.hidden_dim))
-            Y_layers.append(self.input_nonlinearity)
-        Y_layers.append(nn.Dense(features=(self.input_dim * self.latent_dim)))
-        self.Y_nn = nn.Sequential(Y_layers)
+        if self.input_dim > 0:
+            if self.num_layers > 0:
+                Y_layers = []
+                for _ in range(self.num_layers - 1):
+                    Y_layers.append(nn.Dense(features=self.hidden_dim))
+                    Y_layers.append(self.input_nonlinearity)
+                Y_layers.append(nn.Dense(features=(self.input_dim * self.latent_dim)))
+                self.Y_nn = nn.Sequential(Y_layers)
+            elif self.input_dim == self.latent_dim:
+                self.Y_nn = lambda u: jnp.eye(self.input_dim)
+            else:
+                self.Y_nn = lambda u: jnp.zeros((self.input_dim, self.latent_dim))
+        elif self.input_dim == 0:
+            self.Y_nn = lambda u: jnp.zeros((0, self.latent_dim))
+        else:
+            raise ValueError("Input dimension must be non-negative")
 
     def __call__(self, x: Array, tau: Array) -> Array:
         """
@@ -104,31 +128,48 @@ class DiscreteConIaeCfaDynamics(DiscreteForwardDynamicsBase):
         Returns:
             x_next: state of shape (2*latent_dim, ).
         """
-        z, z_d = jnp.split(x, 2)
-
-        # compute the oscillator parameters
-        m = jnp.ones((self.latent_dim,))
-        Gamma = self.Gamma_w @ self.W
-        E = self.E_w @ self.W
-
-        # stiffness and damping matrices without diagonal
-        Gamma_coup = Gamma - jnp.diag(jnp.diag(Gamma))
-        E_coup = E - jnp.diag(jnp.diag(E))
-
         # compute the latent-space input
         u = self.encode_input(tau)
 
-        closed_form_approximation_step_fn = partial(
-            harmonic_oscillator_closed_form_dynamics,
-            m=m,
-            gamma=jnp.diag(Gamma),
-            epsilon=jnp.diag(E),
-        )
+        # compute the oscillator parameters
+        m = jnp.ones((self.latent_dim,))
+        # compute the stiffness in the original space
+        Gamma = self.Gamma_w @ self.W
+        # stiffness without the diagonal
+        Gamma_coup = Gamma - jnp.diag(jnp.diag(Gamma))
+        gamma = jnp.diag(Gamma)
 
-        f = u - Gamma_coup @ z - E_coup @ z_d - jnp.tanh(self.W @ z + self.bias)
-        x_next = closed_form_approximation_step_fn(
-            t0=jnp.array(0.0), t1=jnp.array(self.dt), y0=x, f=f
-        )
+        # define the initial and final time of the step
+        t0, t1 = jnp.array(0.0), jnp.array(self.dt)
+
+        match self.dynamics_order:
+            case 1:
+                f = u - Gamma_coup @ x - jnp.tanh(self.W @ x + self.bias)
+
+                x_next = (x - f / gamma) * jnp.exp(-gamma * (t1-t0) / m) + f / gamma
+            case 2:
+                z, z_d = jnp.split(x, 2)
+
+                # compute the damping in the original space
+                E = self.E_w @ self.W
+                # damping without the diagonal
+                E_coup = E - jnp.diag(jnp.diag(E))
+
+                # compute the forcing on each decoupled, linear oscillator
+                f = u - Gamma_coup @ z - E_coup @ z_d - jnp.tanh(self.W @ z + self.bias)
+
+                closed_form_approximation_step_fn = partial(
+                    harmonic_oscillator_closed_form_dynamics,
+                    m=m,
+                    gamma=gamma,
+                    epsilon=jnp.diag(E),
+                )
+
+                x_next = closed_form_approximation_step_fn(
+                    t0=t0, t1=t1, y0=x, f=f
+                )
+            case _:
+                raise ValueError("Only dynamics_order 1 and 2 are supported")
 
         return x_next
 
@@ -140,27 +181,39 @@ class DiscreteConIaeCfaDynamics(DiscreteForwardDynamicsBase):
         Returns:
             x_d: latent state derivative of shape (2* latent_dim, )
         """
-        # the latent variables are given in the input
-        z = x[..., : self.latent_dim]
-        # the velocity of the latent variables is given in the input
-        z_d = x[..., self.latent_dim :]
-
         # compute the stiffness and damping matrices
         Gamma = self.Gamma_w @ self.W
-        E = self.E_w @ self.W
 
         # compute the latent-space input
         u = self.encode_input(tau)
 
-        z_dd = (
-            u
-            - Gamma @ z
-            - E @ z_d
-            - self.potential_nonlinearity(self.W @ z + self.bias)
-        )
+        match self.dynamics_order:
+            case 1:
+                x_d = (
+                    u
+                    - Gamma @ x
+                    - self.potential_nonlinearity(self.W @ x + self.bias)
+                )
+            case 2:
+                # the latent variables are given in the input
+                z = x[..., : self.latent_dim]
+                # the velocity of the latent variables is given in the input
+                z_d = x[..., self.latent_dim:]
 
-        # concatenate the velocity and acceleration of the latent variables
-        x_d = jnp.concatenate([z_d, z_dd], axis=-1)
+                # compute the damping in the original space
+                E = self.E_w @ self.W
+
+                z_dd = (
+                    u
+                    - Gamma @ z
+                    - E @ z_d
+                    - self.potential_nonlinearity(self.W @ z + self.bias)
+                )
+
+                # concatenate the velocity and acceleration of the latent variables
+                x_d = jnp.concatenate([z_d, z_dd], axis=-1)
+            case _:
+                raise ValueError("Only dynamics_order 1 and 2 are supported")
 
         return x_d
 
@@ -175,7 +228,7 @@ class DiscreteConIaeCfaDynamics(DiscreteForwardDynamicsBase):
 
     def encode_input(self, tau: Array):
         V = self.input_state_coupling(tau)
-        u = V @ tau
+        u = V @ tau[:self.input_dim]
         return u
 
     def decode_input(self, u: Array):
@@ -264,7 +317,6 @@ class DiscreteConIaeCfaDynamics(DiscreteForwardDynamicsBase):
             control_info: dictionary with control information
         """
         z = x[..., : self.latent_dim]
-        z_d = x[..., self.latent_dim :]
 
         # compute the stiffness and damping matrices
         Gamma = self.Gamma_w @ self.W
@@ -272,8 +324,13 @@ class DiscreteConIaeCfaDynamics(DiscreteForwardDynamicsBase):
         # compute error in the latent space
         error_z = z_des - z
 
-        # compute the feedback term
-        u_fb = kp * error_z + ki * control_state["e_int"] - kd * z_d
+        if self.dynamics_order == 2:
+            z_d = x[..., self.latent_dim :]
+            # compute the feedback term
+            u_fb = kp * error_z + ki * control_state["e_int"] - kd * z_d
+        else:
+            # compute the feedback term
+            u_fb = kp * error_z + ki * control_state["e_int"]
 
         # compute the feedforward term
         u_ff = Gamma @ z_des + jnp.tanh(z_des + self.bias)

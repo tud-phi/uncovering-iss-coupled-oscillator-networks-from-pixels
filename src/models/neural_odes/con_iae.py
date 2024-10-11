@@ -18,6 +18,7 @@ class ConIaeOde(NeuralOdeBase):
 
     latent_dim: int
     input_dim: int
+    dynamics_order: int = 2
 
     num_layers: int = 5
     hidden_dim: int = 32
@@ -53,13 +54,16 @@ class ConIaeOde(NeuralOdeBase):
             diag_eps=self.diag_eps,
         )
 
-        # constructing E_w as a positive definite matrix
-        num_E_w_params = int((self.latent_dim**2 + self.latent_dim) / 2)
-        # vector of parameters for triangular matrix
-        e_w = self.param("e_w", tri_params_init, (num_E_w_params,), self.param_dtype)
-        self.E_w = generate_positive_definite_matrix_from_params(
-            self.latent_dim, e_w, diag_shift=self.diag_shift, diag_eps=self.diag_eps
-        )
+        if self.dynamics_order == 2:
+            # constructing E_w as a positive definite matrix
+            num_E_w_params = int((self.latent_dim**2 + self.latent_dim) / 2)
+            # vector of parameters for triangular matrix
+            e_w = self.param("e_w", tri_params_init, (num_E_w_params,), self.param_dtype)
+            self.E_w = generate_positive_definite_matrix_from_params(
+                self.latent_dim, e_w, diag_shift=self.diag_shift, diag_eps=self.diag_eps
+            )
+        else:
+            self.E_w = None
 
         # bias term
         self.bias = self.param(
@@ -80,29 +84,39 @@ class ConIaeOde(NeuralOdeBase):
             diag_eps=self.diag_eps,
         )
 
-        if self.num_layers > 0:
-            V_layers = []
-            for _ in range(self.num_layers - 1):
-                V_layers.append(nn.Dense(features=self.hidden_dim))
-                V_layers.append(self.input_nonlinearity)
-            V_layers.append(nn.Dense(features=(self.latent_dim * self.input_dim)))
-            self.V_nn = nn.Sequential(V_layers)
-        elif self.latent_dim == self.input_dim:
-            self.V_nn = lambda tau: jnp.eye(self.latent_dim)
+        if self.input_dim > 0:
+            if self.num_layers > 0:
+                V_layers = []
+                for _ in range(self.num_layers - 1):
+                    V_layers.append(nn.Dense(features=self.hidden_dim))
+                    V_layers.append(self.input_nonlinearity)
+                V_layers.append(nn.Dense(features=(self.latent_dim * self.input_dim)))
+                self.V_nn = nn.Sequential(V_layers)
+            elif self.latent_dim == self.input_dim:
+                self.V_nn = lambda tau: jnp.eye(self.latent_dim)
+            else:
+                self.V_nn = lambda tau: jnp.zeros((self.latent_dim, self.input_dim))
+        elif self.input_dim == 0:
+            self.V_nn = lambda tau: jnp.zeros((self.latent_dim, 0))
         else:
-            self.V_nn = lambda tau: jnp.zeros((self.latent_dim, self.input_dim))
+            raise ValueError("Input dimension must be non-negative")
 
-        if self.num_layers > 0:
-            Y_layers = []
-            for _ in range(self.num_layers - 1):
-                Y_layers.append(nn.Dense(features=self.hidden_dim))
-                Y_layers.append(self.input_nonlinearity)
-            Y_layers.append(nn.Dense(features=(self.input_dim * self.latent_dim)))
-            self.Y_nn = nn.Sequential(Y_layers)
-        elif self.input_dim == self.latent_dim:
-            self.Y_nn = lambda u: jnp.eye(self.input_dim)
+        if self.input_dim > 0:
+            if self.num_layers > 0:
+                Y_layers = []
+                for _ in range(self.num_layers - 1):
+                    Y_layers.append(nn.Dense(features=self.hidden_dim))
+                    Y_layers.append(self.input_nonlinearity)
+                Y_layers.append(nn.Dense(features=(self.input_dim * self.latent_dim)))
+                self.Y_nn = nn.Sequential(Y_layers)
+            elif self.input_dim == self.latent_dim:
+                self.Y_nn = lambda u: jnp.eye(self.input_dim)
+            else:
+                self.Y_nn = lambda u: jnp.zeros((self.input_dim, self.latent_dim))
+        elif self.input_dim == 0:
+            self.Y_nn = lambda u: jnp.zeros((0, self.latent_dim))
         else:
-            self.Y_nn = lambda u: jnp.zeros((self.input_dim, self.latent_dim))
+            raise ValueError("Input dimension must be non-negative")
 
     def __call__(self, x: Array, tau: Array) -> Array:
         """
@@ -112,23 +126,34 @@ class ConIaeOde(NeuralOdeBase):
         Returns:
             x_d: latent state derivative of shape (2* latent_dim, )
         """
-        # the latent variables are given in the input
-        zw = x[..., : self.latent_dim]
-        # the velocity of the latent variables is given in the input
-        zw_d = x[..., self.latent_dim :]
-
         # compute the latent-space input
         u = self.encode_input(tau)
 
-        zw_dd = self.B_w_inv @ (
-            u
-            - self.Lambda_w @ zw
-            - self.E_w @ zw_d
-            - self.potential_nonlinearity(zw + self.bias)
-        )
+        match self.dynamics_order:
+            case 1:
+                # state dimension is latent_dim
+                x_d = self.B_w_inv @ (
+                    u
+                    - self.Lambda_w @ x
+                    - self.potential_nonlinearity(x + self.bias)
+                )
+            case 2:
+                # the latent variables are given in the input
+                zw = x[..., : self.latent_dim]
+                # the velocity of the latent variables is given in the input
+                zw_d = x[..., self.latent_dim :]
 
-        # concatenate the velocity and acceleration of the latent variables
-        x_d = jnp.concatenate([zw_d, zw_dd], axis=-1)
+                zw_dd = self.B_w_inv @ (
+                    u
+                    - self.Lambda_w @ zw
+                    - self.E_w @ zw_d
+                    - self.potential_nonlinearity(zw + self.bias)
+                )
+
+                # concatenate the velocity and acceleration of the latent variables
+                x_d = jnp.concatenate([zw_d, zw_dd], axis=-1)
+            case _:
+                raise ValueError(f"Invalid dynamics order {self.dynamics_order}")
 
         return x_d
 
@@ -143,7 +168,7 @@ class ConIaeOde(NeuralOdeBase):
 
     def encode_input(self, tau: Array):
         V = self.input_state_coupling(tau)
-        u = V @ tau
+        u = V @ tau[:self.input_dim]
         return u
 
     def decode_input(self, u: Array):
@@ -164,6 +189,9 @@ class ConIaeOde(NeuralOdeBase):
         Returns:
             T: kinetic energy of the system of shape ()
         """
+        if self.dynamics_order == 1:
+            return jnp.zeros(())
+
         zw_d = x[..., self.latent_dim :]
 
         # mass matrix
@@ -234,13 +262,17 @@ class ConIaeOde(NeuralOdeBase):
             control_info: dictionary with control information
         """
         zw = x[..., : self.latent_dim]
-        zw_d = x[..., self.latent_dim :]
 
         # compute error in the latent space
         error_z = z_des - zw
 
-        # compute the feedback term
-        u_fb = kp * error_z + ki * control_state["e_int"] - kd * zw_d
+        if self.dynamics_order == 2:
+            zw_d = x[..., self.latent_dim:]
+            # compute the feedback term
+            u_fb = kp * error_z + ki * control_state["e_int"] - kd * zw_d
+        else:
+            # compute the feedback term
+            u_fb = kp * error_z + ki * control_state["e_int"]
 
         # compute the feedforward term
         u_ff = self.Lambda_w @ z_des + jnp.tanh(z_des + self.bias)

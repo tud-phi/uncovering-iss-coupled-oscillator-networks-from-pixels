@@ -22,6 +22,7 @@ class DiscreteCornn(DiscreteForwardDynamicsBase):
     latent_dim: int
     input_dim: int
     dt: float
+    dynamics_order: int = 2
 
     gamma: float = 1.0
     epsilon: float = 1.0
@@ -36,22 +37,32 @@ class DiscreteCornn(DiscreteForwardDynamicsBase):
         Returns:
             x_next: state of shape (2 * latent_dim, ). In RNN literature, this is often called the next "hidden state" or "carry" h.
         """
-        # the latent variables are given in the input
-        z = x[..., : self.latent_dim]
-        # the velocity of the latent variables is given in the input
-        z_d = x[..., self.latent_dim :]
-
         # concatenate the state and the control input
-        input = jnp.concatenate([x, tau], axis=-1)
+        input = jnp.concatenate([x, tau[:self.input_dim]], axis=-1)
 
-        # compute the acceleration of the latent variables
-        z_dd = (
-            self.nonlinearity(nn.Dense(features=self.latent_dim)(input))
-            - self.gamma * z
-            - self.epsilon * z_d
-        )
+        match self.dynamics_order:
+            case 1:
+                x_d = (
+                    self.nonlinearity(nn.Dense(features=self.latent_dim)(input))
+                    - self.gamma * x
+                )
+                x_next = x + self.dt * x_d
+            case 2:
+                # the latent variables are given in the input
+                z = x[..., : self.latent_dim]
+                # the velocity of the latent variables is given in the input
+                z_d = x[..., self.latent_dim :]
 
-        # integrate using the Euler method
-        x_next = x + self.dt * jnp.concatenate([z_d, z_dd], axis=-1)
+                # compute the acceleration of the latent variables
+                z_dd = (
+                    self.nonlinearity(nn.Dense(features=self.latent_dim)(input))
+                    - self.gamma * z
+                    - self.epsilon * z_d
+                )
+
+                # integrate using the Euler method
+                x_next = x + self.dt * jnp.concatenate([z_d, z_dd], axis=-1)
+            case _:
+                raise ValueError(f"Invalid dynamics order {self.dynamics_order}")
 
         return x_next

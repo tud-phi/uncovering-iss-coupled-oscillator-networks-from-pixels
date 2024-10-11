@@ -12,7 +12,7 @@ from typing import List, Optional, Tuple
 @dataclasses.dataclass
 class PlanarPcsDatasetConfig(tfds.core.BuilderConfig):
     state_dim: Optional[int] = None
-    horizon_dim: int = 11
+    horizon_dim: int = 101
     img_size: Tuple[int, int] = (64, 64)
     origin_uv: Tuple[int, int] = (32, 8)
     num_segments: int = 1

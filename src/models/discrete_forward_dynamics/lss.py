@@ -73,12 +73,12 @@ class DiscreteLssDynamics(DiscreteForwardDynamicsBase):
             Ad, Bd = discretize_state_space_model(
                 A, B, self.dt, method=self.discretization_method
             )
-            x_next = Ad @ x + Bd @ tau
+            x_next = Ad @ x + Bd @ tau[: self.input_dim]
         else:
             # compute x_d = Ad @ x + Bd @ tau where Ad and Bd are learned, time-discrete matrices
             x_next = nn.Dense(features=self.state_dim, use_bias=False)(x) + nn.Dense(
                 features=self.state_dim, use_bias=False
-            )(tau)
+            )(tau[: self.input_dim])
 
         # the state dim might be larger than the output dim
         # in which case we need to slice the output

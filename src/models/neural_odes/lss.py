@@ -34,7 +34,7 @@ class LinearStateSpaceOde(NeuralOdeBase):
             # compute z_dd = A @ x + B @ tau where A and B are learned matrices
             z_dd = nn.Dense(features=self.latent_dim, use_bias=False)(x) + nn.Dense(
                 features=self.latent_dim, use_bias=False
-            )(tau)
+            )(tau[: self.input_dim])
             # concatenate the velocity and acceleration of the latent variables
             x_d = jnp.concatenate([z_d, z_dd], axis=-1)
         elif self.transition_matrix_init == "hippo":
@@ -70,11 +70,11 @@ class LinearStateSpaceOde(NeuralOdeBase):
             B = jnp.stack(B_columns, axis=-1)
 
             # compute x_d = A @ x + B @ tau
-            x_d = A @ x + B @ tau
+            x_d = A @ x + B @ tau[:self.input_dim]
         else:
             # compute x_d = A @ x + B @ tau where A and B are learned matrices
             x_d = nn.Dense(features=2 * self.latent_dim, use_bias=False)(x) + nn.Dense(
                 features=2 * self.latent_dim, use_bias=False
-            )(tau)
+            )(tau[: self.input_dim])
 
         return x_d

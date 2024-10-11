@@ -25,7 +25,6 @@ from src.models.neural_odes import (
     CornnOde,
     LnnOde,
     LinearStateSpaceOde,
-    MambaOde,
     MlpOde,
 )
 from src.models.dynamics_autoencoder import DynamicsAutoencoder
@@ -46,8 +45,8 @@ long_horizon_dataset = True
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 """ dynamics_model_name in [
     "node-general-mlp", "node-mechanical-mlp", "node-mechanical-mlp-s", 
-    "node-cornn", "node-con", "node-w-con", "node-con-iae", "node-dcon", "node-lnn", 
-    "node-hippo-lss", "node-mamba",
+    "node-cornn", "node-con", "node-w-con", "node-con-iae", "node-lnn", 
+    "node-hippo-lss",
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
     "ar-con-iae-cfa", "ar-elman-rnn", "ar-gru-rnn", "ar-cornn"
 ]
@@ -452,11 +451,11 @@ if __name__ == "__main__":
         num_past_timesteps=num_past_timesteps,
     )
 
+    solver_class_name = dataset_metadata.get("solver_class", "Dopri5")
     # import solver class from diffrax
     # https://stackoverflow.com/questions/6677424/how-do-i-import-variable-packages-in-python-like-using-variable-variables-i
     solver_class = getattr(
-        __import__("diffrax", fromlist=[dataset_metadata["solver_class"]]),
-        dataset_metadata["solver_class"],
+        __import__("diffrax", fromlist=[solver_class_name]), solver_class_name,
     )
 
     # call the factory function for the dynamics autoencoder task

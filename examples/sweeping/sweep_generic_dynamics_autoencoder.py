@@ -13,7 +13,6 @@ import jax
 jax.config.update("jax_enable_x64", True)
 from jax import random
 import jax.numpy as jnp
-import jsrm
 import numpy as onp
 from pathlib import Path
 import tensorflow as tf
@@ -33,7 +32,6 @@ from src.models.neural_odes import (
     CornnOde,
     LnnOde,
     LinearStateSpaceOde,
-    MambaOde,
     MlpOde,
 )
 from src.models.dynamics_autoencoder import DynamicsAutoencoder
@@ -64,14 +62,14 @@ seed_range = onp.array([0, 1, 2])
 # set the system type in [
 # "cc", "cs", "pcc_ns-2",
 # "mass_spring_friction", "mass_spring_friction_actuation", "pendulum_friction", "double_pendulum_friction",
-# "single_pendulum"]
+# "single_pendulum", "reaction_diffusion_default"]
 system_type = "pcc_ns-2"
 long_horizon_dataset = True
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
 """ dynamics_model_name in [
     "node-general-mlp", "node-mechanical-mlp", "node-mechanical-mlp-s",
-    "node-cornn", "node-con", "node-w-con", "node-con-iae",  "node-con-iae-s", "node-dcon", "node-lnn",
-    "node-hippo-lss", "node-mamba",
+    "node-cornn", "node-con", "node-w-con", "node-con-iae",  "node-con-iae-s", "node-lnn",
+    "node-hippo-lss",
     "discrete-mlp", "discrete-elman-rnn", "discrete-gru-rnn", "discrete-general-lss", "discrete-hippo-lss", "discrete-mamba",
     "ar-con-iae-cfa", "ar-elman-rnn", "ar-gru-rnn", "ar-cornn"
 ]
@@ -87,6 +85,7 @@ elif system_type in [
     "mass_spring_friction_actuation",
     "pendulum_friction",
     "double_pendulum_friction",
+    "reaction_diffusion_default",
 ]:
     sim_dt = 2.5e-2
 else:
@@ -729,6 +728,95 @@ match system_type:
                 raise NotImplementedError(
                     f"{system_type} with dynamics_model_name '{dynamics_model_name}' not implemented yet."
                 )
+    case "reaction_diffusion_default":
+        batch_size = 10
+        grayscale = False
+        match dynamics_model_name:
+            case "node-general-mlp" | "node-general-mlp-s" | "node-mechanical-mlp" | "node-mechanical-mlp-s":
+                # optimized for "node-general-mlp at n_z=4
+                base_lr = 0.0059168868877279915
+                loss_weights = dict(
+                    mse_z=0.10889131669317606,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=1.1653845909300706,
+                    beta=0.0008282714338681616,
+                )
+                weight_decay = 1.2611460334026154e-05
+                if dynamics_model_name.split("-")[-1] == "s":
+                    num_mlp_layers, mlp_hidden_dim = 2, 12
+                else:
+                    num_mlp_layers, mlp_hidden_dim = 5, 30
+                mlp_nonlinearity_name = "tanh"
+            case "node-con-iae" | "node-con-iae-s":
+                # # optimized for n_z = 2
+                # base_lr = 0.005888917625351585
+                # loss_weights = dict(
+                #     mse_z=0.13054403694912117,
+                #     mse_rec_static=1.0,
+                #     mse_rec_dynamic=2.6387201915885408,
+                #     beta=0.0006981872905554007,
+                #     mse_tau_rec=0e0,
+                # )
+                # weight_decay = 1.1276927331777516e-05
+                # optimized for n_z = 4
+                base_lr = 0.012801121754750396
+                loss_weights = dict(
+                    mse_z=0.10501370568062449,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=48.19382647228793,
+                    beta=0.00022646053215673954,
+                    mse_tau_rec=0e0,
+                )
+                weight_decay = 1.163668844018335e-05
+                # the dataset doesn't consider inputs
+                num_mlp_layers, mlp_hidden_dim = 0, 0
+            case "ar-con-iae-cfa":
+                # optimized for n_z=4
+                base_lr = 0.009766329444231621
+                loss_weights = dict(
+                    mse_z=0.11552971801128281,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=15.563769911124428,
+                    beta=0.0003136141073989516,
+                    mse_tau_rec=0e0,
+                )
+                weight_decay = 4.096005404399632e-05
+                num_mlp_layers, mlp_hidden_dim = 0, 0
+            case "ar-elman-rnn":
+                # optimized for n_z=4
+                base_lr = 0.0019378423391292106
+                loss_weights = dict(
+                    mse_z=0.31809709978762846,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=9.093909927255865,
+                    beta=0.0003311525313441982,
+                )
+                weight_decay = 3.5656743768711664e-05
+            case "ar-gru-rnn":
+                # optimized for n_z=4
+                base_lr = 0.013572443532482735
+                loss_weights = dict(
+                    mse_z=0.2867771990437324,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=45.04050103443851,
+                    beta=0.0008503337887834961,
+                )
+                weight_decay = 4.5713276028459896e-05
+            case "ar-cornn":
+                # optimized for n_z=4
+                base_lr = 0.011772031105770487
+                loss_weights = dict(
+                    mse_z=0.28431186155509935,
+                    mse_rec_static=1.0,
+                    mse_rec_dynamic=1.0137752787206968,
+                    beta=0.0004800600944551659,
+                )
+                weight_decay = 1.9751997327387143e-05
+                cornn_gamma, cornn_epsilon = 1.165320622900866, 5.731626408645574
+    case _:
+        raise NotImplementedError(
+            f"{system_type} with dynamics_model_name '{dynamics_model_name}' not implemented yet."
+        )
 
 # identify the dynamics_type
 dynamics_type = dynamics_model_name.split("-")[0]
@@ -784,10 +872,15 @@ if __name__ == "__main__":
             # specify the folder
             logdir_run = logdir / f"n_z_{n_z}_seed_{seed}"
 
+            dynamics_order = 2
             if system_type in ["cc", "cs", "pcc_ns-2", "pcc_ns-3", "pcc_ns-4"]:
                 dataset_type = "planar_pcs"
             elif system_type in ["single_pendulum", "double_pendulum"]:
                 dataset_type = "pendulum"
+            elif system_type == "reaction_diffusion_default":
+                dataset_type = "reaction_diffusion"
+                grayscale = False
+                dynamics_order = 1
             elif system_type in [
                 "mass_spring_friction",
                 "mass_spring_friction_actuation",
@@ -799,14 +892,21 @@ if __name__ == "__main__":
                 raise ValueError(f"Unknown system_type: {system_type}")
 
             dataset_name_postfix = ""
-            if dataset_type == "toy_physics":
-                dataset_name_postfix += f"_dt_0_05"
-            else:
-                dataset_name_postfix += f"_32x32px"
-            if long_horizon_dataset and dataset_type != "toy_physics":
-                dataset_name_postfix += f"_h-101"
+            if not dataset_type in ["reaction_diffusion"]:
+                if dataset_type == "toy_physics":
+                    dataset_name_postfix += f"_dt_0_05"
+                else:
+                    dataset_name_postfix += f"_32x32px"
+                if dataset_type != "toy_physics":
+                    dataset_name_postfix += f"_h-101"
 
             dataset_name = f"{dataset_type}/{system_type}{dataset_name_postfix}"
+            if dataset_type == "toy_physics":
+                load_dataset_type = "dm_hamiltonian_dynamics_suite"
+            elif dataset_type == "reaction_diffusion":
+                load_dataset_type = "reaction_diffusion"
+            else:
+                load_dataset_type = "jsrm"
             datasets, dataset_info, dataset_metadata = load_dataset(
                 dataset_name,
                 seed=seed,
@@ -814,9 +914,7 @@ if __name__ == "__main__":
                 num_epochs=num_epochs,
                 normalize=True,
                 grayscale=grayscale,
-                dataset_type="dm_hamiltonian_dynamics_suite"
-                if dataset_type == "toy_physics"
-                else "jsrm",
+                dataset_type=load_dataset_type,
             )
             train_ds, val_ds, test_ds = (
                 datasets["train"],
@@ -829,7 +927,10 @@ if __name__ == "__main__":
             # size of torques
             n_tau = train_ds.element_spec["tau"].shape[
                 -1
-            ]  # dimension of the control input=
+            ]  # dimension of the control input
+            if system_type in ["reaction_diffusion_default"]:
+                n_tau = 0
+            print(f"n_tau: {n_tau}")
             # image shape
             img_shape = train_ds.element_spec["rendering_ts"].shape[-3:]  # image shape
 
@@ -842,6 +943,7 @@ if __name__ == "__main__":
                 autoencoder_model = Autoencoder(
                     latent_dim=n_z, img_shape=img_shape, norm_layer=nn.LayerNorm
                 )
+            state_dim = n_z if dynamics_order == 1 else 2 * n_z
             if dynamics_model_name in [
                 "node-general-mlp",
                 "node-mechanical-mlp",
@@ -850,6 +952,7 @@ if __name__ == "__main__":
                 dynamics_model = MlpOde(
                     latent_dim=n_z,
                     input_dim=n_tau,
+                    dynamics_order=dynamics_order,
                     num_layers=num_mlp_layers,
                     hidden_dim=mlp_hidden_dim,
                     nonlinearity=getattr(nn, mlp_nonlinearity_name),
@@ -861,6 +964,7 @@ if __name__ == "__main__":
                 dynamics_model = CornnOde(
                     latent_dim=n_z,
                     input_dim=n_tau,
+                    dynamics_order=dynamics_order,
                     gamma=cornn_gamma,
                     epsilon=cornn_epsilon,
                 )
@@ -874,6 +978,7 @@ if __name__ == "__main__":
                 dynamics_model = ConIaeOde(
                     latent_dim=n_z,
                     input_dim=n_tau,
+                    dynamics_order=dynamics_order,
                     num_layers=num_mlp_layers,
                     hidden_dim=mlp_hidden_dim,
                 )
@@ -929,20 +1034,22 @@ if __name__ == "__main__":
                     latent_dim=n_z,
                     input_dim=n_tau,
                     dt=sim_dt,
+                    dynamics_order=dynamics_order,
                     num_layers=num_mlp_layers,
                     hidden_dim=mlp_hidden_dim,
                 )
             elif dynamics_model_name in ["ar-elman-rnn", "ar-gru-rnn"]:
                 dynamics_model = DiscreteRnnDynamics(
-                    state_dim=2 * n_z,
+                    state_dim=state_dim,
                     input_dim=n_tau,
-                    output_dim=2 * n_z,
+                    output_dim=state_dim,
                     rnn_method=dynamics_model_name.split("-")[1],  # "elman" or "gru"
                 )
             elif dynamics_model_name == "ar-cornn":
                 dynamics_model = DiscreteCornn(
                     latent_dim=n_z,
                     input_dim=n_tau,
+                    dynamics_order=dynamics_order,
                     dt=sim_dt,
                     gamma=cornn_gamma,
                     epsilon=cornn_epsilon,
@@ -953,14 +1060,15 @@ if __name__ == "__main__":
                 autoencoder=autoencoder_model,
                 dynamics=dynamics_model,
                 dynamics_type=dynamics_type,
+                dynamics_order=dynamics_order,
                 num_past_timesteps=num_past_timesteps,
             )
 
+            solver_class_name = dataset_metadata.get("solver_class", "Dopri5")
             # import solver class from diffrax
             # https://stackoverflow.com/questions/6677424/how-do-i-import-variable-packages-in-python-like-using-variable-variables-i
             solver_class = getattr(
-                __import__("diffrax", fromlist=[dataset_metadata["solver_class"]]),
-                dataset_metadata["solver_class"],
+                __import__("diffrax", fromlist=[solver_class_name]), solver_class_name,
             )
 
             # call the factory function for the dynamics autoencoder task
@@ -973,6 +1081,7 @@ if __name__ == "__main__":
                     loss_weights=loss_weights,
                     ae_type=ae_type,
                     dynamics_type=dynamics_type,
+                    dynamics_order=dynamics_order,
                     start_time_idx=start_time_idx,
                     solver=solver_class(),
                     latent_velocity_source=latent_velocity_source,
@@ -1014,6 +1123,7 @@ if __name__ == "__main__":
                     loss_weights=loss_weights,
                     ae_type=ae_type,
                     dynamics_type=dynamics_type,
+                    dynamics_order=dynamics_order,
                     start_time_idx=start_time_idx,
                     solver=solver_class(),
                     latent_velocity_source=latent_velocity_source,

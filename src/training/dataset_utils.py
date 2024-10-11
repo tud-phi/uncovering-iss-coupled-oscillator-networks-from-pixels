@@ -150,12 +150,13 @@ def load_dataset(
         datasets[split_name] = ds
 
     img_min_val, img_max_val = 0, 255
-    if dataset_type == "dm_hamiltonian_dynamics_suite":
+    if dataset_type in ["dm_hamiltonian_dynamics_suite", "reaction_diffusion"]:
         # determine the min and max values of the rendering image
+        img_min_val, img_max_val = onp.inf, -onp.inf
         for sample_idx, sample in enumerate(datasets["test"].as_numpy_iterator()):
-            img_min_val = onp.min(sample["rendering_ts"])
-            img_max_val = onp.max(sample["rendering_ts"])
-            break
+            img_min_val = min(onp.min(sample["rendering_ts"]), img_min_val)
+            img_max_val = max(onp.max(sample["rendering_ts"]), img_max_val)
+        print(f"Identified img_min_val: {img_min_val}, img_max_val: {img_max_val}")
 
     metadata["rendering"] = metadata.get("rendering", {})
     metadata["rendering"]["img_min_val"] = img_min_val
@@ -166,26 +167,23 @@ def load_dataset(
 
         if normalize:
             # normalize rendering image to [-1, 1]
-            if dataset_type == "dm_hamiltonian_dynamics_suite":
-                # normalize the rendering image
+            ds = ds.map(
+                lambda sample: sample
+                | {
+                    "rendering_ts": (sample["rendering_ts"] - img_min_val)
+                    / (img_max_val - img_min_val)
+                    * 2.0
+                    - 1.0,
+                }
+            )
+            if "rendering_d_ts" in ds.element_spec:
                 ds = ds.map(
                     lambda sample: sample
                     | {
-                        "rendering_ts": (sample["rendering_ts"] - img_min_val)
-                        / (img_max_val - img_min_val)
-                        * 2.0
-                        - 1.0,
+                       "rendering_d_ts": sample["rendering_d_ts"] / (img_max_val - img_min_val) * 2.0,
                     }
                 )
-            else:
-                ds = ds.map(
-                    lambda sample: sample
-                    | {
-                        "rendering_ts": tf.cast(sample["rendering_ts"], tf.float32)
-                        / 128.0
-                        - 1.0,
-                    }
-                )
+
 
         # group into batches of batch_size and skip incomplete batch, prefetch the next sample to improve latency
         datasets[split_name] = ds.batch(batch_size, drop_remainder=True)
