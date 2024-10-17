@@ -37,9 +37,7 @@ def extract_states_from_dataset(ds: tf.data.Dataset) -> Tuple[Array, Array]:
 
 
 def denormalize_img(
-    img: Array,
-    threshold: float = 127.5,
-    apply_threshold: bool = False
+    img: Array, threshold: float = 127.5, apply_threshold: bool = False
 ) -> Array:
     """
     Denormalize an image.

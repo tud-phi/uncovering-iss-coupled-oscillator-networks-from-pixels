@@ -180,10 +180,11 @@ def load_dataset(
                 ds = ds.map(
                     lambda sample: sample
                     | {
-                       "rendering_d_ts": sample["rendering_d_ts"] / (img_max_val - img_min_val) * 2.0,
+                        "rendering_d_ts": sample["rendering_d_ts"]
+                        / (img_max_val - img_min_val)
+                        * 2.0,
                     }
                 )
-
 
         # group into batches of batch_size and skip incomplete batch, prefetch the next sample to improve latency
         datasets[split_name] = ds.batch(batch_size, drop_remainder=True)

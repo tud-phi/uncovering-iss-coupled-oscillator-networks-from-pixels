@@ -58,7 +58,9 @@ class ConIaeOde(NeuralOdeBase):
             # constructing E_w as a positive definite matrix
             num_E_w_params = int((self.latent_dim**2 + self.latent_dim) / 2)
             # vector of parameters for triangular matrix
-            e_w = self.param("e_w", tri_params_init, (num_E_w_params,), self.param_dtype)
+            e_w = self.param(
+                "e_w", tri_params_init, (num_E_w_params,), self.param_dtype
+            )
             self.E_w = generate_positive_definite_matrix_from_params(
                 self.latent_dim, e_w, diag_shift=self.diag_shift, diag_eps=self.diag_eps
             )
@@ -133,9 +135,7 @@ class ConIaeOde(NeuralOdeBase):
             case 1:
                 # state dimension is latent_dim
                 x_d = self.B_w_inv @ (
-                    u
-                    - self.Lambda_w @ x
-                    - self.potential_nonlinearity(x + self.bias)
+                    u - self.Lambda_w @ x - self.potential_nonlinearity(x + self.bias)
                 )
             case 2:
                 # the latent variables are given in the input
@@ -168,7 +168,7 @@ class ConIaeOde(NeuralOdeBase):
 
     def encode_input(self, tau: Array):
         V = self.input_state_coupling(tau)
-        u = V @ tau[:self.input_dim]
+        u = V @ tau[: self.input_dim]
         return u
 
     def decode_input(self, u: Array):
@@ -267,7 +267,7 @@ class ConIaeOde(NeuralOdeBase):
         error_z = z_des - zw
 
         if self.dynamics_order == 2:
-            zw_d = x[..., self.latent_dim:]
+            zw_d = x[..., self.latent_dim :]
             # compute the feedback term
             u_fb = kp * error_z + ki * control_state["e_int"] - kd * zw_d
         else:

@@ -31,7 +31,9 @@ def preprocess_rendering(
 
     if normalize:
         # normalize rendering image to [-1, 1]
-        rendering = (tf.cast(rendering, tf.float32) - img_min_val) / (img_max_val - img_min_val) * 2.0 - 1.0
+        rendering = (tf.cast(rendering, tf.float32) - img_min_val) / (
+            img_max_val - img_min_val
+        ) * 2.0 - 1.0
 
     if isinstance(input, jnp.ndarray):
         # cast image to jax array

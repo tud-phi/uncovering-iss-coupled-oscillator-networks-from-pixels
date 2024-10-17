@@ -348,7 +348,8 @@ if __name__ == "__main__":
     # import solver class from diffrax
     # https://stackoverflow.com/questions/6677424/how-do-i-import-variable-packages-in-python-like-using-variable-variables-i
     solver_class = getattr(
-        __import__("diffrax", fromlist=[solver_class_name]), solver_class_name,
+        __import__("diffrax", fromlist=[solver_class_name]),
+        solver_class_name,
     )
 
     # call the factory function for the dynamics autoencoder task
@@ -384,7 +385,12 @@ if __name__ == "__main__":
     nn_model_bound = nn_model.bind({"params": state.params})
     dynamics_model_bound = dynamics_model.bind({"params": state.params["dynamics"]})
     if type(dynamics_model) is ConIaeOde:
-        print("Lambda_w", dynamics_model_bound.Lambda_w, "with Eigenvalues:", jnp.linalg.eigh(dynamics_model_bound.Lambda_w).eigenvalues)
+        print(
+            "Lambda_w",
+            dynamics_model_bound.Lambda_w,
+            "with Eigenvalues:",
+            jnp.linalg.eigh(dynamics_model_bound.Lambda_w).eigenvalues,
+        )
 
     print("Run testing...")
     state, test_history = run_eval(test_ds, state, task_callables)
@@ -490,7 +496,9 @@ if __name__ == "__main__":
         xi_ts = preds["xi_dynamic_ts"][0]
 
         # denormalize the images
-        img_pred_ts = jax.vmap(partial(denormalize_img, apply_threshold=True))(img_pred_ts)
+        img_pred_ts = jax.vmap(partial(denormalize_img, apply_threshold=True))(
+            img_pred_ts
+        )
         img_target_ts = jax.vmap(partial(denormalize_img, apply_threshold=True))(
             img_target_ts
         )
@@ -547,7 +555,9 @@ if __name__ == "__main__":
             img_pred_ts = pred["img_dynamic_ts"][0]
             img_target_ts = batch["rendering_ts"][0, start_time_idx:]
             # denormalize the images
-            img_pred_ts = jax.vmap(partial(denormalize_img, apply_threshold=True))(img_pred_ts)
+            img_pred_ts = jax.vmap(partial(denormalize_img, apply_threshold=True))(
+                img_pred_ts
+            )
             img_target_ts = jax.vmap(partial(denormalize_img, apply_threshold=True))(
                 img_target_ts
             )

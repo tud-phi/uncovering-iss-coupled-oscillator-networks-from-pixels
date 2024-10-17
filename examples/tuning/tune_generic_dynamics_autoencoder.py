@@ -268,7 +268,10 @@ if __name__ == "__main__":
             # num_mlp_layers = trial.suggest_int("num_mlp_layers", 1, 6)
             # mlp_hidden_dim = trial.suggest_int("mlp_hidden_dim", 4, 96)
             if system_type in [
-                "mass_spring_friction", "single_pendulum_friction", "double_pendulum_friction", "reaction_diffusion_default"
+                "mass_spring_friction",
+                "single_pendulum_friction",
+                "double_pendulum_friction",
+                "reaction_diffusion_default",
             ]:
                 num_mlp_layers, mlp_hidden_dim = 0, 0
                 loss_weights["mse_tau_rec"] = 0e0
@@ -374,7 +377,10 @@ if __name__ == "__main__":
             # num_mlp_layers = trial.suggest_int("num_mlp_layers", 1, 6)
             # mlp_hidden_dim = trial.suggest_int("mlp_hidden_dim", 4, 96)
             if system_type in [
-                "mass_spring_friction", "single_pendulum_friction", "double_pendulum_friction", "reaction_diffusion_default"
+                "mass_spring_friction",
+                "single_pendulum_friction",
+                "double_pendulum_friction",
+                "reaction_diffusion_default",
             ]:
                 num_mlp_layers, mlp_hidden_dim = 0, 0
                 loss_weights["mse_tau_rec"] = 0e0
@@ -422,7 +428,8 @@ if __name__ == "__main__":
         # import solver class from diffrax
         # https://stackoverflow.com/questions/6677424/how-do-i-import-variable-packages-in-python-like-using-variable-variables-i
         solver_class = getattr(
-            __import__("diffrax", fromlist=[solver_class_name]), solver_class_name,
+            __import__("diffrax", fromlist=[solver_class_name]),
+            solver_class_name,
         )
 
         # call the factory function for the task

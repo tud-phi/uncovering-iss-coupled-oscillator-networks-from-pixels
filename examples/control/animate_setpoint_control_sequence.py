@@ -14,9 +14,7 @@ from src.control.utils import compute_settling_time_on_setpoint_trajectory
 seed = 0
 system_type = "pcc_ns-2"  # "pcc_ns-2", "mass_spring_friction_actuation"
 # set the dynamics_model_name
-dynamics_model_name = (
-    "node-con-iae"  # "node-con-iae", "node-mechanical-mlp"
-)
+dynamics_model_name = "node-con-iae"  # "node-con-iae", "node-mechanical-mlp"
 if system_type == "pcc_ns-2":
     n_z = 2
 elif system_type == "mass_spring_friction_actuation":

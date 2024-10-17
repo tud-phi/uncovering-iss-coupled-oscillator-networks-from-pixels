@@ -27,7 +27,9 @@ if __name__ == "__main__":
 
         # calculate the time since the last saved frame
         time_since_last_saved = time_current - time_last_saved
-        print(f"Current time: {time_current:.2f}, Time since last saved: {time_since_last_saved:.2f}")
+        print(
+            f"Current time: {time_current:.2f}, Time since last saved: {time_since_last_saved:.2f}"
+        )
         if time_since_last_saved >= (save_img_dt - 1e-6):
             img_path = video_path.parent / f"{video_path.stem}_{time_current:.2f}.png"
             # save the frame

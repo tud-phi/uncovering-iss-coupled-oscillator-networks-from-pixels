@@ -62,7 +62,9 @@ class DiscreteConIaeCfaDynamics(DiscreteForwardDynamicsBase):
             # constructing E_w as a positive definite matrix
             num_E_w_params = int((self.latent_dim**2 + self.latent_dim) / 2)
             # vector of parameters for triangular matrix
-            e_w = self.param("e_w", tri_params_init, (num_E_w_params,), self.param_dtype)
+            e_w = self.param(
+                "e_w", tri_params_init, (num_E_w_params,), self.param_dtype
+            )
             self.E_w = generate_positive_definite_matrix_from_params(
                 self.latent_dim, e_w, diag_shift=self.diag_shift, diag_eps=self.diag_eps
             )
@@ -146,7 +148,7 @@ class DiscreteConIaeCfaDynamics(DiscreteForwardDynamicsBase):
             case 1:
                 f = u - Gamma_coup @ x - jnp.tanh(self.W @ x + self.bias)
 
-                x_next = (x - f / gamma) * jnp.exp(-gamma * (t1-t0) / m) + f / gamma
+                x_next = (x - f / gamma) * jnp.exp(-gamma * (t1 - t0) / m) + f / gamma
             case 2:
                 z, z_d = jnp.split(x, 2)
 
@@ -165,9 +167,7 @@ class DiscreteConIaeCfaDynamics(DiscreteForwardDynamicsBase):
                     epsilon=jnp.diag(E),
                 )
 
-                x_next = closed_form_approximation_step_fn(
-                    t0=t0, t1=t1, y0=x, f=f
-                )
+                x_next = closed_form_approximation_step_fn(t0=t0, t1=t1, y0=x, f=f)
             case _:
                 raise ValueError("Only dynamics_order 1 and 2 are supported")
 
@@ -190,15 +190,13 @@ class DiscreteConIaeCfaDynamics(DiscreteForwardDynamicsBase):
         match self.dynamics_order:
             case 1:
                 x_d = (
-                    u
-                    - Gamma @ x
-                    - self.potential_nonlinearity(self.W @ x + self.bias)
+                    u - Gamma @ x - self.potential_nonlinearity(self.W @ x + self.bias)
                 )
             case 2:
                 # the latent variables are given in the input
                 z = x[..., : self.latent_dim]
                 # the velocity of the latent variables is given in the input
-                z_d = x[..., self.latent_dim:]
+                z_d = x[..., self.latent_dim :]
 
                 # compute the damping in the original space
                 E = self.E_w @ self.W
@@ -228,7 +226,7 @@ class DiscreteConIaeCfaDynamics(DiscreteForwardDynamicsBase):
 
     def encode_input(self, tau: Array):
         V = self.input_state_coupling(tau)
-        u = V @ tau[:self.input_dim]
+        u = V @ tau[: self.input_dim]
         return u
 
     def decode_input(self, u: Array):

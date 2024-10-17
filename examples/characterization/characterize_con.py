@@ -48,6 +48,7 @@ def con_ode_factory(
 
     return con_ode_fn, con_energy_fn
 
+
 def conw_ode_factory(
     Mw: Array, Kw: Array, Dw: Array, b: Array
 ) -> Tuple[Callable, Callable]:
@@ -334,7 +335,6 @@ def simulate_somehow_stable_conw():
     Kw_eigvals, Kw_eigvecs = jnp.linalg.eigh(Kw)
     Dw_eigvals, Dw_eigvecs = jnp.linalg.eigh(Dw)
 
-
     print("Kw:\n", Kw, "\nEigenvalues of Kw:", jnp.linalg.eigh(Kw).eigenvalues)
     print("Dw:\n", Dw, "\nEigenvalues of Dw:", jnp.linalg.eigh(Dw).eigenvalues)
 
@@ -381,7 +381,7 @@ def simulate_somehow_stable_conw():
 
     # plot the trajectory in the W coordinates
     tauw = Kw_eigvecs.T @ jnp.array([1000.0, 0.0])
-    tauw = jnp.zeros((2, ))
+    tauw = jnp.zeros((2,))
     # tauw = Dw_eigvecs.T @ jnp.array([1000.0, 0.0])
     print("tauw:", tauw)
     fig, ax = plt.subplots(figsize=figsize)
@@ -581,8 +581,8 @@ def simulate_bistable_pcon():
     x_eqs = None
     x_eqs = jnp.array(
         [
-            [-2.12488409e+02, -4.74974002e+02],
-            [2.12488073e+02, 4.74972926e+02],
+            [-2.12488409e02, -4.74974002e02],
+            [2.12488073e02, 4.74972926e02],
         ]
     )
     # xlim = 10 * jnp.array([[-1.0, 1.0], [-1.0, 1.0]])

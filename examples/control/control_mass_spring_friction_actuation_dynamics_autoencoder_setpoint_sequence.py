@@ -50,9 +50,7 @@ tf.random.set_seed(seed=seed)
 
 system_type = "mass_spring_friction_actuation"
 ae_type = "beta_vae"  # "None", "beta_vae", "wae"
-dynamics_model_name = (
-    "node-con-iae"  # "node-con-iae", "node-mechanical-mlp"
-)
+dynamics_model_name = "node-con-iae"  # "node-con-iae", "node-mechanical-mlp"
 # latent space shape
 n_z = 1
 # number of configuration space dimensions
@@ -78,7 +76,7 @@ match dynamics_model_name:
             psatid_gamma = 1.0
         else:
             if apply_feedforward_term:
-                kp, ki, kd =  2e0, 3e-1, 3.5e0
+                kp, ki, kd = 2e0, 3e-1, 3.5e0
             else:
                 kp, ki, kd = 1e1, 1e1, 5e0
             psatid_gamma = 1.0
@@ -129,7 +127,7 @@ if __name__ == "__main__":
         batch_size=batch_size,
         normalize=True,
         grayscale=True,
-        dataset_type="dm_hamiltonian_dynamics_suite"
+        dataset_type="dm_hamiltonian_dynamics_suite",
     )
     train_ds, val_ds, test_ds = datasets["train"], datasets["val"], datasets["test"]
 
@@ -160,15 +158,18 @@ if __name__ == "__main__":
 
     def system_ode_fn(t: float, x: Array, tau: Array) -> Array:
         q, q_d = jnp.split(x, 2, axis=-1)
-        x_d = jnp.concatenate([
-            q_d,
-            (tau - robot_params["d"] * q_d - robot_params["k"] * q) / robot_params["m"]
-        ], axis=-1)
+        x_d = jnp.concatenate(
+            [
+                q_d,
+                (tau - robot_params["d"] * q_d - robot_params["k"] * q)
+                / robot_params["m"],
+            ],
+            axis=-1,
+        )
         return x_d
 
     def system_potential_energy_fn(q: Array) -> Array:
-        return 0.5 * robot_params["k"] * q ** 2
-
+        return 0.5 * robot_params["k"] * q**2
 
     # initialize the rendering function
     def rendering_fn(q: Array) -> Array:
@@ -176,7 +177,9 @@ if __name__ == "__main__":
             m=robot_params["m"],
             k=robot_params["k"],
         )
-        imgs, extra = system.render_trajectories(q[None, None, ...], params=params, rng_key=rng)
+        imgs, extra = system.render_trajectories(
+            q[None, None, ...], params=params, rng_key=rng
+        )
         img = jnp.array(imgs[0, 0, ...])
         return img
 
@@ -187,7 +190,9 @@ if __name__ == "__main__":
         img_min_val=dataset_metadata["rendering"]["img_min_val"],
         img_max_val=dataset_metadata["rendering"]["img_max_val"],
     )
-    preprocess_rendering_fn = partial(preprocess_rendering, **preprocess_rendering_kwargs)
+    preprocess_rendering_fn = partial(
+        preprocess_rendering, **preprocess_rendering_kwargs
+    )
 
     # initialize the neural networks
     if ae_type == "beta_vae":
@@ -227,7 +232,8 @@ if __name__ == "__main__":
     # import solver class from diffrax
     # https://stackoverflow.com/questions/6677424/how-do-i-import-variable-packages-in-python-like-using-variable-variables-i
     solver_class = getattr(
-        __import__("diffrax", fromlist=[solver_class_name]), solver_class_name,
+        __import__("diffrax", fromlist=[solver_class_name]),
+        solver_class_name,
     )
 
     # generate a random setpoint sequence
@@ -318,7 +324,11 @@ if __name__ == "__main__":
         plt.savefig(ckpt_dir / "potential_energy_landscape_z.pdf")
         plt.show()
 
-    if callable(potential_energy_fn) and n_q == 1 and dynamics_model_name in ["node-con-iae", "node-con-iae-s"]:
+    if (
+        callable(potential_energy_fn)
+        and n_q == 1
+        and dynamics_model_name in ["node-con-iae", "node-con-iae-s"]
+    ):
         q_ps = jnp.linspace(q0_min[0], q0_max[0], 100)[:, None]
         xi_ps = []
         Uq_hat_ps, Uq_gt_ps = [], []
@@ -382,8 +392,20 @@ if __name__ == "__main__":
             figsize=figsize,
             num="Learned potential energy landscape in configuration space",
         )
-        ax.plot(q_ps, Uq_gt_ps, linewidth=2.5, color=colors[0], label=r"$\mathcal{U}_{\mathrm{gt}}(q)$")
-        ax.plot(q_ps, Uq_hat_ps, linewidth=2.0, color=colors[1], label=r"$\hat{\mathcal{U}}(q)$")
+        ax.plot(
+            q_ps,
+            Uq_gt_ps,
+            linewidth=2.5,
+            color=colors[0],
+            label=r"$\mathcal{U}_{\mathrm{gt}}(q)$",
+        )
+        ax.plot(
+            q_ps,
+            Uq_hat_ps,
+            linewidth=2.0,
+            color=colors[1],
+            label=r"$\hat{\mathcal{U}}(q)$",
+        )
         ax.set_xlabel(r"$q$ [m]")
         ax.set_ylabel(r"$\mathcal{U}$")
         plt.grid(True)

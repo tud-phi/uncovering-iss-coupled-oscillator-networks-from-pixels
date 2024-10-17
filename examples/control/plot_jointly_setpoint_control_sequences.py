@@ -9,14 +9,22 @@ from pathlib import Path
 
 
 ctrl_data_filepaths = [
-    Path("examples/control/data/mass_spring_friction_actuation/node-con-iae_P-satI-D/setpoint_sequence_controlled_rollout.npz"),
-    Path("examples/control/data/mass_spring_friction_actuation/node-con-iae_D+FF/setpoint_sequence_controlled_rollout.npz"),
-    Path("examples/control/data/mass_spring_friction_actuation/node-con-iae_P-satI-D+FF/setpoint_sequence_controlled_rollout.npz"),
+    Path(
+        "examples/control/data/mass_spring_friction_actuation/node-con-iae_P-satI-D/setpoint_sequence_controlled_rollout.npz"
+    ),
+    Path(
+        "examples/control/data/mass_spring_friction_actuation/node-con-iae_D+FF/setpoint_sequence_controlled_rollout.npz"
+    ),
+    Path(
+        "examples/control/data/mass_spring_friction_actuation/node-con-iae_P-satI-D+FF/setpoint_sequence_controlled_rollout.npz"
+    ),
 ]
 ctrl_names = ["P-satI-D", "D+FF", "P-satI-D+FF"]
 assert len(ctrl_data_filepaths) == len(ctrl_names)
 
-system_type = "mass_spring_friction_actuation"  # "pcc_ns-2", "mass_spring_friction_actuation"
+system_type = (
+    "mass_spring_friction_actuation"  # "pcc_ns-2", "mass_spring_friction_actuation"
+)
 
 # define output directory
 outputs_dir = Path(__file__).parent / "outputs" / system_type
@@ -51,7 +59,7 @@ if __name__ == "__main__":
         sim_ts = sim_ts_ls[i]
         ctrl_label = ctrl_names[i]
         for j in range(sim_ts["x_ts"].shape[1] // 2):
-            jlabel = "" if sim_ts["x_ts"].shape[1] == 2 else  r"_" + str(j)
+            jlabel = "" if sim_ts["x_ts"].shape[1] == 2 else r"_" + str(j)
             if i == 0:
                 ax.plot(
                     sim_ts["ts"],
@@ -90,7 +98,7 @@ if __name__ == "__main__":
         sim_ts = sim_ts_ls[i]
         ctrl_label = ctrl_names[i]
         for j in range(sim_ts["xi_ts"].shape[1] // 2):
-            jlabel = "" if sim_ts["xi_ts"].shape[1] == 2 else  r"_" + str(j)
+            jlabel = "" if sim_ts["xi_ts"].shape[1] == 2 else r"_" + str(j)
             if i == 0:
                 ax.plot(
                     sim_ts["ts"],
@@ -178,6 +186,10 @@ if __name__ == "__main__":
         plt.box(True)
         plt.legend()
         plt.tight_layout()
-        plt.savefig(str(outputs_dir / f"setpoint_control_sequences_potential_energy.pdf"))
-        plt.savefig(str(outputs_dir / f"setpoint_control_sequences_potential_energy.eps"))
+        plt.savefig(
+            str(outputs_dir / f"setpoint_control_sequences_potential_energy.pdf")
+        )
+        plt.savefig(
+            str(outputs_dir / f"setpoint_control_sequences_potential_energy.eps")
+        )
         plt.show()

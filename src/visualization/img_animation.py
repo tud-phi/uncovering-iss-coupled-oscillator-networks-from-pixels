@@ -55,7 +55,9 @@ def animate_image_cv2(
         img_ts = onp.repeat(img_ts, 3, axis=-1)
 
     if rgb_to_bgr:
-        img_ts = onp.stack([cv2.cvtColor(img, cv2.COLOR_RGB2BGR) for img in img_ts], axis=0)
+        img_ts = onp.stack(
+            [cv2.cvtColor(img, cv2.COLOR_RGB2BGR) for img in img_ts], axis=0
+        )
 
     for time_idx, t in enumerate(t_ts):
         video.write(img_ts[time_idx])
@@ -91,8 +93,12 @@ def animate_pred_vs_target_image_cv2(
     dt = onp.mean(t_ts[1:] - t_ts[:-1])
 
     if rgb_to_bgr:
-        img_pred_ts = onp.stack([cv2.cvtColor(img, cv2.COLOR_RGB2BGR) for img in img_pred_ts], axis=0)
-        img_target_ts = onp.stack([cv2.cvtColor(img, cv2.COLOR_RGB2BGR) for img in img_target_ts], axis=0)
+        img_pred_ts = onp.stack(
+            [cv2.cvtColor(img, cv2.COLOR_RGB2BGR) for img in img_pred_ts], axis=0
+        )
+        img_target_ts = onp.stack(
+            [cv2.cvtColor(img, cv2.COLOR_RGB2BGR) for img in img_target_ts], axis=0
+        )
 
     # create the video writer
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")

@@ -22,7 +22,7 @@ class MlpOde(NeuralOdeBase):
     @nn.compact
     def __call__(self, x: Array, tau: Array) -> Array:
         # concatenate the state and the control input
-        tmp = jnp.concatenate([x, tau[:self.input_dim]], axis=-1)
+        tmp = jnp.concatenate([x, tau[: self.input_dim]], axis=-1)
 
         # pass through MLP
         for _ in range(self.num_layers - 1):

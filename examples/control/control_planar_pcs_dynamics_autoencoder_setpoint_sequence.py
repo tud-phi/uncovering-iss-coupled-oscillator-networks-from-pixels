@@ -205,7 +205,9 @@ if __name__ == "__main__":
         img_min_val=dataset_metadata["rendering"]["img_min_val"],
         img_max_val=dataset_metadata["rendering"]["img_max_val"],
     )
-    preprocess_rendering_fn = partial(preprocess_rendering, **preprocess_rendering_kwargs)
+    preprocess_rendering_fn = partial(
+        preprocess_rendering, **preprocess_rendering_kwargs
+    )
 
     # initialize the neural networks
     if ae_type == "beta_vae":
@@ -245,7 +247,8 @@ if __name__ == "__main__":
     # import solver class from diffrax
     # https://stackoverflow.com/questions/6677424/how-do-i-import-variable-packages-in-python-like-using-variable-variables-i
     solver_class = getattr(
-        __import__("diffrax", fromlist=[solver_class_name]), solver_class_name,
+        __import__("diffrax", fromlist=[solver_class_name]),
+        solver_class_name,
     )
 
     # define settings for the closed-loop simulation

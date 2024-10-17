@@ -98,9 +98,7 @@ class ReactionDiffusion(tfds.core.GeneratorBasedBuilder):
         dataset_path.mkdir(parents=True, exist_ok=True)
 
         # load the data
-        data = sio.loadmat(
-            str(Path(__file__).parent / "reaction_diffusion.mat")
-        )
+        data = sio.loadmat(str(Path(__file__).parent / "reaction_diffusion.mat"))
         # extract the data
         ts = data["t"].squeeze()
         # shape of vector fields: (img_width, img_height, num_timesteps)
@@ -131,14 +129,18 @@ class ReactionDiffusion(tfds.core.GeneratorBasedBuilder):
         num_rollouts = ts.shape[0] // horizon_dim
 
         # remove any samples that are not full rollouts
-        ts = ts[:num_rollouts * horizon_dim]
-        rendering_ts = rendering_ts[:num_rollouts * horizon_dim]
-        rendering_d_ts = rendering_d_ts[:num_rollouts * horizon_dim]
+        ts = ts[: num_rollouts * horizon_dim]
+        rendering_ts = rendering_ts[: num_rollouts * horizon_dim]
+        rendering_d_ts = rendering_d_ts[: num_rollouts * horizon_dim]
 
         # reshape to add the horizon dimension
         ts_rls = onp.reshape(ts, (num_rollouts, horizon_dim))
-        rendering_ts_rls = onp.reshape(rendering_ts, (num_rollouts, horizon_dim, *rendering_ts.shape[1:]))
-        rendering_d_ts_rls = onp.reshape(rendering_d_ts, (num_rollouts, horizon_dim, *rendering_d_ts.shape[1:]))
+        rendering_ts_rls = onp.reshape(
+            rendering_ts, (num_rollouts, horizon_dim, *rendering_ts.shape[1:])
+        )
+        rendering_d_ts_rls = onp.reshape(
+            rendering_d_ts, (num_rollouts, horizon_dim, *rendering_d_ts.shape[1:])
+        )
         # virtual torque that is zero for compatibility with the rest of the datasets
         tau_rls = onp.zeros((num_rollouts, 2), dtype=onp.float64)
 
@@ -160,7 +162,7 @@ class ReactionDiffusion(tfds.core.GeneratorBasedBuilder):
                 width=self.builder_config.img_size[0],
                 height=self.builder_config.img_size[1],
                 origin_uv=self.builder_config.origin_uv,
-            )
+            ),
         )
         print("Metadata:\n", metadata)
         # save the metadata in the `dataset_dir`

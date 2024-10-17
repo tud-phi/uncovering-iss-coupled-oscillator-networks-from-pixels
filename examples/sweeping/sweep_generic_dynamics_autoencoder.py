@@ -732,7 +732,12 @@ match system_type:
         batch_size = 10
         grayscale = False
         match dynamics_model_name:
-            case "node-general-mlp" | "node-general-mlp-s" | "node-mechanical-mlp" | "node-mechanical-mlp-s":
+            case (
+                "node-general-mlp"
+                | "node-general-mlp-s"
+                | "node-mechanical-mlp"
+                | "node-mechanical-mlp-s"
+            ):
                 # optimized for "node-general-mlp at n_z=4
                 base_lr = 0.0059168868877279915
                 loss_weights = dict(
@@ -1068,7 +1073,8 @@ if __name__ == "__main__":
             # import solver class from diffrax
             # https://stackoverflow.com/questions/6677424/how-do-i-import-variable-packages-in-python-like-using-variable-variables-i
             solver_class = getattr(
-                __import__("diffrax", fromlist=[solver_class_name]), solver_class_name,
+                __import__("diffrax", fromlist=[solver_class_name]),
+                solver_class_name,
             )
 
             # call the factory function for the dynamics autoencoder task

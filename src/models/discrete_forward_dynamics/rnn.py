@@ -44,7 +44,9 @@ class DiscreteRnnDynamics(DiscreteForwardDynamicsBase):
             # GRU
             # https://en.wikipedia.org/wiki/Gated_recurrent_unit
             # https://flax.readthedocs.io/en/latest/api_reference/flax.linen/_autosummary/flax.linen.GRUCell.html
-            x_next, _ = GRUCell(features=self.state_dim, input_dim=self.input_dim)(x, tau[: self.input_dim])
+            x_next, _ = GRUCell(features=self.state_dim, input_dim=self.input_dim)(
+                x, tau[: self.input_dim]
+            )
         else:
             raise NotImplementedError(f"RNN method {self.rnn_method} not implemented")
 
@@ -81,7 +83,7 @@ class GRUCell(nn.GRUCell):
             dtype=self.dtype,
             param_dtype=self.param_dtype,
             kernel_init=self.recurrent_kernel_init,
-            bias_init=self.bias_init
+            bias_init=self.bias_init,
         )
         dense_i = partial(
             nn.Dense,
@@ -90,22 +92,22 @@ class GRUCell(nn.GRUCell):
             dtype=self.dtype,
             param_dtype=self.param_dtype,
             kernel_init=self.kernel_init,
-            bias_init=self.bias_init
+            bias_init=self.bias_init,
         )
 
-        r = dense_h(name='hr')(h)
-        z = dense_h(name='hz')(h)
+        r = dense_h(name="hr")(h)
+        z = dense_h(name="hz")(h)
         if self.input_dim > 0:
-            r = r + dense_i(name='ir')(inputs)
-            z = z + dense_i(name='iz')(inputs)
+            r = r + dense_i(name="ir")(inputs)
+            z = z + dense_i(name="iz")(inputs)
         r = self.gate_fn(r)
         z = self.gate_fn(z)
 
         # add bias because the linear transformations aren't directly summed.
-        n = r * dense_h(name='hn', use_bias=True)(h)
+        n = r * dense_h(name="hn", use_bias=True)(h)
         if self.input_dim > 0:
-            n = n + dense_i(name='in')(inputs)
+            n = n + dense_i(name="in")(inputs)
         n = self.activation_fn(n)
 
-        new_h = (1. - z) * n + z * h
+        new_h = (1.0 - z) * n + z * h
         return new_h, new_h

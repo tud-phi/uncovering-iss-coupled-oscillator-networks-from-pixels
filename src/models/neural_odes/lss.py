@@ -70,7 +70,7 @@ class LinearStateSpaceOde(NeuralOdeBase):
             B = jnp.stack(B_columns, axis=-1)
 
             # compute x_d = A @ x + B @ tau
-            x_d = A @ x + B @ tau[:self.input_dim]
+            x_d = A @ x + B @ tau[: self.input_dim]
         else:
             # compute x_d = A @ x + B @ tau where A and B are learned matrices
             x_d = nn.Dense(features=2 * self.latent_dim, use_bias=False)(x) + nn.Dense(

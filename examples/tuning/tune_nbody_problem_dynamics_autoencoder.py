@@ -287,7 +287,8 @@ if __name__ == "__main__":
         # import solver class from diffrax
         # https://stackoverflow.com/questions/6677424/how-do-i-import-variable-packages-in-python-like-using-variable-variables-i
         solver_class = getattr(
-            __import__("diffrax", fromlist=[solver_class_name]), solver_class_name,
+            __import__("diffrax", fromlist=[solver_class_name]),
+            solver_class_name,
         )
 
         # call the factory function for the task
