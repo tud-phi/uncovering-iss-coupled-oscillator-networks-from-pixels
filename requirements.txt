@@ -6,7 +6,7 @@ dill
 dm-pix  # PIX is an image processing library in JAX, for JAX.
 hippox
 jax-models
-jsrm>=0.0.9
+jsrm==0.0.11
 matplotlib
 natsort
 nbodyx
