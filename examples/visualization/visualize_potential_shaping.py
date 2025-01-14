@@ -3,6 +3,7 @@ from jax import Array
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+from pathlib import Path
 from typing import Optional
 
 # activate plotting with latex typesetting
@@ -13,6 +14,10 @@ plt.rcParams.update(
         "font.serif": ["Computer Modern Romand"],
     }
 )
+
+# define the outputs directory
+outputs_dir = Path(__file__).parent / "outputs"
+outputs_dir.mkdir(exist_ok=True)
 
 def potential_energy_fn(q: Array, q_eq: Optional[Array] = None):
     """
@@ -29,7 +34,7 @@ def potential_energy_fn(q: Array, q_eq: Optional[Array] = None):
     return jnp.sum(jnp.square(q - q_eq))
 
 if __name__ == "__main__":
-    q1_grid, q2_grid = jnp.meshgrid(jnp.linspace(-1, 1, 100), jnp.linspace(-1, 1, 100))
+    q1_grid, q2_grid = jnp.meshgrid(jnp.linspace(-1, 1, 250), jnp.linspace(-1, 1, 250))
     q1_pts = q1_grid.flatten()
     q2_pts = q2_grid.flatten()
     q_pts = jnp.stack([q1_pts, q2_pts], axis=-1)
@@ -45,7 +50,7 @@ if __name__ == "__main__":
     # q_eq = jnp.zeros((2,))
     U_pts = jax.vmap(potential_energy_fn)(q_pts)
     U_grid = U_pts.reshape(q1_grid.shape)
-    surface = ax.plot_surface(q1_grid, q2_grid, U_grid, cmap='viridis')
+    surface = ax.plot_surface(q1_grid, q2_grid, U_grid, linewidth=0.0, cmap='viridis')
     """
 
     # q_eqs = jnp.array([0.5, 0.5])
@@ -53,7 +58,7 @@ if __name__ == "__main__":
     for q_eq in q_eqs:
         U_pts = jax.vmap(lambda q: potential_energy_fn(q, q_eq))(q_pts)
         U_grid = U_pts.reshape(q1_grid.shape)
-        ax.plot_surface(q1_grid, q2_grid, U_grid, cmap='viridis', alpha=0.5)
+        ax.plot_surface(q1_grid, q2_grid, U_grid, linewidth=0.0, cmap='viridis', alpha=0.5)
 
     # Label axes
     # ax.set_xlabel(r"$q_1$")
@@ -75,4 +80,5 @@ if __name__ == "__main__":
     ax.axis('off')
 
     plt.tight_layout()
+    plt.savefig(outputs_dir / "potential_shaping.pdf")
     plt.show()
