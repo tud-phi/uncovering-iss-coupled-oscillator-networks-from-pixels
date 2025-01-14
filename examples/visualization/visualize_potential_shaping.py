@@ -54,11 +54,17 @@ if __name__ == "__main__":
     """
 
     # q_eqs = jnp.array([0.5, 0.5])
-    q_eqs = [jnp.array([0.5, 0.5]), jnp.array([-0.5, -0.5])]
-    for q_eq in q_eqs:
+    # q_eqs = [jnp.array([0.5, 0.5]), jnp.array([-0.5, -0.5])]
+    q_eqs = [jnp.array([0.5, 0.5]), jnp.array([-0.5, -0.5]), jnp.array([0.5, -0.5]), jnp.array([-0.5, 0.5])]
+    cmaps_list = [
+        'Greys', 'Purples', 'Blues', 'Greens', 'Oranges', 'Reds',
+        'YlOrBr', 'YlOrRd', 'OrRd', 'PuRd', 'RdPu', 'BuPu',
+        'GnBu', 'PuBu', 'YlGnBu', 'PuBuGn', 'BuGn', 'YlGn'
+    ]
+    for idx, q_eq in enumerate(q_eqs):
         U_pts = jax.vmap(lambda q: potential_energy_fn(q, q_eq))(q_pts)
         U_grid = U_pts.reshape(q1_grid.shape)
-        ax.plot_surface(q1_grid, q2_grid, U_grid, linewidth=0.0, cmap='viridis', alpha=0.5)
+        ax.plot_surface(q1_grid, q2_grid, U_grid, linewidth=0.0, cmap=cmaps_list[idx] + "_r", alpha=0.7)
 
     # Label axes
     # ax.set_xlabel(r"$q_1$")
