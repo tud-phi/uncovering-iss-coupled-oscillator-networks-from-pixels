@@ -86,11 +86,11 @@ Remember to `source .venv/bin/activate` in any new terminal before executing the
 
 ### Add the project to your PYTHONPATH
 
-On Linux systems, we need to add the `src` folder to the `PYTHONPATH` environment variable. 
+On Linux systems, we need to add the directory of the project to the `PYTHONPATH` environment variable. 
 This can be done by running the following command:
 
 ```bash
-export PYTHONPATH="${PYTHONPATH}://src"
+export PYTHONPATH="${PYTHONPATH}:${PWD}"
 ```
 
 Alternatively, you can also use our helper script:
@@ -99,7 +99,7 @@ Alternatively, you can also use our helper script:
 source ./01-configure-env-vars.sh
 ```
 
-Afterwards, you can run the scripts in the `src` folder. Some examples are given below.
+Afterwards, you can run the scripts in the `examples` folder. Some examples are given below.
 
 ## Generating the datasets
 

@@ -7,8 +7,8 @@
 # disable pre-allocation of memory for JAX
 export XLA_PYTHON_CLIENT_PREALLOCATE=false
 
-# add the src folder to the PYTHONPATH
-export PYTHONPATH="${PYTHONPATH}://src"
+# add the current directory to the PYTHONPATH
+export PYTHONPATH="${PYTHONPATH}:${PWD}"
 
 # set the LD_LIBRARY_PATH to include the CUDA libraries
 # https://www.tensorflow.org/install/pip#linux
