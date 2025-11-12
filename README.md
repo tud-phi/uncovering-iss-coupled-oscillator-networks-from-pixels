@@ -60,6 +60,28 @@ This library requires Python 3.10 or higher. Please install the Python dependenc
 pip install -r requirements.txt
 ```
 
+#### Using `uv` 
+
+You can also set up a Python virtual environment using [uv](https://github.com/astral-sh/uv), an extremely fast Python package and project manager, with the following commands:
+
+```bash
+uv venv
+source .venv/bin/activate
+```
+
+After this, you should see the environment activated in the prompt of your terminal.:
+```bash
+(uncovering-iss-coupled-oscillator-networks-from-pixels) :/$ which python
+/path/to/uncovering-iss-coupled-oscillator-networks-from-pixels/.venv/bin/python 
+```
+Finally, install the dependencies with `uv pip`:
+
+```bash
+uv pip install -r requirements.txt
+```
+
+Remember to `source .venv/bin/activate` in any new terminal before executing the scripts.
+
 ## Usage
 
 ### Add the project to your PYTHONPATH
